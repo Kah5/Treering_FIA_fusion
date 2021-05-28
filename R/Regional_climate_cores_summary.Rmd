@@ -1,0 +1,506 @@
+---
+title: "Regional climate correlation summary"
+author: "Kelly Heilman"
+date: "12/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(corrplot)
+library(Hmisc) # You need to download it first.
+library(maps)
+library(sp)
+library(rgeos)
+library(cowplot)
+library(kableExtra, quietly = TRUE)
+library(knitr)
+```
+
+
+
+```{r}
+#### R driver file for Bayesian fusion of  tree-ring and DBH data
+#### based on Clark et al. 2007 hidden process model
+#### development by Mike Dietze
+
+#### analysis of Arizona PIPO FIA cores + DBH
+#### addition of several fixed effects here
+#### including time-varying effects
+
+### prep data files into jags objects
+AZ.PIPO <- read.delim("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/AZ_FIA_RWL_PRISM_allinone_04192017.txt", stringsAsFactors = F) ### 820 trees
+
+### merge together three diameter columns
+AZ.PIPO$DIA <- ifelse(is.na(AZ.PIPO$TREE_DIA), AZ.PIPO$SITETREE_DIA, AZ.PIPO$TREE_DIA) # combine together FIADB diameter measurements for trees and site trees
+AZ.PIPO$DIA <- ifelse(is.na(AZ.PIPO$DIA), AZ.PIPO$DBH, AZ.PIPO$DIA) # replace missing data with DBH recorded from core mounts (DBH)
+
+### filter out those cases where DIA is NA...no size information
+AZ.PIPO <- AZ.PIPO[!is.na(AZ.PIPO$DIA),] # 793 trees
+### filter out cases where covariate data are missing (SICOND and SDI)
+AZ.PIPO <- AZ.PIPO[!is.na(AZ.PIPO$COND_SICOND),] # 643 trees...~150 missing SICOND. Justin suggests they may be PJ (will never have SICOND)
+AZ.PIPO <- AZ.PIPO[!is.na(AZ.PIPO$SDI),] # 641
+
+### problem: in minority of cases, the difference between MEASYEAR and DateEnd is other than 0 or 1
+### filter out those cases
+temp1 <- AZ.PIPO[AZ.PIPO$PLOT_MEASYEAR-AZ.PIPO$DateEnd<2,] # 544 trees
+temp2 <- temp1[temp1$PLOT_MEASYEAR-temp1$DateEnd>-1,] # no change
+
+### load in the data for trees without increment cores ("tree-to-tree" 2 DBH measurements)
+Tree2Tree <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/Tree2Tree.csv", stringsAsFactors = F)
+
+### limit analysis to those trees with second DBH measurement in =< year 2015
+### this is because as of 7/2017, the available PRISM data (KNMI) go only to Dec 2015
+Tree2Tree <- Tree2Tree[Tree2Tree$T2_MEASYR<=2015,]
+
+### eliminate those cases without SI (SDI seems to always be there)
+Tree2Tree <- Tree2Tree[!is.na(Tree2Tree$SICOND),]
+Tree2Tree <- Tree2Tree[!is.na(Tree2Tree$SDIc),]
+
+# read in the FIA condition table to get DISTURBYR along with each disturbance code
+FIA.COND <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/AZ_COND.csv", stringsAsFactors = F)
+Tree2Tree <- merge(FIA.COND[c("DSTRBYR1", "DSTRBYR2", "DSTRBYR3", "CN", "PLT_CN", "INVYR", "PLOT")], Tree2Tree, by.x = "PLT_CN", by.y = "T1_PLT_CN")
+unique(temp2$Plot) %in% unique(Tree2Tree$T1_PLOT)
+incPlot.in.dbhPlot <- (unique(temp2$Plot) %in% unique(Tree2Tree$T1_PLOT) == TRUE)
+length(incPlot.in.dbhPlot[incPlot.in.dbhPlot ==TRUE])
+
+# 284 of 338 AZ increment plots are in the T1_PLOT id (this is the id that we use to identify plot random effects in the model, so I assume this is the PLOT id that we should use)
+# that means we are missing disturbyear from 54 plots in AZ (or 15%)
+
+distrub.plot <- merge(temp2, unique(Tree2Tree[,c("PLOT", "DSTRBYR1", "DSTRBYR2", "DSTRBYR3")]),  by.y = "PLOT", by.x = "PlotNo", all.x = TRUE, all.y = FALSE)
+
+# reduce to the 284 unique plots where we have the plot ids that match the FIA_COND/tree2tree database.
+distrub.plot.2 <- distrub.plot[distrub.plot$PlotNo %in% unique(Tree2Tree$T1_PLOT),]
+length(unique(distrub.plot.2$Widths)) # this leaves us with 452 unique series of tree growth
+
+newtemp2 <- distrub.plot.2[!duplicated(distrub.plot.2),] # this just makes sure there were no duplicates (there shouldn't be)
+
+
+
+# join trees to cond table
+
+# join cond table
+
+### NOW go get function that makes jags objects out of the above
+### setwd to github folder
+# setwd("/home/rstudio/pecan/modules/data.land/R")
+# 
+# setwd("pecan/modules/data.land/R")
+
+### read in function that creates jags objects from above data
+source("/Users/kah/Documents/docker_pecan/pecan/modules/data.land/R/BuildJAGSdataobject.R")
+
+# get all the data with cores set up for stage 1
+jags.stuff <- buildJAGSdataobject(temp2, rnd.subset = 100, trunc.yr = 1966)
+#saveRDS(jags.stuff, "FIA_inc_data/jags.data.basic.rds")
+
+
+
+
+# or you wish to not include trees without cores
+T2T.nodup <- Tree2Tree[!duplicated(Tree2Tree),]
+
+# sample from DBH measurements that only exist in plots that were also cored
+
+Tree2Tree.incored.plots <- Tree2Tree[paste0(Tree2Tree$COUNTYCD, Tree2Tree$PLOT) %in% paste0(newtemp2$CountyNo, newtemp2$PlotNo) ,]
+
+# looks like there are 5794 dbh measurements from plots where we also have tree cores:
+ length(Tree2Tree.incored.plots$PLT_CN)
+# [1] 5794
+
+# check that we only have plot ids with tree cores
+#unique(paste0(Tree2Tree.incored.plots$COUNTYCD, Tree2Tree.incored.plots$PLOT)) %in% unique(paste0(newtemp2$CountyNo, newtemp2$PlotNo))
+
+jags.new <- buildJAGSdataobject(newtemp2, YEARDISTURBED = TRUE, rnd.subset = 100, trunc.yr = 1966)
+
+
+jags.tree2tree <- buildJAGSdataobject(newtemp2, YEARDISTURBED = TRUE, rnd.subset = 5974, trunc.yr = 1966)
+
+head(jags.new$cov.data)
+
+data <- jags.new$data
+z0 <- jags.new$z0
+cov.data <- jags.new$cov.data
+time_data <- jags.new$time_data
+
+
+test.melt <- melt(time_data)
+colnames(test.melt) <- c("TreeID", "YearID", "Value", "Climate")
+
+
+clim.spread <- test.melt %>% group_by(TreeID, YearID) %>% spread(Climate, Value)
+
+year.df <- data.frame(YearID = unique(clim.spread$YearID),
+                      year = 1966:2010)
+
+clim.spread <- left_join(clim.spread, year.df, by = "YearID")
+
+trw <- melt(data$y)
+colnames(trw) <- c("TreeID", "year", "Width")
+
+dbh <- melt(data$z)
+colnames(dbh) <- c("TreeID", "year", "DBH")
+
+trw.clim <- left_join(clim.spread, trw, by = c("TreeID", "year"))
+corr.data <- trw.clim[,3:length(trw.clim)]
+corr.data <- corr.data %>% dplyr::select(-year)
+Y <- cor(na.omit(corr.data))
+
+corrplot::corrplot(Y, method = "square", type = "upper") 
+```
+
+## Individual growth correlations 
+
+###There is alot of spread in terms of the climate parameter, direction, & magnitudes of climate sensitivy across PIPO in Arizona.
+```{r,  echo=FALSE, message = FALSE, suppress.warnings = TRUE}
+# lets do individual correlations for each tree:
+
+trw.test <- trw.clim %>% group_by(TreeID) %>% dplyr::select(-YearID) #%>% spread(TreeID, Width)
+
+trw.nona <- trw.test[!is.na(trw.test$Width),]
+
+# creat a function to do the correlation on a given TREEID (x) then apply:
+correlate.rwi <- function(treeid){
+  
+  test.nona <- trw.nona[trw.nona$TreeID %in% treeid, ] # select 1 the tree of choice
+  
+  
+  # if for some reason Width is not numeric, make it numeric
+  if(!is.numeric(test.nona$Width)){
+  test.nona$Width <- as.numeric(test.nona$Width)
+  }
+  
+  # here we do the correlations
+ # corM <- cor(test.nona$Width, test.nona[, colnames(test.nona)[2:32]], use = "pairwise.complete")
+  
+ 
+  cor.mat <- rcorr( as.matrix(test.nona[, c("Width", colnames(test.nona)[2:36])]), type="pearson") 
+  cor.mat.df <- data.frame(climate = colnames(test.nona)[2:36],
+                           coef = cor.mat$r[2:36,1], 
+                           p = cor.mat$P[2:36,1])
+  #cat("*")
+  cor.mat.df
+}
+
+
+names <- as.list(as.character(unique(trw.nona$TreeID))) # get names of unique trees to apply function over
+
+ppt.cors <- lapply(names, correlate.rwi)
+
+names(ppt.cors) <- unique(trw.nona$TreeID)
+
+ppt.cors.df <- do.call(rbind, ppt.cors) # takes a minute
+
+ppt.cors.df$TreeID <- rep(names(ppt.cors), sapply(ppt.cors, nrow)) # add the site names
+
+# lets visualize the individual correlations:
+#ggplot(ppt.cors.df, aes(climate, coef, color = p < 0.05))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_violin(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()
+
+
+clim.trans <- data.frame(climate = unique(ppt.cors.df$climate),
+           clim = c(rep("PPT", 12), rep("TMAX", 19), rep("PPT", 4)), 
+           month = c("Apr", "Aug", "Dec", "Feb", "Jan", "Jul", "Jun", "Mar", "May", "Nov", "Oct", "Sep",
+                     "TMAX","AprMayJun","fall","fall_spr", "Jan_Aug", "Mar_Jul", "JulAugSep",
+                     "Apr", "Aug", "Dec", "Feb", "Jan", "Jul", "Jun", "Mar", "May", "Nov", "Oct", "Sep",
+                     "Jan_Jul", "Nov_Mar", "Nov_Aug", "wateryr"))
+
+
+ppt.cors.df<- left_join(ppt.cors.df, clim.trans, by = "climate")
+
+ppt.cors.df$month_ordered <- factor(ppt.cors.df$month, levels= c("Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "AprMayJun","fall","fall_spr", "Jan_Aug", "Mar_Jul", "JulAugSep","Jan_Jul", "Nov_Mar", "Nov_Aug", "wateryr"))
+
+
+ppt.violin <- ggplot(ppt.cors.df[ppt.cors.df$clim %in% "PPT",], aes(month_ordered, coef, color = p < 0.05))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_violin(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("Precipitation")
+
+
+tmax.violin <- ggplot(ppt.cors.df[ppt.cors.df$clim %in% "TMAX",], aes(month_ordered, coef, color = p < 0.05))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_violin(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("Maximum Temperature")
+
+#plot_grid(ppt.violin, tmax.violin, ncol = 1)
+
+```
+
+
+#### Tree ring widths are highly variable, but have fairly negative responses to Tmax during the Arid Foresummer (Apr - Jun) and Monsoon (Jul - Sept). 
+
+
+# visualizing the standardized plot level data
+```{r, echo = FALSE}
+
+# get site lat longs:
+plot.data.unscaled <- cov.data
+plot.data.unscaled$TreeID <- as.character(1:length(cov.data$PLOT))
+  
+  # data.frame(LON = temp2$PLOT_LON,
+  #          LAT = temp2$PLOT_LAT, 
+  #          ELEV = temp2$PLOT_ELEV,
+  #          SDI = temp2$SDI, 
+  #          SICOND = temp2$COND_SICOND, 
+  #          TreeID = as.character(1:544),
+  #          SLOPE = temp2$COND_SLOPE, 
+  #          ASPECT = temp2$COND_ASPECT, 
+  #          
+  #          # STAGE2 = temp2$STAGE, 
+  #          # STAGE3 = temp2$STAGE3, 
+  #          # STDAGE = temp2$STDAGE, 
+  #          TRTCD1 = temp2$COND_TRTCD1, 
+  #          DSTRBCD1 = temp2$COND_DSTRBCD1, 
+  #          DSTRBCD2 = temp2$COND_DSTRBCD2,
+  #          DSTRBCD3 = temp2$COND_DSTRBCD3)
+
+
+
+```
+
+
+```{r, echo = FALSE}
+
+ppt.cors.std.df <- left_join(ppt.cors.df, plot.data.unscaled, by = "TreeID")
+ 
+#  ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "tmax.AprMayJun",], aes(SDI, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+# # 
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "tmax.AprMayJun",], aes(ASPECT, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "tmax.AprMayJun",], aes(STAGE2, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "tmax.AprMayJun",], aes(STAGE3, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "tmax.AprMayJun",], aes(STDAGE, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#   
+#   
+# ## same thing but for the water year
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "wintP.wateryr",], aes(SDI, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+# # 
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "wintP.wateryr",], aes(ASPECT, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "wintP.wateryr",], aes(STAGE2, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "wintP.wateryr",], aes(STAGE3, coef, color = TRTCD1))+geom_point()+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#  
+#   ggplot(ppt.cors.std.df[ppt.cors.std.df$climate %in% "wintP.wateryr",], aes(STDAGE, coef, color = TRTCD1))+geom_point(size = 0.5)+ylab("Correlation Coefficient for \n Tmax Arid Foresummer")
+#   
+
+```
+
+
+# Exploration of Disturbances, treatments, and slope and aspect. 
+
+```{r, echo = FALSE}
+
+DSTRBCD1.table <- data.frame(DSTRBCD1 = c(0,10, 20, 30, 40, 50, 60, 80),
+                             Disturbance = c("No Disturbance",
+                                             "Insect", 
+                                             "Disease", 
+                                             "Fire", 
+                                             "Animal", 
+                                             "Weather", 
+                                             "Vegetation (suppression, vines)", 
+                                             "Human"))
+
+plot.data.unscaled <- merge(plot.data.unscaled, DSTRBCD1.table)
+
+disturbs1 <- plot.data.unscaled %>% group_by(DSTRBCD1, Disturbance) %>% summarise(n = n())
+disturbs2 <- plot.data.unscaled %>% group_by(DSTRBCD2) %>% summarise(n = n())
+kable(disturbs1)
+kable(disturbs2)
+```
+
+# Fire is the most common disturbance, showing up in close to half of the plots in AZ!
+# do these treatments and disturbances have any direct relationship to climate sensitivity?
+```{r, echo = FALSE}
+
+#colnames(ppt.cors.std.df)
+cors <- merge(ppt.cors.std.df,  DSTRBCD1.table, by = "DSTRBCD1")
+
+#ggplot()+geom_boxplot(data = cors[cors$clim %in% "TMAX",], aes(Disturbance, coef))+facet_wrap(~month_ordered)+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(cors[cors$climate %in% c("tmax.fallspr"),], aes(Disturbance, coef, color = p < 0.05))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")+geom_boxplot(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("Maximum Temperature")+facet_wrap(~month_ordered)
+
+ggplot(cors[cors$climate %in% "wintP.wateryr",], aes(Disturbance, coef, color = p < 0.05))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")+geom_boxplot(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("Precipitation")+facet_wrap(~month_ordered)
+
+
+ggplot(cors[cors$climate %in% c("tmax.monsoon", "tmax.AprMayJun"),], aes(TRTCD1, coef, color = p < 0.05, group = TRTCD1))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")+geom_boxplot(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("TRTCD1")+facet_wrap(~month_ordered)
+
+ggplot(cors[cors$climate %in% "wintP.wateryr",], aes(TRTCD1, coef, color = p < 0.05, group = TRTCD1))+geom_jitter(size = 0.5)+scale_color_manual(values = c("grey", "black"))+geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")+geom_boxplot(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("TRTCD1")+facet_wrap(~month_ordered)
+
+```
+
+
+# plot correlation vs distrbyr
+```{r, echo = FALSE}
+ggplot(cors[cors$climate %in% "wintP.wateryr" & cors$DSTRBCD1 %in% 30,], aes(DSTRBYR1, coef, color = p < 0.05))+geom_point(size = 0.5)+scale_color_manual(values = c("grey", "black"))#+geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")+geom_boxplot(color = "black", fill = "yellow",  alpha = 0.25)+theme_bw()+theme(axis.text.x = element_text(hjust = 1, angle = 45))+ylab("correlation coefficient")+ xlab("Precipitation")
+
+```
+
+
+# create a variable that is time since disturbance:
+```{r, echo = FALSE}
+
+
+data <- jags.new$data
+z0 <- jags.new$z0
+cov.data <- jags.new$cov.data
+time_data <- jags.new$time_data
+time_data$TimeSinceDistrb <- cov.data$DSTRBYR1
+#year.df$year - cov.data$DSTRBYR1
+
+cov.data$FIREYR1 <- ifelse(cov.data$DSTRBCD1 %in% "30", cov.data$DSTRBYR1, NA)
+cov.data$FIREYR2 <- ifelse(cov.data$DSTRBCD2 %in% "30", cov.data$DSTRBYR2, NA)
+cov.data$FIREYR3 <- ifelse(cov.data$DSTRBCD3 %in% "30", cov.data$DSTRBYR3, NA)
+
+View(cov.data[,c("FIREYR1", "FIREYR2", "FIREYR3")])
+
+cov.data$FIREYR <- ifelse(is.na(cov.data$FIREYR1) & is.na(cov.data$FIREYR2) & is.na(cov.data$FIREYR2), NA, 
+                          ifelse(is.na(cov.data$FIREYR1), cov.data$FIREYR2, cov.data$FIREYR1))
+
+
+# make a matrix with the DSTRBYR
+time_data$FIREYR  <- matrix(rep(cov.data$FIREYR, each = 45), nrow = 515 ,ncol = 45, byrow = TRUE) 
+
+# calculate time since Fire disturbance
+time_data$TimeSinceFIRE <-  matrix(rep(year.df$year, 515), nrow = 515 ,ncol = 45, byrow = TRUE) - time_data$FIREYR
+
+
+
+time_data$TimeSinceFIRE[is.na(time_data$TimeSinceFIRE)] <- 51
+
+
+
+
+
+data$a_dbh <- 512
+data$r_dbh <- 256
+
+### it's nice (reassuring) to look at the tree-ring and DBH data (reality check)
+View(data$y)
+View(data$z)
+### initial conditions state variable (DBH)
+View(z0)
+
+### read in function that makes/executes a jags model from lmer-like call of a linear model
+# note that Evans version of Dietze function comments out creation of state variable initial conditions (z0)
+# which is done in the function buildJAGSdataobject instead
+source("/Users/kah/Documents/docker_pecan/pecan/modules/data.land/R/InventoryGrowthFusion.R") 
+
+
+# # linear model with DBH^2 removed for Precipitation and 500 cores
+# ppt.noX2 <- InventoryGrowthFusion(data=data, cov.data=cov.data, time_data=time_data,
+#                                   n.iter=40000, z0=z0,
+#                                   n.chunk=100, save.state=TRUE, random="(1|PLOT[i])  + (1|FIRE[i])",
+#                                   fixed = "~ X + SICOND + SDI + SDI*X + SICOND*X + X*wintP.wateryr[t] + SICOND*SDI",
+#                                   time_varying = "wintP.wateryr + SDI*wintP.wateryr[t] + SICOND*wintP.wateryr[t]",
+#                                   burnin_plot=FALSE, save.jags = "PPT.noX2.5000nocores.40000.txt", model.name = "PPT.noX2.5000nocores.40000.txt", 
+#                                   output.folder = "IGF_PIPO_AZ_mcmc/", breakearly = FALSE)
+
+
+# linear model with DBH^2 removed for Precipitation + Tmax and 500 cores
+ppt.noX2 <- InventoryGrowthFusion(data=data, cov.data=cov.data, time_data=time_data,
+                                  n.iter=200, z0=z0,
+                                  n.chunk=100, save.state=FALSE, random="(1|PLOT[i])",
+                                  fixed = "~ X + SICOND + SDI + SDI*X + SICOND*X + X*wintP.wateryr[t] + SICOND*SDI",
+                                  time_varying = "wintP.wateryr + SDI*wintP.wateryr[t] + SICOND*wintP.wateryr[t] + TimeSinceFIRE + TimeSinceFIRE[t]*wintP.wateryr[t]",
+                                  burnin_plot=FALSE, save.jags = "test.time.since.fire.txt", model.name = "test.time.since.fire.txt", 
+                                  output.folder = "IGF_PIPO_AZ_mcmc/", breakearly = FALSE)
+
+
+
+
+
+# # if there is a second distrubance
+# time_data$DSTRBYR2  <- matrix(rep(cov.data$DSTRBYR2, each = 45), nrow = 515 ,ncol = 45, byrow = TRUE) 
+# 
+# # calculate time since disturbance
+# time_data$TimeSinceDistrb2 <-  matrix(rep(year.df$year, 515), nrow = 515 ,ncol = 45, byrow = TRUE) - time_data$DSTRBYR2 
+
+
+new.time.df  <- melt(time_data)
+colnames(new.time.df ) <- c("TreeID", "YearID", "Value", "Climate")
+
+new.time.data <- new.time.df[!is.na(new.time.df$TreeID), ]
+
+clim.spread <- new.time.data %>% dplyr::group_by(TreeID, YearID) %>% spread(Climate, Value)
+
+year.df <- data.frame(YearID = unique(clim.spread$YearID),
+                      year = 1966:2010)
+
+
+
+clim.spread <- left_join(clim.spread, year.df, by = "YearID")
+
+trw <- melt(data$y)
+colnames(trw) <- c("TreeID", "year", "Width")
+
+dbh <- melt(data$z)
+colnames(dbh) <- c("TreeID", "year", "DBH")
+
+trw.cors <- left_join(clim.spread, trw, by = c("TreeID", "year"))
+corr.data <- trw.cors[,3:length(trw.cors)]
+#corr.data <- corr.data %>% select(-year)
+
+ggplot(corr.data, aes(Width, TimeSinceFIRE))+geom_point()
+ggplot(corr.data, aes(year, Width, color = TimeSinceFIRE))+geom_point()
+
+
+ggplot(trw.cors[!is.na(trw.cors$TimeSinceFIRE) ,] , aes(year, Width, color = TimeSinceFIRE, group =TreeID))+geom_line()
+
+tsf <- ggplot(trw.cors[!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE <= 50 ,] , aes( TimeSinceFIRE))+geom_histogram() + ylab("count") +xlab("Time Since Fire Recorded (years)")+theme_bw(base_size = 12)
+
+
+
+trw.unique <- unique(trw.cors[,c("TreeID", "FIREYR")])
+
+yof <- ggplot(trw.unique, aes( FIREYR))+geom_histogram() + ylab("count") +xlab("Year of recorded fire disturbance")+theme_bw(base_size = 12)
+
+png(height = 7, width = 4, units = "in", res = 200, "IGF_outputs/time_since_fire_and_fireyr_hists.png")
+plot_grid(yof, tsf, align = "hv", ncol = 1)
+dev.off()
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -10 &  trw.cors$TimeSinceFIRE <= 10 ,], aes(TimeSinceFIRE, Width, color = TimeSinceFIRE, group =TreeID))+geom_line()
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -2 &  trw.cors$TimeSinceFIRE <= 2 ,], aes(TimeSinceFIRE, Width, color = TimeSinceFIRE, group =TreeID))+geom_line()
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -1 &  trw.cors$TimeSinceFIRE <= 1 ,], aes(year, Width, color = TimeSinceFIRE, group =TreeID))+geom_line()
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -1 &  trw.cors$TimeSinceFIRE <= 1 ,], aes(TimeSinceFIRE, Width, color = wintP.wateryr, group =TreeID))+geom_point()+geom_line()
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -5 &  trw.cors$TimeSinceFIRE <= 5 ,], aes(TimeSinceFIRE, Width, color = wintP.wateryr, group =TreeID))+geom_point()+geom_line()+facet_wrap(~FIREYR)+geom_vline(xintercept = 0, color = "grey", linetype = "dashed")
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE >= -10 &  trw.cors$TimeSinceFIRE <= 10 ,], aes( time.since.fire.cat, y = Width, fill = wintP.wateryr))+geom_boxplot()
+
+
+trw.cors$time.since.fire.cat <- as.factor(as.character(trw.cors$TimeSinceFIRE))
+trw.cors$time.since.fire.cat <- factor(trw.cors$time.since.fire.cat, levels = -10:50)
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) ,], aes(x =time.since.fire.cat,  y= Width, fill = time.since.fire.cat))+geom_boxplot()
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) ,], aes(x =wintP.wateryr,  y= Width, color = TimeSinceFIRE > 0))+geom_point()+stat_smooth(method = "lm")
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE >=-1 & trw.cors$TimeSinceFIRE <= 1 ,], aes(x =wintP.wateryr,  y= Width, color = TimeSinceFIRE > 0))+geom_point()+stat_smooth(method = "lm")
+
+
+ggplot(trw.cors [!is.na(trw.cors$TimeSinceFIRE) & trw.cors$TimeSinceFIRE > -10 &  trw.cors$TimeSinceFIRE <= 10 ,], aes(Width, fill = TimeSinceFIRE <=0))+geom_histogram(position = "identity", alpha = 0.5)
+
+ggplot(trw.cors, aes( as.character(FIREYR), wintP.wateryr))+geom_boxplot()
+
+
+trw.cors %>% group_by(FIREYR) %>% summarise(P = mean(wintP.wateryr), 
+                                            Tmax = mean(tmax.fallspr), 
+                                            n = n(), 
+                                            width = mean(Width, na.rm=TRUE))
+
+```
