@@ -931,27 +931,12 @@ plot <- plots[5]
 biomass.total.inc.plots <- lapply(plots, organize.by.plot.full)
 saveRDS(biomass.total.inc.plots, "outputs_biomass/organized_plots_list_agb_inc_tot.RDS")
 
-organized.plots[[1]]
+biomass.total.inc.plots[[1]]
 x <- 1
 
-summarise.plot.biomass.year <- function(x){
-  
-  total.plot <- data.frame(organized.plots[[x]]) %>% group_by(year)%>% dplyr::summarise(med.pred.tot = sum(median_pred), 
-                                                                                        ci.lo.pred.tot = sum(ci.lo_pred), 
-                                                                                        ci.hi.pred.tot = sum(ci.hi_pred), 
-                                                                                        med.conf.tot = sum(median), 
-                                                                                        ci.lo.conf.tot = sum(ci.lo), 
-                                                                                        ci.hi.conf.tot=sum(ci.hi))
-  
-  
-  total.plot$PLOT <- as.character(plots[x])
-  total.plot
-}
+pipo.plots.df <- do.call(rbind, biomass.total.inc.plots)
 
-
-pipo.plot.totals <- lapply(1:length(plots), summarise.plot.biomass.year)
-pipo.plots.df <- do.call(rbind, pipo.plot.totals)
-write.csv(pipo.plots.df, "outputs_biomass/yearly_plot_pipo_AZ_biomass_by_ci.csv", row.names = FALSE)
+write.csv(pipo.plots.df, "outputs_biomass/yearly_plot_pipo_AZ_biomass_by_mcmc.csv", row.names = FALSE)
 
 
 
@@ -960,34 +945,36 @@ write.csv(pipo.plots.df, "outputs_biomass/yearly_plot_pipo_AZ_biomass_by_ci.csv"
 
 # calculate increment
 
-agb.df  <- pipo.plt.cov.biomass %>%
-  group_by(PLOT) %>%
-  mutate(agb_inc = med.pred.tot - lag(med.pred.tot, default = 0), 
-         agb_inc_ci.lo = ci.lo.pred.tot - lag(ci.lo.pred.tot, default = 0) , 
-         agb_inc_ci.hi = ci.hi.pred.tot - lag(ci.hi.pred.tot, default = 0) , 
-         agb_inc_conf = med.conf.tot - lag(med.conf.tot, default = 0), 
-         agb_inc_conf_ci.lo = ci.lo.conf.tot - lag(ci.lo.conf.tot, default = 0), 
-         agb_inc_conf_ci.hi= ci.lo.conf.tot - lag(ci.lo.conf.tot, default = 0))
+# agb.df  <- pipo.plt.cov.biomass %>%
+#   group_by(PLOT) %>%
+#   mutate(agb_inc = med.pred.tot - lag(med.pred.tot, default = 0), 
+#          agb_inc_ci.lo = ci.lo.pred.tot - lag(ci.lo.pred.tot, default = 0) , 
+#          agb_inc_ci.hi = ci.hi.pred.tot - lag(ci.hi.pred.tot, default = 0) , 
+#          agb_inc_conf = med.conf.tot - lag(med.conf.tot, default = 0), 
+#          agb_inc_conf_ci.lo = ci.lo.conf.tot - lag(ci.lo.conf.tot, default = 0), 
+#          agb_inc_conf_ci.hi= ci.lo.conf.tot - lag(ci.lo.conf.tot, default = 0))
+# 
+# 
+# ggplot(agb.df, aes(x = year, y= agb_inc, group = PLOT, color = SICOND))+geom_line()+xlim(1995,2010)+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+ylim(-500,500)
+# 
+# ggplot(agb.df, aes(x = year, y= agb_inc, group = PLOT, color = SDI))+geom_line()+xlim(1995,2010)+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+ylim(-500,500)
+# 
+# # plot total plot biomass vs biomass increment
+# 
+# ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = SDI))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
+# 
+# ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = SICOND))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
+# 
+# ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = MAP))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
+# 
 
-
-ggplot(agb.df, aes(x = year, y= agb_inc, group = PLOT, color = SICOND))+geom_line()+xlim(1995,2010)+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+ylim(-500,500)
-
-ggplot(agb.df, aes(x = year, y= agb_inc, group = PLOT, color = SDI))+geom_line()+xlim(1995,2010)+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+ylim(-500,500)
-
-# plot total plot biomass vs biomass increment
-
-ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = SDI))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
-
-ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = SICOND))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
-
-ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = MAP))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
-
-
-ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = MAT))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
+# ggplot(agb.df %>% filter(year >= 1995 & year <=2010), aes(x = med.pred.tot, y= agb_inc, color = MAT))+geom_point()+theme_bw()+ylab("Median predicted plot biomass increment (kg)")+xlab("Median predicted plot biomass (kg)")
 
 # for each plot, generate a timeseries from 1994-2010:
 # plot biomass trajectory over time
 # plot biomass increment + uncertainty over time
+
+# not run
 plot_plot_biomass<- function(x){
   print(x)
   agb.plt.focal <- agb.df %>% filter (PLOT %in% plots[x]) %>% filter(year >=1995 & year <=2010)
@@ -1002,81 +989,293 @@ plot_plot_biomass<- function(x){
 plot_plot_biomass(x = 2)
 lapply(1:length(unique(plots)), plot_plot_biomass)
 
-ggplot()+ geom_ribbon(data = agb.plt.focal, aes(x = year, ymin = agb_inc_ci.lo, ymax = agb_inc_ci.hi), fill = "coral4")+geom_ribbon(data = agb.plt.focal, aes(x = year, ymin = agb_inc_conf_ci.lo, ymax = agb_inc_conf_ci.hi), fill = "blue")+geom_line(data = agb.plt.focal, aes(x = year, y = agb_inc))+ylab(paste("Biomass for plot", plots[x],"(kg)"))+theme_bw()+theme(panel.grid = element_blank())
-```
+#-------------------------------------------------------------------
+# lets plot total plot biomass vs. stand characteristics
+#-------------------------------------------------------------------
+# map out total biomass 
+cov.data.unique <- unique(cores_cov.data %>% dplyr::select(-TREE,-treeid))
+colnames(cores_cov.data)
+
+pipo.plt.cov.biomass <- left_join(cov.data.unique, pipo.plots.df, by = "PLOT")
+
+tot.biomass.2010.byMAP <- ggplot()+geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = tot.pred.ci.lo, ymax = tot.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAP, y= tot.conf.med, group = PLOT))+
+  geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = tot.conf.ci.lo, ymax = tot.conf.ci.hi))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.byMAT <- ggplot()+geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAT, ymin = tot.pred.ci.lo, ymax = tot.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAT, y= tot.conf.med, group = PLOT))+
+  geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAT, ymin = tot.conf.ci.lo, ymax = tot.conf.ci.hi))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.bySDI <- ggplot()+geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = SDI, ymin = tot.pred.ci.lo, ymax = tot.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SDI, y= tot.conf.med, group = PLOT))+
+  geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = SDI, ymin = tot.conf.ci.lo, ymax = tot.conf.ci.hi))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.bySICOND <- ggplot()+geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = SICOND, ymin = tot.pred.ci.lo, ymax = tot.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SICOND, y= tot.conf.med, group = PLOT))+
+  geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = SICOND, ymin = tot.conf.ci.lo, ymax = tot.conf.ci.hi))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.byELEV <- ggplot()+geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = ELEV, ymin = tot.pred.ci.lo, ymax = tot.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = ELEV, y= tot.conf.med, group = PLOT))+
+  geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = ELEV, ymin = tot.conf.ci.lo, ymax = tot.conf.ci.hi))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+
+png(height = 6, width = 6, units = "in", res = 200, "outputs_biomass/median_biomass_vs_covs_unc_2010.png")
+cowplot::plot_grid(tot.biomass.2010.byMAP , tot.biomass.2010.byMAT, tot.biomass.2010.bySDI, tot.biomass.2010.bySICOND,tot.biomass.2010.byELEV, ncol = 2)
+dev.off()
+
+
+tot.biomass.2010.byMAP.m <- ggplot()+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAP, y= tot.conf.med, group = PLOT))+
+  theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.byMAT.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAT, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+
+tot.biomass.2010.bySDI.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SDI, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+tot.biomass.2010.bySICOND.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SICOND, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+tot.biomass.2010.byELEV.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = ELEV, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+
+
+png(height = 6, width = 6, units = "in", res = 200, "outputs_biomass/median_biomass_vs_covs_2010.png")
+cowplot::plot_grid(tot.biomass.2010.byMAP.m , tot.biomass.2010.byMAT.m, tot.biomass.2010.bySDI.m, tot.biomass.2010.bySICOND.m, ncol = 2)
+dev.off()
+
+
+# map out in space:
+all_states <- map_data("state")
+az.states <- subset(all_states, region %in% c( "arizona") )
+coordinates(az.states)<-~long+lat
+class(az.states)
+#proj4string(az.states) <-CRS("+proj=longlat +datum=NAD83")
+mapdata.az <- az.states
+mapdata.az <- data.frame(mapdata.az)
+
+
+
+ll.median.map.biomass <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = LON, y=LAT,  color = tot.conf.med))+geom_path(data=data.frame(mapdata.az), aes(x = long, y = lat, group = group), color = 'black', fill = NA)+coord_equal()+theme_bw()+theme(panel.grid = element_blank(), legend.title = element_blank())+ scale_color_gradientn(colours = rev(terrain.colors(7)))+ggtitle("Median plot biomass in 2010")
+
+ll.median.map.biomass <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = LON, y=LAT,  color = tot.conf.med, size = tot.conf.med))+geom_path(data=data.frame(mapdata.az), aes(x = long, y = lat, group = group), color = 'black', fill = NA)+coord_equal()+theme_bw()+theme(panel.grid = element_blank(), legend.title = element_blank())+ scale_color_gradientn(colours = rev(terrain.colors(7)))+ggtitle("Median plot biomass in 2010")
+
+png(height = 4, width = 5, units = "in", res = 200, "diam_data/outputs_biomass/map_of_median_biomass_2010.png")
+ll.median.map.biomass
+dev.off()
+
+#-------------------------------------------------------------------
+# Make plots of AGB increment vs covariates
+#-------------------------------------------------------------------
+
+pipo.plt.cov.biomass <- left_join(cov.data.unique, pipo.plots.df, by = "PLOT")
+
+flux.biomass.2010.byMAP <- ggplot()+#geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.pred.ci.lo, ymax = flux.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAP, y= flux.pred.med, group = PLOT))+
+  #geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.conf.ci.lo, ymax = flux.conf.ci.hi))+
+  theme_bw()+ylab("Predicted plot biomass flux in 2010 (kg)")+theme(panel.grid = element_blank())
+
+flux.biomass.2010.byMAT <- ggplot()+#geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.pred.ci.lo, ymax = flux.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAT, y= flux.pred.med, group = PLOT))+
+  #geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.conf.ci.lo, ymax = flux.conf.ci.hi))+
+  theme_bw()+ylab("Predicted plot biomass flux in 2010 (kg)")+theme(panel.grid = element_blank())
+
+flux.biomass.2010.bySDI <- ggplot()+#geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.pred.ci.lo, ymax = flux.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SDI, y= flux.pred.med, group = PLOT))+
+  #geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.conf.ci.lo, ymax = flux.conf.ci.hi))+
+  theme_bw()+ylab("Predicted plot biomass flux in 2010 (kg)")+theme(panel.grid = element_blank())
+
+flux.biomass.2010.bySICOND <- ggplot()+#geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.pred.ci.lo, ymax = flux.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SICOND, y= flux.pred.med, group = PLOT))+
+  #geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.conf.ci.lo, ymax = flux.conf.ci.hi))+
+  theme_bw()+ylab("Predicted plot biomass flux in 2010 (kg)")+theme(panel.grid = element_blank())
+
+flux.biomass.2010.byELEV <- ggplot()+#geom_errorbar(data = pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.pred.ci.lo, ymax = flux.pred.ci.hi), color = "red")+
+  geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = ELEV, y= flux.pred.med, group = PLOT))+
+  #geom_errorbar(data =pipo.plt.cov.biomass %>% filter(year == 2010 ),aes(x = MAP, ymin = flux.conf.ci.lo, ymax = flux.conf.ci.hi))+
+  theme_bw()+ylab("Predicted plot biomass flux in 2010 (kg)")+theme(panel.grid = element_blank())
+
+
+
+pipo.plt.cov.biomass
+
+png(height = 6, width = 6, units = "in", res = 200, "outputs_biomass/median_biomass_flux_vs_covs_unc_2010.png")
+cowplot::plot_grid(flux.biomass.2010.byMAP , flux.biomass.2010.byMAT, flux.biomass.2010.bySDI, flux.biomass.2010.bySICOND,flux.biomass.2010.byELEV, ncol = 2)
+dev.off()
+
+
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = flux.pred.med, group = PLOT, color = SICOND))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = flux.pred.med, group = PLOT, color = SDI))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = flux.pred.med, group = PLOT, color = MAP))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = flux.pred.med, group = PLOT, color = MAT))+geom_line()
 
 
 
 
 
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = tot.conf.med, group = PLOT, color = MAT))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = tot.conf.med, group = PLOT, color = MAP))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = tot.conf.med, group = PLOT, color = SDI))+geom_line()
+ggplot(data = pipo.plt.cov.biomass %>% filter(year == 1995:2010), aes(x = year, y = tot.conf.med, group = PLOT, color = SICOND))+geom_line()
 
-# plot out proportion of biomass uncertainty over time
-
-```{r}
-pred.intervals.df <- do.call(rbind, pred.intervals.all)
-pred.intervals.df$tree <- rep(1:length(pred.intervals.all), sapply(pred.intervals.all, nrow)) 
-
-conf.intervals.df <- do.call(rbind, conf.intervals.all)
-conf.intervals.df$tree <- rep(1:length(conf.intervals.all), sapply(conf.intervals.all, nrow)) 
-
-year.time <- data.frame(time = 1:53, 
-                        year = 1966:2018)
-
-colnames(pred.intervals.df) <- c("time", "pred_med", "pred_ci.lo", "pred_ci.hi", "tree")
-colnames(conf.intervals.df) <- c("time", "conf_med", "conf_ci.lo", "conf_ci.hi", "tree")
-all.intervals <- left_join(pred.intervals.df, conf.intervals.df, by =c("time", "tree"))
-all.intervals.yr <- left_join(all.intervals, year.time, by = c("time"))
-head(all.intervals.yr)
-
-all.intervals.yr$pred_t_ci.hi <- all.intervals.yr$pred_ci.hi - all.intervals.yr$conf_ci.hi
-all.intervals.yr$pred_t_ci.lo <- all.intervals.yr$pred_ci.lo - all.intervals.yr$conf_ci.lo
-all.intervals.yr$pred_t_med <- all.intervals.yr$pred_med - all.intervals.yr$conf_med
-
-# get proportion of un certinat in the confidence intervals
-all.intervals.yr$conf_prop_med <- all.intervals.yr$conf_med/(all.intervals.yr$pred_med + all.intervals.yr$conf_med)
-
-all.intervals.yr$conf_prop_ci.hi <-all.intervals.yr$conf_ci.hi/(all.intervals.yr$conf_ci.hi + all.intervals.yr$pred_ci.hi)
-
-all.intervals.yr$conf_prop_ci.lo<- all.intervals.yr$conf_ci.lo/(all.intervals.yr$conf_ci.lo + all.intervals.yr$pred_ci.lo)
-
-# get proportion of un certinat in the prediction intervals
-all.intervals.yr$pred_prop_med <- all.intervals.yr$pred_med/(all.intervals.yr$conf_med + all.intervals.yr$pred_med)
-
-all.intervals.yr$pred_prop_ci.hi <-all.intervals.yr$pred_ci.hi/(all.intervals.yr$conf_ci.hi + all.intervals.yr$pred_ci.hi)
-
-all.intervals.yr$pred_prop_ci.lo<- all.intervals.yr$pred_ci.lo/(all.intervals.yr$conf_ci.lo + all.intervals.yr$pred_ci.lo)
-
-all.summary <- all.intervals.yr %>% group_by(year) %>% summarise(prop.p.ci.lo.all = mean(pred_prop_ci.lo),
-                                                                 prop.p.ci.hi.all = mean(pred_prop_ci.hi),
-                                                                 prop.p.ci.med.all = mean(pred_prop_med),
-                                                                 prop.c.ci.lo.all = mean(conf_prop_ci.lo),
-                                                                 prop.c.ci.hi.all = mean(conf_prop_ci.hi),
-                                                                 prop.c.ci.med.all = mean(conf_prop_med))
-
-
-
-med.summary <- all.summary %>% dplyr::select(year, prop.p.ci.med.all, prop.c.ci.med.all) %>% gather(simtype, variance, -year)
-
-
-# var2 <- all.summary %>%
-#    gather(simtype, variance, -x)
+# tot.biomass.2010.byMAP.m <- ggplot()+
+#   geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAP, y= tot.conf.med, group = PLOT))+
+#   theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
 # 
-#var2$simtype <- factor(var2$simtype, levels = c("BvarIPD", "DvarI", "CvarIP"))
-prop.var <- ggplot(med.summary, aes(x=year, fill = simtype))+
-  geom_ribbon(aes(ymin=0, ymax=variance), color = "black")+
-  ylab("Percentage of total variance (%)")+
-  xlab("Year")+
-  #scale_fill_manual(values = my_cols, name = NULL,
-  #                 labels = c("Process error", "Parameter uncertainty", "Initial conditions"))+
-  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
-                     expand = c(0, 0))+
-  theme_bw()
-prop.var
+# tot.biomass.2010.byMAT.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = MAT, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+# 
+# 
+# tot.biomass.2010.bySDI.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SDI, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+# 
+# tot.biomass.2010.bySICOND.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = SICOND, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+# tot.biomass.2010.byELEV.m <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = ELEV, y= tot.conf.med, group = PLOT))+theme_bw()+ylab("Median predicted plot biomass (kg)")+theme(panel.grid = element_blank())
+# 
+# 
+# png(height = 6, width = 6, units = "in", res = 200, "outputs_biomass/median_biomass_vs_covs_2010.png")
+# cowplot::plot_grid(tot.biomass.2010.byMAP.m , tot.biomass.2010.byMAT.m, tot.biomass.2010.bySDI.m, tot.biomass.2010.bySICOND.m, ncol = 2)
+# dev.off()
+# 
+
+# map out in space:
+all_states <- map_data("state")
+az.states <- subset(all_states, region %in% c( "arizona") )
+coordinates(az.states)<-~long+lat
+class(az.states)
+#proj4string(az.states) <-CRS("+proj=longlat +datum=NAD83")
+mapdata.az <- az.states
+mapdata.az <- data.frame(mapdata.az)
 
 
-ggplot(data= all.summary, aes(x = year, y = prop.p.ci.lo.all))+geom_bar(stat = "identity")
-hist(all.intervals.yr$conf_prop_ci.hi)
-ggplot()+geom_ribbon(data = pred.intervals.all[[2]], aes(x = time, ymin = ci.lo, ymax = ci.hi), fill = "blue")+geom_line(data = pred.intervals.all[[2]], aes(x = time, y = median))+geom_ribbon(data = conf.intervals.all[[2]], aes(x = time, ymin = ci.lo, ymax = ci.hi), fill = "coral4")+geom_line(data = conf.intervals.all[[2]], aes(x = time, y = median))+ylab("Biomass for tree 1 (kg)")+theme_bw()+theme(panel.grid = element_blank())
+ll.median.map.biomass.2009 <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2009 ), aes(x = LON, y=LAT,  color = flux.conf.med))+geom_path(data=data.frame(mapdata.az), aes(x = long, y = lat, group = group), color = 'black', fill = NA)+coord_equal()+theme_bw()+theme(panel.grid = element_blank(), legend.title = element_blank())+ scale_color_gradientn(colours = rev(terrain.colors(7)))+ggtitle("Median plot biomass in 2010")
 
-```
+ll.median.map.biomass.2010 <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = LON, y=LAT,  color = flux.conf.med))+geom_path(data=data.frame(mapdata.az), aes(x = long, y = lat, group = group), color = 'black', fill = NA)+coord_equal()+theme_bw()+theme(panel.grid = element_blank(), legend.title = element_blank())+ scale_color_gradientn(colours = rev(terrain.colors(7)))+ggtitle("Median plot biomass in 2010")
 
+ll.median.map.biomass <- ggplot()+geom_point(data = pipo.plt.cov.biomass %>% filter(year == 2010 ), aes(x = LON, y=LAT,  color = flux.conf.med, size = tot.conf.med))+geom_path(data=data.frame(mapdata.az), aes(x = long, y = lat, group = group), color = 'black', fill = NA)+coord_equal()+theme_bw()+theme(panel.grid = element_blank(), legend.title = element_blank())+ scale_color_gradientn(colours = rev(terrain.colors(7)))+ggtitle("Median plot biomass in 2010")
+
+png(height = 4, width = 5, units = "in", res = 200, "diam_data/outputs_biomass/map_of_median_biomass_2010.png")
+ll.median.map.biomass
+dev.off()
+
+
+#-------------------------------------------------------------------
+# Filter out stands that are not PIPO dominant
+#-------------------------------------------------------------------
+head(pipo.plt.cov.biomass)
+
+# need to joing with AZ fia data:
+
+Tree2Tree <- read.csv("data/Tree2Tree.csv", stringsAsFactors = F)
+T2T <- unique(Tree2Tree %>% select(LAT, LON, T1_PLOT, T1_PLT_CN, STATECD, COUNTYCD, T2_PLT_CN, T2_FIADB_PLOT))
+colnames(T2T)[3] <- "PLOT"
+
+pipo.plt.cov.biomass.T2T <- merge(pipo.plt.cov.biomass, T2T, by.x = c("T2_FIADB"), by.y = c("T2_FIADB_PLOT"))
+
+summary(pipo.plt.cov.biomass.T2T)
+
+# need to connect the plot CNs with the tree data
+# T2T.sub <- unique(T2T %>% select(-T1_TREE, -T1_TRE_CN, -T1_DIA, -T1_HT, -T1_CR,-T2_TREE, -T2_TRE_CN, -T2_DIA, -T2_HT))
+# 
+# pipo.plt.cov.biomass.t2t <- left_join(pipo.plt.cov.biomass, T2T.sub, by = c("LAT" ,"LON","SICOND","ELEV","SLOPE","ASPECT","STDAGE","TRTCD1",  
+#                                                                             "DSTRBCD1"))
+AZ.COND <- read.csv("data/AZ_COND.csv")
+
+AZ.COND[pipo.plt.cov.biomass$PLOT %in% AZ.COND$PLOT,]
+pipo.plt.cov.biomass.T2T$PLOT <- as.numeric(pipo.plt.cov.biomass.T2T$PLOT)
+pipo.plt.cov.biomass.COND <- merge(pipo.plt.cov.biomass.T2T, AZ.COND, by.x = c("T2_PLT_CN"), by.y = c("PLT_CN"))
+
+# one option is to use the FLDTYPCD (field type code) to state the forest type
+unique(AZ.COND$FLDTYPCD)
+unique(AZ.COND$FLDTYPCD_30)
+
+Appendix.F <- data.frame(
+  FLDTYPCD = c(182, 184, 185, 
+               201, 
+               221, 
+               261, 265, 266, 268, 269, 
+               362, 366, 368, 
+               703, 706, 709,
+               901, 
+               962, 
+               971, 972, 973, 974, 975,976,  
+               NA),
+  forest_type = c("Rocky Mountain Juniper", "Juniper woodland", "Pinyon / Juniper woodland", 
+                  "Douglas Fir", 
+                  "Ponderosa Pine", 
+                  "White Fir", "Engelmann spruce", "Engelmann sprucs / subalpine fir", "Subalpine fir", "Blue spruce", 
+                  "Southwestern white pine", "Limber pine", "Miscellaneous western softwoods", 
+                  "Cottonwood", "Sugarberry / hackberry / elm / green ash", "Cottonwood / willow",
+                  "Aspen", 
+                  "Other hardwoods", 
+                  "Deciduous oak woodland", "Evergreen oak woodland", "Mesquite woodland", "Cercocarpus (mountain brush) woodland", "Intermountain maple woodland","Miscellaneous woodland hardwoods",  
+                  NA))
+
+pipo.plt.cov.biomass.TYP <- left_join(pipo.plt.cov.biomass.COND, Appendix.F, by = "FLDTYPCD")
+
+unique(pipo.plt.cov.biomass.TYP$forest_type)
+pipo.plt.cov.biomass.TYP %>% group_by(forest_type)%>% summarise(n())
+
+
+
+# plot out the median biomass by forest type
+ggplot() + geom_line(data = pipo.plt.cov.biomass.TYP %>% filter(year %in% 1995:2010), aes(x = year, y = tot.pred.med, group = PLOT, color = forest_type))+
+  #scale_color_viridis_c(option="magma")+
+  theme_bw()+theme(panel.grid = element_blank())+facet_wrap(~forest_type)
+
+
+ggplot() + geom_line(data = pipo.plt.cov.biomass %>% filter(year %in% 1995:2010), aes(x = year, y = tot.pred.med, group = PLOT, color = STDAGE))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())
+
+
+# --------------------------------------------------------------------
+# get data about other trees on the plot
+
+AZ.TREE <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/AZ_TREE-2.csv"))
+
+AZ.TREE.in.plts <- AZ.TREE %>% filter(PLT_CN %in% unique(pipo.plt.cov.biomass.TYP$T1_PLT_CN))
+
+ntrees.byspec.in.plts <- AZ.TREE.in.plts %>% group_by(PLT_CN, INVYR, SPCD) %>% summarise(n())
+ntrees.in.plts <- AZ.TREE.in.plts %>% group_by(PLT_CN, INVYR) %>% summarise(n())
+
+# Calculate importance values
+AZ.TREE.in.plts$BASAL_AREA <- pi*((AZ.TREE.in.plts$DIA/2)^2)
+
+
+# Importance value = Relative density (%) + Relative Basal Area (%)
+AZ.plot.IV <- AZ.TREE.in.plts %>% group_by(PLT_CN, PLOT, INVYR, SPCD) %>%
+  summarise(density = n(), sumBA = sum(BASAL_AREA, na.rm = TRUE)) %>%
+  group_by(PLT_CN,PLOT, INVYR) %>% mutate(total_density = sum(density), 
+                                          total_BA = sum(sumBA)) %>% ungroup() %>%
+  mutate(rel_density = (density/total_density)*100, 
+         rel_BA= (sumBA/total_BA)*100) %>%
+  mutate(ImportanceValue = rel_density + rel_BA)
+
+ggplot(AZ.plot.IV, aes(x = ImportanceValue))+geom_histogram()+facet_wrap(~SPCD)
+
+
+AZ.plot.IV.pipo <- AZ.plot.IV %>% filter(SPCD == 122)
+
+# merge with our dataset
+
+plt.all <- merge(pipo.plt.cov.biomass.TYP, AZ.plot.IV, by.x = c("T2_PLT_CN","T2_FIADB", "INVYR"), by.y = c("PLT_CN","PLOT", "INVYR"))
+
+pipo.plt.all <- plt.all %>% filter(SPCD == 122)
+pipo.plt.all <- pipo.plt.all[!duplicated(pipo.plt.all),]
+
+
+ggplot() + geom_line(data = pipo.plt.all %>% filter(year %in% 1995:2010), aes(x = year, y = tot.pred.med, group = PLOT, color = ImportanceValue))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())
+
+ggplot() + geom_line(data = pipo.plt.all %>% filter(year %in% 1995:2010) %>% filter(ImportanceValue >150), aes(x = year, y = tot.pred.med, group = PLOT, color = total_density))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())
+
+ggplot() + geom_line(data = pipo.plt.all %>% filter(year %in% 1995:2010) %>% filter(ImportanceValue >150), aes(x = year, y = tot.pred.med, group = PLOT, color = total_BA))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())
+
+pipo.sub <- pipo.plt.all %>% filter(year == 2010) #%>% filter(ImportanceValue >150)
+length(unique(pipo.sub)$year)
+
+ggplot() + geom_point(data = pipo.plt.all %>% filter(ImportanceValue >150), aes(x = total_density, y = tot.pred.med, group = PLOT, color = total_BA))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())+facet_wrap(~SPCD)
+
+ggplot() + geom_point(data = pipo.sub , aes(x = total_density, y = tot.pred.med, color = ImportanceValue))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank())
+
+ggplot() + geom_point(data = pipo.sub , aes(x = total_density, y = tot.pred.med, color = ImportanceValue, size = total_BA))+
+  scale_color_viridis_c(option="magma")+theme_bw()+theme(panel.grid = element_blank()) +ylab("Median Predicted stem Biomass (kg)")+xlab("Number of trees")
