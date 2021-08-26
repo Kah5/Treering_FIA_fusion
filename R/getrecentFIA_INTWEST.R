@@ -5,11 +5,11 @@ library(dplyr)
 library(ggplot2)
 # note that this script uses temp2 and Tree2Tree.incored.plots dataframes from the Rdriver.R script
 
-#if(!exists("/Users/kah/Documents/docker_pecan/pecan/InWeUS_FIA/AZ_COND.csv")){
- # fiadb <- getFIA(states = c("AZ", "UT", "CO", "ID", "WY", "MT"), dir = "InWeUS_FIA", common = FALSE, tables = c("PLOT", "TREE", "COND", "SUBPLOT"), nCores = 1)
-#}else{
-  fiadb <- readFIA(dir = "InWeUS_FIA")
-#}
+if(!exists("Users/kah/Documents/docker_pecan/pecan/InWeUS_FIA/AZ_COND.csv")){
+fiadb <- getFIA(states = c("AZ", "UT", "CO", "ID", "WY", "MT"), dir = "InWeUS_FIA", common = FALSE, tables = c("PLOT", "TREE", "COND", "SUBPLOT"), nCores = 1)
+}else{
+  fiadb <- readFIA(dir = "/Users/kah/Documents/docker_pecan/pecan/InWeUS_FIA")
+}
 
 PLOT <- fiadb$PLOT
 SUBPLOT <- fiadb$SUBPLOT
@@ -27,16 +27,16 @@ library(ggplot2)
 library(dplyr)
 
 full.clim.data <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pipo_all_tmean_ppt_v3.csv")
-region.rwl <- read.csv("trees-rwl-1-31-17.csv") # note that this data is has all RWLS in columsn and a year column
-region.ll <- read.csv("locs-env-1-31-17.csv")
+region.rwl <- read.csv("data/trees-rwl-1-31-17.csv") # note that this data is has all RWLS in columsn and a year column
+region.ll <- read.csv("data/locs-env-1-31-17.csv")
 
 head(region.ll)
 
 
 # not sure if these are actually all matching properly.
-previous.surveys <-  region.ll[ TREE$CN %in% region.ll$ID,]
+#previous.surveys <-  region.ll[ TREE$CN %in% region.ll$CN,]
 
-TREE.old <- TREE %>% filter(INVYR, )
+#TREE.old <- TREE %>% filter(INVYR, )
 TREE$MEASYR <- PLOT$MEASYEAR[match(TREE$PLT_CN, TREE$PLT_CN)]
 TREE$PLOT_LAT <- PLOT$LAT[match(TREE$PLT_CN, PLOT$CN)]
 TREE$PLOT_LON <- PLOT$LON[match(TREE$PLT_CN, PLOT$CN)]
@@ -121,6 +121,69 @@ ggplot()+
   geom_point(data = TREE_REMEAS %>% filter(SPCD == 122), aes(x = PLOT_LON, y = PLOT_LAT), color = "black")+
   geom_point(data = FIA.outside.AZ %>% filter(SPCD == 122), aes(x= LON, y = LAT, color = as.character(INVYR)))
 
+summary(FIA.outside.AZ$HT)
+length(FIA.outside.AZ$HT)
+
+FIA.outside.AZ.CNs <- FIA.outside.AZ[!is.na(FIA.outside.AZ$CN),]
+
+
+FIA.outside.AZ.plots<- PLOT %>% filter(CN %in% FIA.outside.AZ.CNs$PLT_CN)
+FIA.outside.AZ.TREES <- TREE %>% filter(PLT_CN %in% FIA.outside.AZ.CNs$PLT_CN)
+
+
+# test.plot <- FIA.outside.AZ.TREES %>% filter(PLT_CN %in% unique(FIA.outside.AZ.plots$CN)[1])
+# ggplot(test.plot, aes(x = DIA, y = HT, color = as.character(SPCD)))+geom_point()
+
+
+# note: not sure if I should be calculating SDI on the PLOT or the SUBP scale. I think we want SDI at the subplot scacle (reflects closer to what the tree feels)
+
+FIA.outside.AZ.TREES.w.SDI <- FIA.outside.AZ.TREES %>% group_by(PLT_CN, STATECD, COUNTYCD,PLOT, SUBP) %>% filter(DIA > 1) %>%
+  mutate(TPA = sum(TPA_UNADJ), 
+         Dq = sqrt(sum(DIA^2)/length(DIA)), 
+         SDIs = ((Dq/10)^1.6)*TPA, #calculate SDI (Summation Method) on the subplot:
+         SDIdq = sum(TPA_UNADJ*((DIA/10)^1.6)), ## calculate SDI (Quadratic mean diameter) on the subplot:
+         SDIrat = SDIs/SDIdq) # ratio of SDIsum to SDIdq; should be close to 1 for even aged stands
+
+
+# Calculate importance values
+FIA.outside.AZ.TREES.w.SDI$BASAL_AREA <- pi*((FIA.outside.AZ.TREES.w.SDI$DIA/2)^2)
+
+
+# Importance value = Relative density (%) + Relative Basal Area (%)
+
+# note: not sure if I should be calculating Importance values on the PLOT or the SUBP scale
+plot.IV <- FIA.outside.AZ.TREES.w.SDI %>% group_by(PLT_CN, PLOT, INVYR, SPCD) %>%
+  summarise(density = n(), sumBA = sum(BASAL_AREA, na.rm = TRUE)) %>%
+  group_by(PLT_CN,PLOT, INVYR) %>% mutate(total_density = sum(density), 
+                                          total_BA = sum(sumBA)) %>% ungroup() %>%
+  mutate(rel_density = (density/total_density)*100, 
+         rel_BA= (sumBA/total_BA)*100) %>%
+  mutate(ImportanceValue = rel_density + rel_BA)
+
+
+left_join(FIA.outside.AZ.TREES.w.SDI, plot.IV[,c("PLT_CN", "PLOT", "INVYR", "SPCD", )], by = )
+  
+ggplot(plot.IV, aes(x=as.character(SPCD), y = ImportanceValue))+geom_point()
+  
+
+
+
+
+# calculate SDI (Summation Method) on the subplot:
+ 
+      Dq = sqrt(sum(test.subp$DIA^2)/length(test.subp$DIA))
+      
+      TPA = sum(test.subp$TPA_UNADJ)
+      
+      SDIs = ((Dq/10)^1.6)*TPA
+      
+      # calculate SDI (Quadratic mean diameter) on the subplot:
+      SDIdq = sum(test.subp$TPA_UNADJ*((test.subp$DIA/10)^1.6))
+      
+      
+      SDIrat = SDIs/SDIdq
+
+
 
 #-------------------------------------------------------------------------------------
 # Read in AZ data and combine stand level data
@@ -153,7 +216,7 @@ colnames(FIA.not.orphaned.plots.nona)
 
 
 ### read in function that creates jags objects from above data
-source("/Users/kah/Documents/GrowthFusion/modules/data.land/R/BuildJAGSdataobject.R")
+source("/Users/kah/Documents/docker_pecan/pecan/modules/data.land/R/BuildJAGSdataobject.R")
 #jags.stuff <- buildJAGSdataobject(temp2, Tree2Tree, rnd.subset = 5000, trunc.yr = 1966)
 # if you don't have trees without cores, use the following line
 # or you wish to not include trees without cores
@@ -237,7 +300,7 @@ time_data.az <- time_data
 head(region.ll)
 
 # read in the larger region climate data:
-pipo.clim <- read.csv("FIA_inc_data/pipo_all_tmean_ppt_v4.csv")
+pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v4.csv")
 colnames(pipo.clim)
 
 pipo.clim$wintP.NovAug <- rowSums(pipo.clim[,c("PPT_8", "PPT_9", "PPT_10", "PPT_11")])
@@ -359,7 +422,7 @@ ggplot(BA.STEMS.all %>% filter(SPCD == 122), aes(IV))+geom_histogram()+xlab("Imp
 
 
 # read in the table with the spcd crosswalk 
-SPCD.tbl <- read.csv("FIA_inc_data/SPCD_table.csv")
+SPCD.tbl <- read.csv("data/SPCD_table.csv")
 BA.STEMS.all <- left_join(BA.STEMS.all, SPCD.tbl[,c("SPCD", "COMMON_NAME", "SCI_NAME")], by = c("SPCD"))
 
 png(height = 8, width = 10, units = "in", res = 200, "plot_summaries/histogram_IV_by_SPCD_cored_plots_IW_no_AZ.png")
