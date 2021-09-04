@@ -161,13 +161,84 @@ plot.IV <- FIA.outside.AZ.TREES.w.SDI %>% group_by(PLT_CN, PLOT, INVYR, SPCD) %>
   mutate(ImportanceValue = rel_density + rel_BA)
 
 
-left_join(FIA.outside.AZ.TREES.w.SDI, plot.IV[,c("PLT_CN", "PLOT", "INVYR", "SPCD", )], by = )
+FIA.outside.AZ.TREES.w.SDI.IV <-left_join(FIA.outside.AZ.TREES.w.SDI, plot.IV, by = c("PLT_CN", "PLOT", "INVYR", "SPCD"))
   
 ggplot(plot.IV, aes(x=as.character(SPCD), y = ImportanceValue))+geom_point()
   
+FIA.outside.AZ.TREES.w.SDI.IV
+ggplot(FIA.outside.AZ.TREES.w.SDI.IV %>% filter(SPCD == 122), aes(x=SDIs, y = ImportanceValue))+geom_point()
+
+ggplot(FIA.outside.AZ.TREES.w.SDI.IV %>% filter(SPCD == 122), aes(x=SDIdq, y = ImportanceValue))+geom_point()
+
+sdis.sdidq.subplt<- ggplot(FIA.outside.AZ.TREES.w.SDI.IV %>% filter(SPCD == 122), aes(x=SDIdq, y = SDIs, color = ImportanceValue))+
+  geom_point()+geom_abline(aes(intercept = 0, slope = 1))+theme_bw(base_size = 12)+theme(panel.grid = element_blank())+ylab("SDIdq calculated at SUBP")+ylab("SDIs calculated at SUBP")
+
+# plot SDI relative to SDI max
+
+SDIs.hist.supb <- ggplot(FIA.outside.AZ.TREES.w.SDI.IV %>% filter(SPCD == 122), aes(SDIs))+geom_histogram()+
+  geom_vline(aes(xintercept = 450), linetype = "dashed")+xlab("SDI calculated on SUBPLOT level \n (summation method)")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())
+
+SDId.hist.supb <- ggplot(FIA.outside.AZ.TREES.w.SDI.IV %>% filter(SPCD == 122), aes(SDIdq))+geom_histogram()+
+  geom_vline(aes(xintercept = 450), linetype = "dashed")+xlab("SDI calculated on SUBPLOT level \n (Quadratic mean diameter method)")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())
 
 
+# do the same thing but at the PLOT level:
 
+
+FIA.outside.AZ.TREES.w.SDI.PLT <- FIA.outside.AZ.TREES %>% group_by(PLT_CN, STATECD, COUNTYCD,PLOT) %>% filter(DIA > 1) %>%
+  mutate(TPA = sum(TPA_UNADJ), 
+         Dq = sqrt(sum(DIA^2)/length(DIA)), 
+         SDIs = ((Dq/10)^1.6)*TPA, #calculate SDI (Summation Method) on the subplot:
+         SDIdq = sum(TPA_UNADJ*((DIA/10)^1.6)), ## calculate SDI (Quadratic mean diameter) on the subplot:
+         SDIrat = SDIs/SDIdq) # ratio of SDIsum to SDIdq; should be close to 1 for even aged stands
+
+
+# Calculate importance values
+FIA.outside.AZ.TREES.w.SDI.PLT$BASAL_AREA <- pi*((FIA.outside.AZ.TREES.w.SDI$DIA/2)^2)
+
+
+# Importance value = Relative density (%) + Relative Basal Area (%)
+
+# note: not sure if I should be calculating Importance values on the PLOT or the SUBP scale
+plot.IV <- FIA.outside.AZ.TREES.w.SDI %>% group_by(PLT_CN, PLOT, INVYR, SPCD) %>%
+  summarise(density = n(), sumBA = sum(BASAL_AREA, na.rm = TRUE)) %>%
+  group_by(PLT_CN,PLOT, INVYR) %>% mutate(total_density = sum(density), 
+                                          total_BA = sum(sumBA)) %>% ungroup() %>%
+  mutate(rel_density = (density/total_density)*100, 
+         rel_BA= (sumBA/total_BA)*100) %>%
+  mutate(ImportanceValue = rel_density + rel_BA)
+
+
+FIA.outside.AZ.TREES.w.SDI.IV.PLT <-left_join(FIA.outside.AZ.TREES.w.SDI.PLT, plot.IV, by = c("PLT_CN", "PLOT", "INVYR", "SPCD"))
+
+ggplot(plot.IV, aes(x=as.character(SPCD), y = ImportanceValue))+geom_point()
+
+
+ggplot(FIA.outside.AZ.TREES.w.SDI.IV.PLT  %>% filter(SPCD == 122), aes(x=SDIs, y = ImportanceValue))+geom_point()
+
+ggplot(FIA.outside.AZ.TREES.w.SDI.IV.PLT  %>% filter(SPCD == 122), aes(x=SDIdq, y = ImportanceValue))+geom_point()
+
+sdis.sdidq.plt<- ggplot(FIA.outside.AZ.TREES.w.SDI.IV.PLT %>% filter(SPCD == 122), aes(x=SDIdq, y = SDIs, color = ImportanceValue))+
+  geom_point()+geom_abline(aes(intercept = 0, slope = 1))+theme_bw(base_size = 12)+theme(panel.grid = element_blank())+ylab("SDIdq calculated at PLOT")+ylab("SDIs calculated at PLOT")
+
+# plot SDI relative to SDI max
+
+SDIs.hist.plt <-ggplot(FIA.outside.AZ.TREES.w.SDI.IV.PLT %>% filter(SPCD == 122), aes(SDIs))+geom_histogram()+
+  geom_vline(aes(xintercept = 450), linetype = "dashed")+xlab("SDI calculated on PLOT level \n (summation method)")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())
+
+SDId.hist.plt <-ggplot(FIA.outside.AZ.TREES.w.SDI.IV.PLT %>% filter(SPCD == 122), aes(SDIdq))+geom_histogram()+
+  geom_vline(aes(xintercept = 450), linetype = "dashed")+xlab("SDI calculated on PLOT level \n (Quadratic mean diameter method)")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())
+
+
+png(height = 6, width = 8, units = "in", res = 250, "outputs/exploration/SDIs_SDId_hists_SUBP_PLT.png")
+cowplot::plot_grid(SDIs.hist.plt, SDId.hist.plt, 
+                   SDIs.hist.supb, SDId.hist.supb, ncol = 2, labels = "AUTO", align = "hv")
+dev.off()
+
+
+png(height = 8, width = 6, units = "in", res = 250, "outputs/exploration/SDIs_SDId_xyplot_SUBP_PLT.png")
+cowplot::plot_grid(sdis.sdidq.plt, sdis.sdidq.subplt, ncol = 1, labels = "AUTO", align = "hv")
+dev.off()
 
 # calculate SDI (Summation Method) on the subplot:
  
