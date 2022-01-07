@@ -6,6 +6,9 @@
 library(rFIA)
 library(dplyr)
 library(ggplot2)
+library(tidyr)
+library(tidyverse)
+
 # note that this script uses temp2 and Tree2Tree.incored.plots dataframes from the Rdriver.R script
 
 #if(!exists("Users/kah/Documents/docker_pecan/pecan/InWeUS_FIA/AZ_COND.csv")){
@@ -25,10 +28,6 @@ unique(fiadb$PLOT$STATECD)
 
 
 # read in the non-AZ points:
-library(tidyr)
-library(ggplot2)
-library(dplyr)
-
 full.clim.data <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pipo_all_tmean_ppt_v3.csv")
 region.rwl <- read.csv("data/trees-rwl-1-31-17.csv") # note that this data is has all RWLS in columsn and a year column
 region.ll <- read.csv("data/locs-env-1-31-17.csv")
@@ -36,26 +35,25 @@ region.ll <- read.csv("data/locs-env-1-31-17.csv")
 head(region.ll)
 
 
-# not sure if these are actually all matching properly.
-#previous.surveys <-  region.ll[ TREE$CN %in% region.ll$CN,]
-
-#TREE.old <- TREE %>% filter(INVYR, )
+# Match up the tree and plot data
 TREE$MEASYR <- PLOT$MEASYEAR[match(TREE$PLT_CN, PLOT$CN)]
 TREE$PLOT_LAT <- PLOT$LAT[match(TREE$PLT_CN, PLOT$CN)]
 TREE$PLOT_LON <- PLOT$LON[match(TREE$PLT_CN, PLOT$CN)]
 TREE$DESIGNCD <- PLOT$DESIGNCD[match(TREE$PLT_CN, PLOT$CN)]
 
+# example plot of all the data (missing NM)
 ggplot(TREE %>% filter(SPCD == 122), aes(PLOT_LON, PLOT_LAT))+geom_point()
-# we should be able to use STATECD, COUNTYCD, PLOT, SUBP, TREE, and SPCD & DIA from region.ll to match with trees from FIADB
 
+# we should be able to use STATECD, COUNTYCD, PLOT, SUBP, TREE, and SPCD & DIA from region.ll to match with trees from FIADB
 FIA.outside.AZ <- left_join(region.ll[,c("STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD","series", "DIA", "ELEV", "LAT", "LON")], 
                             TREE, by = c("STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD", "DIA"))
 
 FIA.not.orphaned.plots.nona <- FIA.outside.AZ[!is.na(FIA.outside.AZ$INVYR),]
-saveRDS(FIA.not.orphaned.plots.nona, "FIA.not.orphaned.plots.nona.RDS")
+saveRDS(FIA.not.orphaned.plots.nona, "data/FIA.not.orphaned.plots.nona.RDS")
 short.FIA <- FIA.not.orphaned.plots.nona[,c("PLT_CN","STATECD","COUNTYCD","PLOT", "SUBP", "TREE")]
-# now get the repeated survey data for those FIA plots:
 
+
+# now get the repeated survey data for those FIA plots:
 unique(FIA.not.orphaned.plots.nona$PLT_CN %in% TREE$PLT_CN)
 
 
@@ -85,7 +83,7 @@ TREE_REMEAS$T1_TRE_CN <- TREE_REMEAS$PREV_TRE_CN
 TREE_REMEAS$PREV_PREV_TREE_CN <- TREE$PREV_TRE_CN[match(TREE_REMEAS$PREV_TRE_CN, TREE$CN)]
 
 
-
+# calculate static SDI for each subplot and measure year
 static_SDI <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% group_by(PLT_CN, STATECD, PLOT, SUBP, MEASYR) %>% filter(DIA > 1) %>%
   summarise(ntrees_static = n(),
             TPA_static = sum(TPA_UNADJ, na.rm = TRUE), 
@@ -94,12 +92,14 @@ static_SDI <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% gr
             SDIdq_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), ## calculate SDI (Quadratic mean diameter) on the subplot:
             SDIrat_static = SDIs/SDIdq) 
 
+# summarise, note that these are for all species
 hist(static_SDI$SDIdq_static)
-summary(static_SDI )
+summary(static_SDI)
 
 
-
-static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>% filter(DIA > 1) %>%
+# calculate static SDI for each PLOT and measure year
+static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% 
+  group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>% filter(DIA > 1) %>%
   summarise(ntrees_static = n(),
             TPA_static = sum(TPA_UNADJ, na.rm = TRUE), 
             Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/length(DIA)), 
@@ -111,31 +111,34 @@ hist(static_SDI_pltcn$SDIdq_static)
 
 static_SDI_pltcn.unique <- unique(static_SDI_pltcn)
 
-saveRDS(static_SDI_pltcn.unique, "static_SDI_by_plot_pltcn.unique.rds")
+saveRDS(static_SDI_pltcn.unique, "data/static_SDI_by_plot_pltcn.unique.rds")
 test.join.sdi <- merge(FIA.outside.AZ, static_SDI_pltcn.unique, by = c("PLT_CN", "STATECD","COUNTYCD", "PLOT", "MEASYR"))
 # get the increment data, trees stacked with rwls:
-saveRDS(test.join.sdi, "FIA_outside_AZ_ll_SDI_plot.rds")
+saveRDS(test.join.sdi, "data/FIA_outside_AZ_ll_SDI_plot.rds")
 
 full.clim.data <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pipo_all_tmean_ppt_v3.csv")
 region.rwl <- read.csv("data/trees-rwl-1-31-17.csv") # note that this data is has all RWLS in columsn and a year column
 region.ll <- read.csv("data/locs-env-1-31-17.csv", stringsAsFactors = TRUE)
-region.ll$DIA_cm <- region.ll$DIA*2.54
+region.ll$DIA_cm <- region.ll$DIA*2.54 # convert these DBH to cm (needed to back cacluate tree diameters for cored trees)
 
+# here we should probably be joining by CN's...but not sure if it is the core cn or tree cn.
 FIA.outside.AZ <- left_join(region.ll[,c("STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD","series", "DIA", "ELEV", "LAT", "LON", "ELEV", "ASPECT", "SLOPE", "SICOND", "DIA_cm")], 
                             TREE, by = c("STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD", "DIA"))
 
 FIA.outside.AZ$MEASYEAR <- ifelse(!is.na(FIA.outside.AZ$MEASYR), FIA.outside.AZ$MEASYR, FIA.outside.AZ$INVYR)
 
 # read in AZ data:
+# these are the old datasets, need to replace with 518
 jags.data <- readRDS("/Users/kah/Documents/docker_pecan/pecan/jags.data.515.trees.rds")
 PIPO.az.cov <- read.csv("/Users/kah/Documents/docker_pecan/pecan/Full.AZ.PIPO.515.trees.csv")
 
 PIPO.az.sub<- PIPO.az.cov [,c( "CountyNo", "T2_FIADB_PLOT", "SubplotNo", "PLOT_MEASYEAR", "TreeNo",  "DBH", "PLOT_ELEV", "PLOT_LAT", "PLOT_LON",  "COND_ASPECT", "SDI", "COND_SICOND", "T1_TRE_CN", "T1_PLT_CN")]
 PIPO.az.sub$STATECD <- 4
 PIPO.az.sub$SPCD <- 122
-PIPO.az.sub$DIA_cm <- PIPO.az.sub$DBH*2.54
+PIPO.az.sub$DIA_cm <- PIPO.az.sub$DBH*2.54 # convert to cm
 PIPO.az.sub$series <- 1:length(PIPO.az.sub$CountyNo)
-PIPO.az.sub$TPA_UNADJ <- 6.01805 # not sure that AZ plots are here
+# plot design codes are all listed as either 1 or NA in the AZ data...so I am using the default TPA_UNADJ
+PIPO.az.sub$TPA_UNADJ <- 6.01805 # This TPA_UNADJ needs to be corrected to the right TPA_UNAJ not sure that AZ plots are here
 
 colnames(PIPO.az.sub) <- c("COUNTYCD", "PLOT", "SUBP","MEASYR", "TREE", "DBH", "ELEV", "LAT", "LON", "ASPECT", "SDI", "SICOND", "CN", "PLT_CN", "STATECD", "SPCD", "DIA_cm", "series", "TPA_UNADJ")
 
@@ -158,7 +161,7 @@ AZ.cov.growth.data <- left_join(AZ.growth[,c("series", "Year", "RW")], PIPO.az.s
 
 
 
-# merge non az data
+# merge non az data cored data and the regional data
 summary(FIA.outside.AZ)
 region.rwl.m <- reshape2::melt(region.rwl[,2:length(region.rwl)], id.vars = "Year")
 colnames(region.rwl.m)<- c("Year", "series", "RW")
@@ -166,20 +169,23 @@ colnames(region.rwl.m)<- c("Year", "series", "RW")
 full.inc.nonaz <- left_join(region.rwl.m, FIA.outside.AZ , by = "series")
 full.inc.nonaz$DIA_cm <- full.inc.nonaz$DIA*2.54
 
+
 # adapting from Courtney Giebink's code: https://github.com/clgiebink/UT_FVS/blob/master/scripts/AnnualizeDBH.R
+# select the covariates
 nonaz_2cov <- full.inc.nonaz %>%
   dplyr::select(series, PLT_CN, Year, RW, STATECD, COUNTYCD, PLOT, TREE, SPCD,SUBP,MEASYR,TPA_UNADJ,
          LAT,LON,ELEV, CN,
          DIA_cm)
-nonaz_2cov$RW <- nonaz_2cov$RW/10 # convert mm to cm
+nonaz_2cov$RW <- nonaz_2cov$RW/10 # convert mm to cm--I am assuming all the measurements are in mm
 
+# select the covariates for the AZ data
 naz_2cov <- AZ.cov.growth.data %>%
   dplyr::select(series, PLT_CN, Year, RW, STATECD, COUNTYCD, PLOT, TREE, SPCD,SUBP,MEASYR,TPA_UNADJ,
        LAT,LON,ELEV,CN,
          DIA_cm)
 
-all.region.data <- rbind(nonaz_2cov, naz_2cov)
-all.pipo <- all.region.data  %>%filter(SPCD == 122)
+all.region.data <- rbind(nonaz_2cov, naz_2cov) # combine all regional data togther 
+all.pipo <- all.region.data  %>% filter(SPCD == 122) # just get PIPO
 
 # select pipos that have tree CNs, and dont have NAs
 PIPO.filtered <- all.region.data  %>% filter(SPCD == 122 & !is.na(RW) & !is.na(CN)) %>% rename(TRE_CN = CN, MEASYEAR = MEASYR)
@@ -190,7 +196,7 @@ regional.tree <- TREE %>% filter(PLT_CN %in% ok.plots$PLT_CN) # the tree table t
 #regional.tree.SDI.static <- 
 
 #dataframe of coefficients for bark ratio calculation
-#from Utah variant guide
+#from Utah variant guide (from Courtney's code)
 bratio_df <- data.frame(species=c(93,202,122,15,19,65,96,106,108,133,321),
                         #93=ES,202=DF,122=PP,15=WF,19=AF,65=UJ,96=BS,106=PI,108=LP,133=PM,321=OH
                         b1 = c(0.9502,0.867,0.8967,0.890,0.890,0.9002,0.9502,0.9002,0.9625,0.9002,0.93789),
@@ -205,11 +211,14 @@ bratio_df <- data.frame(species=c(93,202,122,15,19,65,96,106,108,133,321),
 # Year<- PIPO.test$Year
 # RW<- PIPO.test$RW
 # SPCD<- PIPO.test$SPCD
+#
+
 #annualized DBH
 #DBH0 = DBH - k * DG , where k = 1/BRATIO and DG = 2 * RW  
 #DG = periodic increment in inside bark diameter 
+
 #function to annualize, or back calculate dbh using diameter increment data (2*RW)
-library(tidyverse)
+
 calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
   #create data frame with empty column for annualized dbh
   tree_df <- data.frame(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD,DIA_C = NA)
@@ -253,27 +262,28 @@ unique(incr_imputed$PLT_CN)
 unique(PIPO.filtered $series)
 #check
 #stop when DIA is less than 1
-min(incr_imputed$DIA_C,na.rm = T) #2.219646
+min(incr_imputed$DIA_C,na.rm = T) #minimum diameter = 1.001022 cm
 
 #did DIA_C = DIA_t when last RW year was 1 year less than MEASYEAR
 check_data <- incr_imputed[which(incr_imputed$Year + 1 == incr_imputed$MEASYEAR),]
 check_data <- check_data[check_data$SPCD == 202,]
 
 #filter for trees with back calculated DBH
-length(unique(incr_imputed$TRE_CN)) #1496
+length(unique(incr_imputed$TRE_CN)) #only 609 trees with back calculated dbh
 #incr_imputed <- incr_imputed %>%
  # filter(!is.na(DIA_C)) #%>%
   #filter for >3" - check variant for large tree growth threshold - species specific
 #  filter(DIA_C >= 3)
-length(unique(incr_imputed$TRE_CN)) #568
+length(unique(incr_imputed$TRE_CN)) #609
 
-length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 202])) #131, 136
-length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 122])) #73, 87
-length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 93]))  #50, 95
+length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 202])) #0
+length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 122])) #609
+length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 93]))  #0
 
 #save dataframe
 save(incr_imputed,file = "./data/Back_calculated_DBH_all_region_incr_imputed.Rdata")
 load("./data/Back_calculated_DBH_all_region_incr_imputed.Rdata")
+#Example plot--suggests that most cored trees are young? I think this is reasonable, but I want to check some of the floating cores
 ggplot(incr_imputed, aes(x = Year, y = DIA_C, group = TRE_CN))+geom_line()
 
 #--------------------------------------------------------------------------------------
@@ -307,6 +317,7 @@ incr_imputed <- incr_imputed %>%
 unique(incr_imputed$SPCD) #Values of BAR can be used for other species
 #[1] 106 202 122  93  15  65 108  19  96 133 321
 
+# explore BAR by different groups:
 #BAR by size?
 bar_df <- incr_imputed %>%
   ungroup() %>%
@@ -333,13 +344,14 @@ incr_imputed <- incr_imputed %>%
 #create dataframe of trees without increment cores in plots with trees that have increment cores
 plot_rw <- unique(incr_imputed$PLT_CN) #475
 tree_rw <- unique(incr_imputed$TRE_CN) #568
-(tree$PLT_CN %in% FIA.outside.AZ.CNs$PLT_CN) & !(tree$CN %in% tree_rw)
+#(tree$PLT_CN %in% FIA.outside.AZ.CNs$PLT_CN) & !(tree$CN %in% tree_rw)
 
 # get subset of the tree data for all states
 tree <- TREE[,c("CN","STATECD", "PLOT", "SUBP","INVYR", "MEASYR","PLT_CN","SUBP","SPCD","STATUSCD","MORTYR","DIA","TPA_UNADJ","DIST","AGENTCD", "DESIGNCD")]
 
-#& !(tree$CN %in% tree_rw)
+#get the miss_data, or the trees missing cores!
 miss_data <- tree[(tree$PLT_CN %in% regional.tree$PLT_CN) &  !(tree$CN %in% tree_rw),c("CN","STATECD", "PLOT", "SUBP","INVYR", "MEASYR","PLT_CN","SUBP","SPCD","STATUSCD","MORTYR","DIA","TPA_UNADJ","DIST","AGENTCD", "DESIGNCD")]
+
 #make sure trees are on the same plot b/c calculating stand variables
 #make sure I'm not including trees with increment data
 colnames(miss_data)[colnames(miss_data)=="CN"] <- "TRE_CN"
@@ -356,10 +368,12 @@ miss_data$DIA_C <- NA
 
 #check
 length(plot_rw) #475
-length(unique(miss_data$PLT_CN)) #474
-unique(miss_data$STATUSCD)
-# 1 2
+length(unique(miss_data$PLT_CN)) #41251
+unique(miss_data$STATUSCD) # either 1 or 2
+
 unique(miss_data$AGENTCD)
+
+# get the mortalities data (status code = 2)
 miss_mort <- miss_data %>%
   filter(STATUSCD == 2) %>%
   dplyr::select(PLT_CN,SUBP,TRE_CN,SPCD,MEASYR,STATUSCD,MORTYR)
@@ -388,21 +402,22 @@ miss_data <- miss_data %>%
   mutate(start = ifelse(STATUSCD == 1, 0,
                         base::sample(0:9,1)))
 
-# this takes along time =---I need this
+# this takes along time =---But we need it....we also need a way to make it go back in time by a standard, and to go forward in time
 miss_data <- miss_data %>%
   slice(rep(1:n(), each = 40)) %>% #repeat each row 40 times
   group_by(TRE_CN) %>%
-  mutate(Year = c((MEASYR[1]-39-start):(MEASYR[1]-start))) %>% #40 yrs is arbitrary; model will likely go back 30 yrs
+  mutate(Year = c((MEASYR[1]-39-start):(MEASYR[1]-start))) %>% #40 yrs is arbitrary; 
   ungroup() %>%
   filter(Year >= 1958)
 
 n.in.plts <- miss_data %>% group_by(STATECD, PLOT, INVYR) %>% summarise(n())
 
-# instead make a df with year expanded:
+# instead make a df with year expanded (KAH attempt to have the calculation of diamters go back and forward in time):
 # tre.yrs <- expand.grid(TRE_CN = unique(miss_data$TRE_CN), 
 #            Year = 1966:2010)
 # miss_data <- left_join( miss_data, tre.yrs, by = "TRE_CN")
 
+# throws an error because miss_mort_imputed is not an object
 miss_mort_check <- miss_mort_imputed %>%
   dplyr::select(TRE_CN,STATUSCD,start) %>%
   distinct() %>%
@@ -413,7 +428,7 @@ hist(miss_mort_check$start, breaks = 50, xlab = 'Difference in mortality year an
 
 #match BAR_av from incr_imputed to miss_data using plot, species and year information
 #match function does not work..why? NA values?
-#for loop works but takes a long time
+#KAH converted the for loop (which worked, but took  a long time) to a function + lapply
 
 get_bar_imputed <- function(i){
   species <- miss_data$SPCD[i]
@@ -435,11 +450,15 @@ get_bar_imputed <- function(i){
   BAR_av
 }
 
-# should like about 15 minutes
+# should take labout 15 minutes 
 bar.vals <- lapply(1:length(miss_data$TRE_CN), get_bar_imputed)
 bar.df <- do.call(rbind, bar.vals)
 head(bar.df)
+tail(bar.df)
+#unique(bar.df)
 miss_data$BAR <- bar.df[,1]
+
+# old for loop here:
 # for(i in 1:nrow(miss_data)){ #miss_data includes all trees without increment data
 #   species <- miss_data$SPCD[i]
 #   if(species %in% c(106,202,122,93)){ #focal species
@@ -545,9 +564,9 @@ DIA_BAR_tcn(tcn)
 
 
 system.time(tree.df.dia.c <- lapply(unique(miss_data$TRE_CN), FUN = DIA_BAR_tcn))
-saveRDS(tree.df.dia.c , "tree.df.dia.c_v3.RDS")
+saveRDS(tree.df.dia.c , "data/tree.df.dia.c_v3.RDS")
 
-tree.df.dia.c <- readRDS("tree.df.dia.c_v3.RDS")
+tree.df.dia.c <- readRDS("data/tree.df.dia.c_v3.RDS")
 make.diam.df <- function(x){
   cat(x)
   df<- data.frame(tree.df.dia.c[[x]])
@@ -571,7 +590,7 @@ saveRDS(miss_data.new, "data/noncored_trees_DIA_c_v3.rds")
 miss_data.new<- readRDS("data/noncored_trees_DIA_c_v3.rds")
 
 nrecords <- miss_data.new %>% ungroup() %>% group_by(PLOT, Year) %>% summarise(n())
-summary(nrecords) # only one record for each tree in each year
+summary(nrecords) # check to see that there is more than 1 tree in each year
 # combine the miss_data.new with the cored dataset for nonAZ species:
 colnames(incr_imputed)
 colnames(miss_data.new)
@@ -602,8 +621,11 @@ length(density.data$PLOT)/length(TPA.df$STATECD)
 density.data.TPA <- density.data
 #density.data.nona <- density.data.TPA[!is.na(density.data.TPA$DIA_C),]
 #<- duplicated(density.data.nona)
-density.data.TPA$DIA_Cin <- density.data.TPA$DIA_C/2.54
+density.data.TPA$DIA_Cin <- density.data.TPA$DIA_C*2.54
 density.data.TPA$count <- 1
+
+
+# at the plot level calculate the time varying SDI
 Time_varying_SDI <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT, PLT_CN,Year) %>% #filter(DIA_Cin > 1) %>%
   summarise(ntrees = sum(count),
          #TPA = sum(TPA_UNADJ), 
@@ -613,10 +635,11 @@ Time_varying_SDI <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT, P
          SDIrat = SDIs/SDIdq) 
 
 
-saveRDS(Time_varying_SDI, "Time_varying_SDI_TPA_UNADJ_PLT_CN_v2.RDS")
+saveRDS(Time_varying_SDI, "data/Time_varying_SDI_TPA_UNADJ_PLT_CN_v2.RDS")
 
-hist(Time_varying_SDI$SDIdq)
-hist(Time_varying_SDI$SDIs)
+
+hist(Time_varying_SDI$SDIdq)# SDIdq seems to skew low, but in the range
+hist(Time_varying_SDI$SDIs) # SDIs seems too high?
 fia.nums <- short.FIA %>% group_by(STATECD, PLOT) %>% summarise(n())
 
 ggplot(Time_varying_SDI, aes(x = Year, y = SDIs, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
@@ -639,7 +662,10 @@ test.static.pltcn <- left_join(Time_varying_SDI.subset, static_SDI_pltcn, by = c
 
 ggplot(test.static, aes(SDIs, SDIs_static))+geom_point()
 ggplot(test.static.pltcn , aes(SDIdq, SDIdq_static))+geom_point()
-ggplot(test.static , aes(SDIdq, SDIdq_static))+geom_point()
+
+png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic.png")
+ggplot(test.static.pltcn , aes(SDIdq, SDIdq_static))+geom_point()
+dev.off()
 
 test.static.invyr <- test.static.pltcn %>% group_by(PLT_CN) %>% filter(Year == MEASYR)
 ggplot(test.static.invyr , aes(SDIs, SDIs_static))+geom_point()
@@ -648,8 +674,8 @@ ggplot(test.static.invyr , aes(SDIdq, SDIdq_static))+geom_point()+geom_abline(ae
 
 varying.static.pltcn <- left_join(Time_varying_SDI, static_SDI_pltcn, by = c("PLT_CN", "STATECD","PLOT"))
 
-saveRDS( varying.static.pltcn, "Time_varying_SDI_static_SDI_PLT_CN.RDS")
-saveRDS(static_SDI_pltcn, "static_SDI_PLT_CN.RDS")
+saveRDS( varying.static.pltcn, "data/Time_varying_SDI_static_SDI_PLT_CN.RDS")
+saveRDS(static_SDI_pltcn, "data/static_SDI_PLT_CN.RDS")
 
 TREE.in.region.ll <- TREE %>% filter(PLT_CN %in% region.ll$CN)
 
