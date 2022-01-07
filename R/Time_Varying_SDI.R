@@ -98,18 +98,18 @@ summary(static_SDI)
 
 
 # calculate static SDI for each PLOT and measure year
-static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% 
-  group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>% filter(DIA > 1) %>%
+static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>%  filter(DIA > 1) %>%
+  group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>%
   summarise(ntrees_static = n(),
-            TPA_static = sum(TPA_UNADJ, na.rm = TRUE), 
-            Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/length(DIA)), 
-            SDIs_static = ((Dq_static/10)^1.6)*TPA_UNADJ, #calculate SDI (Summation Method) on the subplot:
-            SDIdq_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), ## calculate SDI (Quadratic mean diameter) on the subplot:
+            TPA_static =sum(TPA_UNADJ), 
+            Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/ntrees_static), 
+            SDIdq_static = ((Dq_static/10)^1.6)*TPA_static, #calculate SDI (Summation Method) on the subplot:
+            SDIs_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), ## calculate SDI (Quadratic mean diameter) on the subplot:
             SDIrat_static = SDIs/SDIdq) 
 
 hist(static_SDI_pltcn$SDIdq_static)
 
-static_SDI_pltcn.unique <- unique(static_SDI_pltcn)
+static_SDI_pltcn.unique <- unique(static_SDI_pltcn[!duplicated(static_SDI_pltcn),])
 
 saveRDS(static_SDI_pltcn.unique, "data/static_SDI_by_plot_pltcn.unique.rds")
 test.join.sdi <- merge(FIA.outside.AZ, static_SDI_pltcn.unique, by = c("PLT_CN", "STATECD","COUNTYCD", "PLOT", "MEASYR"))
@@ -596,8 +596,9 @@ colnames(incr_imputed)
 colnames(miss_data.new)
 
 miss_data.new$TRE_CN <- as.character(miss_data.new$TRE_CN) # just need to do this to join the two together to calculate plot variables
-inc.density.data <- as.data.frame(incr_imputed[,c("TRE_CN" , "Year",  "STATECD" ,"PLOT","PLT_CN","SPCD", "SUBP","MEASYEAR","DIA_C", "TPA_UNADJ" )])
-noninc.density.data <- as.data.frame(miss_data.new[,c("TRE_CN" , "Year",  "STATECD" ,"PLOT","PLT_CN","SPCD", "SUBP","MEASYR","DIA_c" , "TPA_UNADJ" )])
+incr_imputed$STATUSCD <- 1 # all trees with rw are alive
+inc.density.data <- as.data.frame(incr_imputed[,c("TRE_CN" , "Year",  "STATECD" ,"PLOT","PLT_CN","SPCD", "SUBP","MEASYEAR","DIA_C", "TPA_UNADJ","STATUSCD" )])
+noninc.density.data <- as.data.frame(miss_data.new[,c("TRE_CN" , "Year",  "STATECD" ,"PLOT","PLT_CN","SPCD", "SUBP","MEASYR","DIA_c" , "TPA_UNADJ","STATUSCD" )])
 colnames(inc.density.data)
 colnames(noninc.density.data) <- colnames(inc.density.data)
 
@@ -621,18 +622,22 @@ length(density.data$PLOT)/length(TPA.df$STATECD)
 density.data.TPA <- density.data
 #density.data.nona <- density.data.TPA[!is.na(density.data.TPA$DIA_C),]
 #<- duplicated(density.data.nona)
-density.data.TPA$DIA_Cin <- density.data.TPA$DIA_C*2.54
+density.data.TPA$DIA_Cin <- density.data.TPA$DIA_C#*2.54
 density.data.TPA$count <- 1
 
 
 # at the plot level calculate the time varying SDI
-Time_varying_SDI <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT, PLT_CN,Year) %>% #filter(DIA_Cin > 1) %>%
-  summarise(ntrees = sum(count),
-         #TPA = sum(TPA_UNADJ), 
-         Dq = sqrt(sum(DIA_Cin^2)/length(DIA_Cin)), 
-         SDIdq = ((Dq/10)^1.6)*TPA_UNADJ, ## calculate SDI (Quadratic mean diameter) on the subplot:
+Time_varying_SDI <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT, PLT_CN,Year) %>% filter(DIA_Cin > 1 & STATUSCD == 1) %>%
+  summarise(ntrees = n(),
+         TPA = sum(TPA_UNADJ), 
+         Dq = sqrt(sum(DIA_Cin^2, na.rm =TRUE)/ntrees), 
+         SDIdq = ((Dq/10)^1.6)*TPA, ## calculate SDI (Quadratic mean diameter) on the subplot:
          SDIs = sum(TPA_UNADJ*((DIA_Cin/10)^1.6)),#calculate SDI (Summation Method) on the subplot: 
          SDIrat = SDIs/SDIdq) 
+
+#Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/length(DIA)), 
+#SDIs_static = ((Dq_static/10)^1.6)*TPA_UNADJ, #calculate SDI (Summation Method) on the subplot:
+#SDIdq_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), 
 
 
 saveRDS(Time_varying_SDI, "data/Time_varying_SDI_TPA_UNADJ_PLT_CN_v2.RDS")
@@ -658,21 +663,26 @@ Time_varying_SDI.subset <- Time_varying_SDI %>% filter(Year < 2002)
 # now lets link it back up to the data:
 test.static <- left_join(Time_varying_SDI.subset, static_SDI, by = c("PLT_CN", "STATECD","PLOT", "SUBP"))
 
-test.static.pltcn <- left_join(Time_varying_SDI.subset, static_SDI_pltcn, by = c("PLT_CN", "STATECD","PLOT"))
+test.static.pltcn <- left_join(Time_varying_SDI.subset, static_SDI_pltcn.unique, by = c("PLT_CN", "STATECD","PLOT"))
 
 ggplot(test.static, aes(SDIs, SDIs_static))+geom_point()
 ggplot(test.static.pltcn , aes(SDIdq, SDIdq_static))+geom_point()
 
-png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic.png")
+#png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic.png")
 ggplot(test.static.pltcn , aes(SDIdq, SDIdq_static))+geom_point()
-dev.off()
+#dev.off()
 
 test.static.invyr <- test.static.pltcn %>% group_by(PLT_CN) %>% filter(Year == MEASYR)
 ggplot(test.static.invyr , aes(SDIs, SDIs_static))+geom_point()
+ggplot(test.static.invyr , aes(Dq, Dq_static))+geom_point()
+ggplot(test.static.invyr , aes(TPA, TPA_static))+geom_point()
+
+png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic.png")
+ggplot(test.static.invyr , aes(SDIdq, SDIdq_static))+geom_point()+geom_abline(aes(intercept = 0, slope = 1))+facet_wrap(~STATECD)
+dev.off()
+
+varying.static.pltcn <- left_join(Time_varying_SDI, static_SDI_pltcn.unique, by = c("PLT_CN", "STATECD","PLOT"))
 ggplot(test.static.invyr , aes(SDIdq, SDIdq_static))+geom_point()+geom_abline(aes(intercept = 0, slope = 1))
-
-
-varying.static.pltcn <- left_join(Time_varying_SDI, static_SDI_pltcn, by = c("PLT_CN", "STATECD","PLOT"))
 
 saveRDS( varying.static.pltcn, "data/Time_varying_SDI_static_SDI_PLT_CN.RDS")
 saveRDS(static_SDI_pltcn, "data/static_SDI_PLT_CN.RDS")
