@@ -9,14 +9,16 @@ library(ggplot2)
 library(tidyr)
 library(tidyverse)
 
-# note that this script uses temp2 and Tree2Tree.incored.plots dataframes from the Rdriver.R script
+# note that you will need to change path names throughout this script
 
-if(!exists("/Users/kah/Treering_FIA_fusion/InWeUS_FIA/NM_COND.csv")){
-  fiadb <- getFIA(states = c("AZ", "NM","UT", "CO", "ID", "WY", "MT"), dir = "InWeUS_FIA", common = FALSE, tables = c("PLOT", "TREE", "COND", "SUBPLOT"), nCores = 1)
-}else{
+#if(!exists("/Users/kah/Treering_FIA_fusion/InWeUS_FIA/NM_COND.csv")){
+ # fiadb <- getFIA(states = c("AZ", "NM","UT", "CO", "ID", "WY", "MT"), dir = "InWeUS_FIA", common = FALSE, tables = c("PLOT", "TREE", "COND", "SUBPLOT"), nCores = 1)
+#}else{
   fiadb <- readFIA(dir = "/Users/kah/Treering_FIA_fusion/InWeUS_FIA/")
-}
-
+#}
+# save as RDS:
+  saveRDS(fiadb, "/Users/kah/Treering_FIA_fusion/InWeUS_FIAdb.rds")
+  
 PLOT <- fiadb$PLOT
 SUBPLOT <- fiadb$SUBPLOT
 STATECD <- fiadb$STATECD
@@ -112,8 +114,8 @@ static_SDI <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) %>% gr
             TPA_static = sum(TPA_UNADJ, na.rm = TRUE), 
             Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/length(DIA)), 
             SDIs_static = ((Dq_static/10)^1.6)*TPA_UNADJ, #calculate SDI (Summation Method) on the subplot:
-            SDIdq_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), ## calculate SDI (Quadratic mean diameter) on the subplot:
-            SDIrat_static = SDIs/SDIdq) 
+            SDIdq_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE))#, ## calculate SDI (Quadratic mean diameter) on the subplot:
+            #SDIrat_static = SDIs/SDIdq) 
 
 # summarise, note that these are for all species
 hist(static_SDI$SDIdq_static)
@@ -127,8 +129,8 @@ static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(AGENTCD >= 0 & STATUSCD ==1) 
             TPA_static =sum(TPA_UNADJ), 
             Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/ntrees_static), 
             SDIdq_static = ((Dq_static/10)^1.6)*TPA_static, #calculate SDI (Summation Method) on the subplot:
-            SDIs_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE), ## calculate SDI (Quadratic mean diameter) on the subplot:
-            SDIrat_static = SDIs/SDIdq) 
+            SDIs_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE))#, ## calculate SDI (Quadratic mean diameter) on the subplot:
+            #SDIrat_static = SDIs/SDIdq) 
 
 hist(static_SDI_pltcn$SDIdq_static)
 
@@ -185,7 +187,7 @@ colnames(region.rwl.m)<- c("Year", "CORE_CN", "RW")
 colnames(nm.rwl) <- c("RW", "Year", "CORE_CN")
 # join with NM rwl data:
 regional.nonaz.rwl<- rbind(region.rwl.m[,c("CORE_CN", "Year", "RW")], nm.rwl[,c("CORE_CN", "Year", "RW")])
-region.rwl.m$CORE_CN <- as.character(region.rwl.m$CORE_CN)
+#region.rwl.m$CORE_CN <- as.character(region.rwl.m$CORE_CN)
 
 
 # all the PLT_CN's turn to NAs when we merge these
@@ -198,15 +200,15 @@ full.inc.nonaz$DIA_cm <- full.inc.nonaz$DIA*2.54 # convert to centimeters
 # select the covariates
 nonaz_2cov <- full.inc.nonaz %>%
   dplyr::select(CORE_CN, PLT_CN, Year, RW, STATECD, COUNTYCD, PLOT, TREE, SPCD,SUBP,MEASYR,TPA_UNADJ,
-          CN,
-         DIA_cm)
+                CN,
+                DIA_cm, DIA)
 nonaz_2cov$RW <- nonaz_2cov$RW/10 # convert mm to cm--I am assuming all the measurements are in mm
 
 # select the covariates for the AZ data
 naz_2cov <- AZ.cov.growth.data %>%
   dplyr::select(CORE_CN, PLT_CN, Year, RW, STATECD, COUNTYCD, PLOT, TREE, SPCD,SUBP,MEASYR,TPA_UNADJ,
-       CN,
-         DIA_cm)
+                CN,
+                DIA_cm, DIA)
 naz_2cov$RW <- naz_2cov$RW/10 # convert mm to cm--I am assuming all the measurements are in mm
 
 all.region.data <- rbind(nonaz_2cov, naz_2cov) # combine all regional data togther 
@@ -249,9 +251,9 @@ bratio_df <- data.frame(species=c(93,202,122,15,19,65,96,106,108,133,321),
 
 #function to annualize, or back calculate dbh using diameter increment data (2*RW)
 
-calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
+calculateDIA <- function(TRE_CN,DIA,MEASYEAR,Year,RW,SPCD){
   #create data frame with empty column for annualized dbh
-  tree_df <- data.frame(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD,DIA_C = NA)
+  tree_df <- data.frame(TRE_CN,DIA,MEASYEAR,Year,RW,SPCD,DIA_C = NA)
   #N is the row where measure year and ring width year are the same
   N <- which(tree_df$Year == tree_df$MEASYEAR[1]) #next step is to allow N to be ring width year -1
   if(length(N) == 0){
@@ -260,12 +262,12 @@ calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
   Species <- tree_df$SPCD[1]
   if(length(N) > 0 & Species %in% bratio_df$species){
     Curr_row <- N-1 #each time through subtract 1 and move down one row (or back one year)
-    tree_df$DIA_C[N] <- tree_df$DIA_cm[N] #dbh when year of ring width and measure year are equal
+    tree_df$DIA_C[N] <- tree_df$DIA[N] #dbh when year of ring width and measure year are equal
     while (Curr_row > 0 & !is.na(tree_df$DIA_C[Curr_row + 1])) { #loop will stop when it gets to the end of data for that tree
-      DIA_1 <- tree_df$DIA_C[Curr_row+1] #or DIA_cm[N] for the first round
+      DIA_1 <- tree_df$DIA_C[Curr_row+1] #or DIA[N] for the first round
       RW1 <- tree_df$RW[Curr_row+1] 
       #convert ring width from mm to inches
-      RW1 = RW1 #* 0.0393701
+      RW1 = RW1* 0.0393701
       b1 <- bratio_df$b1[bratio_df$species == Species]
       b2 <- bratio_df$b2[bratio_df$species == Species]
       exp <- bratio_df$exp[bratio_df$species == Species]
@@ -284,22 +286,23 @@ calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
 incr_imputed <- PIPO.filtered  %>% 
   group_by(TRE_CN) %>% #for each tree calculate dbh
   arrange(Year) %>%
-  mutate(DIA_C = calculateDIA(TRE_CN = TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD)) %>% 
+  mutate(DIA_C = calculateDIA(TRE_CN = TRE_CN,DIA,MEASYEAR,Year,RW,SPCD)) %>% 
   mutate(DIA_C = ifelse(DIA_C < 1, NA, DIA_C))
 
 unique(incr_imputed$TRE_CN)[1]
 
- # test<- PIPO.filtered  %>% 
- #  filter(TRE_CN %in% unique(incr_imputed$TRE_CN)[1]) %>% #for each tree calculate dbh
- #  arrange(Year) #%>%
- #  mutate(DIA_C = calculateDIA(TRE_CN = test$TRE_CN,DIA_cm= test$DIA_cm,MEASYEAR= test$MEASYEAR,Year = test$Year,RW = test$RW,SPCD = test$SPCD)) %>% 
- #  mutate(DIA_C = ifelse(DIA_C < 1, NA, DIA_C))
+# test<- PIPO.filtered  %>% 
+#  filter(TRE_CN %in% unique(incr_imputed$TRE_CN)[1]) %>% #for each tree calculate dbh
+#  arrange(Year) #%>%
+#  mutate(DIA_C = calculateDIA(TRE_CN = test$TRE_CN,DIA_cm= test$DIA_cm,MEASYEAR= test$MEASYEAR,Year = test$Year,RW = test$RW,SPCD = test$SPCD)) %>% 
+#  mutate(DIA_C = ifelse(DIA_C < 1, NA, DIA_C))
 
 unique(incr_imputed$PLT_CN)
 unique(PIPO.filtered $CORE_CN)
 #check
 #stop when DIA is less than 1
 min(incr_imputed$DIA_C,na.rm = T) #minimum diameter = 1.001022 cm
+max(incr_imputed$DIA_C,na.rm = T) #minimum diameter = 1.001022 cm
 
 #did DIA_C = DIA_t when last RW year was 1 year less than MEASYEAR
 check_data <- incr_imputed[which(incr_imputed$Year + 1 == incr_imputed$MEASYEAR),]
@@ -308,8 +311,8 @@ check_data <- check_data[check_data$SPCD == 202,]
 #filter for trees with back calculated DBH
 length(unique(incr_imputed$TRE_CN)) #only 609 trees with back calculated dbh
 #incr_imputed <- incr_imputed %>%
- # filter(!is.na(DIA_C)) #%>%
-  #filter for >3" - check variant for large tree growth threshold - species specific
+# filter(!is.na(DIA_C)) #%>%
+#filter for >3" - check variant for large tree growth threshold - species specific
 #  filter(DIA_C >= 3)
 length(unique(incr_imputed$TRE_CN)) #698
 
@@ -317,6 +320,7 @@ length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 202])) #0
 length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 122])) #698
 length(unique(incr_imputed$TRE_CN[incr_imputed$SPCD == 93]))  #0
 
+#save dataframe
 #save dataframe
 save(incr_imputed,file = "./data/Back_calculated_DBH_all_region_incr_imputed.Rdata")
 load("./data/Back_calculated_DBH_all_region_incr_imputed.Rdata")
@@ -467,6 +471,9 @@ hist(miss_mort_check$start, breaks = 50, xlab = 'Difference in mortality year an
 
 #KAH converted the for loop (which worked, but took  a long time) to a function + lapply
 
+# create progress bar because there are like a million data points
+pb <- txtProgressBar(min = 0, max = length(miss_data$TRE_CN), style = 3)
+
 get_bar_imputed <- function(i){
   species <- miss_data$SPCD[i]
   if(species %in% c(106,202,122,93)){ #focal species
@@ -483,10 +490,13 @@ get_bar_imputed <- function(i){
     BAR <- incr_imputed$BAR[!(species %in% c(106,122,202,93))]
   }
   BAR_av <- mean(BAR, na.rm = TRUE)
-  cat(i)
+  #cat(i)
+  
+  # update GUI console
+  setTxtProgressBar(pb, i)    
   BAR_av
 }
-
+#a<- lapply(1:10, get_bar_imputed)
 # should take labout 15 minutes 
 bar.vals <- lapply(1:length(miss_data$TRE_CN), get_bar_imputed)
 bar.df <- do.call(rbind, bar.vals)
@@ -528,9 +538,11 @@ length(unique(miss_data$TRE_CN))
 miss_data$BAR <- ifelse(is.na(miss_data$BAR), mean(miss_data$BAR, na.rm = TRUE), miss_data$BAR)
 summary(miss_data$BAR)
 
-calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
+# with the bark ratio, I think we need to have diameter in IN
+
+calculateDIA <- function(TRE_CN,DIA,MEASYEAR,Year,RW,SPCD){
   #create data frame with empty column for annualized dbh
-  tree_df <- data.frame(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD,DIA_C = NA)
+  tree_df <- data.frame(TRE_CN,DIA,MEASYEAR,Year,RW,SPCD,DIA_C = NA)
   #N is the row where measure year and ring width year are the same
   N <- which(tree_df$Year == tree_df$MEASYEAR[1]) #next step is to allow N to be ring width year -1
   if(length(N) == 0){
@@ -539,12 +551,12 @@ calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
   Species <- tree_df$SPCD[1]
   if(length(N) > 0 & Species %in% bratio_df$species){
     Curr_row <- N-1 #each time through subtract 1 and move down one row (or back one year)
-    tree_df$DIA_C[N] <- tree_df$DIA_cm[N] #dbh when year of ring width and measure year are equal
+    tree_df$DIA_C[N] <- tree_df$DIA[N] #dbh when year of ring width and measure year are equal
     while (Curr_row > 0 & !is.na(tree_df$DIA_C[Curr_row + 1])) { #loop will stop when it gets to the end of data for that tree
-      DIA_1 <- tree_df$DIA_C[Curr_row+1] #or DIA_cm[N] for the first round
+      DIA_1 <- tree_df$DIA_C[Curr_row+1] #or DIA[N] for the first round
       RW1 <- tree_df$RW[Curr_row+1] 
       #convert ring width from mm to inches
-      RW1 = RW1 #* 0.0393701
+      RW1 = RW1* 0.0393701
       b1 <- bratio_df$b1[bratio_df$species == Species]
       b2 <- bratio_df$b2[bratio_df$species == Species]
       exp <- bratio_df$exp[bratio_df$species == Species]
@@ -560,6 +572,8 @@ calculateDIA <- function(TRE_CN,DIA_cm,MEASYEAR,Year,RW,SPCD){
   return(tree_df$DIA_C)
 }
 
+# create progress bar because there are like a million data points
+pb <- txtProgressBar(min = 0, max = length(unique(miss_data$TRE_CN)), style = 3)
 
 #calculate DIA from BAR
 DIA_BAR_tcn <- function(tcn){
@@ -590,14 +604,14 @@ DIA_BAR_tcn <- function(tcn){
     #continue loop for next row until curr_row>0
     Curr_row = Curr_row + 1 
   }
-  cat(paste(tcn, "\n"))
+  # update GUI console
+  cat(tcn)   
   return(tree_df$DIA_C)
 }
 
-
-tcn <- unique(miss_data$TRE_CN)[2]
-DIA_BAR_tcn(tcn)
-
+#pb <- txtProgressBar(min = 0, max = length(unique(miss_data$TRE_CN)), style = 3)
+#tcn <- unique(miss_data$TRE_CN)[1]
+#DIA_BAR_tcn(tcn)
 
 
 system.time(tree.df.dia.c <- lapply(unique(miss_data$TRE_CN), FUN = DIA_BAR_tcn))
@@ -691,20 +705,24 @@ png(height = 4, width = 7, units = "in", res = 200, "SDIdq_time_Varying.png")
 ggplot(Time_varying_SDI, aes(x = Year, y = SDIdq, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
 dev.off()
 
-hist(Time_varying_SDI$SDIdq)
-
-
-summary(Time_varying_SDI)
+png(height = 4, width = 7, units = "in", res = 200, "SDIs_time_Varying.png")
+ggplot(Time_varying_SDI, aes(x = Year, y = SDIs, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
+dev.off()
 
 
 png(height = 4, width = 7, units = "in", res = 200, "SDIdq_time_Varying_histogram.png")
 ggplot(Time_varying_SDI, aes(SDIdq))+geom_histogram()+geom_vline(aes(xintercept = 450), color = "red", linetype = "dashed")+facet_wrap(~STATECD)
 dev.off()
 
+png(height = 4, width = 7, units = "in", res = 200, "SDIs_time_Varying_histogram.png")
+ggplot(Time_varying_SDI, aes(SDIs))+geom_histogram()+geom_vline(aes(xintercept = 450), color = "red", linetype = "dashed")+facet_wrap(~STATECD)
+dev.off()
+
+
 Time_varying_SDI.subset <- Time_varying_SDI %>% filter(Year < 2002)
 
 # now lets link it back up to the data:
-test.static <- left_join(Time_varying_SDI.subset, static_SDI, by = c("PLT_CN", "STATECD","PLOT", "SUBP"))
+#test.static <- left_join(Time_varying_SDI.subset, static_SDI, by = c("PLT_CN", "STATECD","PLOT", "SUBP"))
 
 test.static.pltcn <- left_join(Time_varying_SDI.subset, static_SDI_pltcn.unique, by = c("PLT_CN", "STATECD","PLOT"))
 
@@ -718,8 +736,13 @@ ggplot(test.static.pltcn , aes(SDIdq, SDIdq_static))+geom_point()
 test.static.invyr <- test.static.pltcn %>% group_by(PLT_CN) %>% filter(Year == MEASYR)
 
 
-png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic.png")
+png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic_Dq.png")
 ggplot(test.static.invyr , aes(SDIdq, SDIdq_static))+geom_point()+geom_abline(aes(intercept = 0, slope = 1))+
+  ylab("Static SDI calculated for MEASYR")+xlab("Time Varying SDI calulation for MEASYR")
+dev.off()
+
+png(height = 4, width = 4, res = 150, unit = "in", "SDItv_SDIstatic_summation.png")
+ggplot(test.static.invyr , aes(SDIs, SDIs_static))+geom_point()+geom_abline(aes(intercept = 0, slope = 1))+
   ylab("Static SDI calculated for MEASYR")+xlab("Time Varying SDI calulation for MEASYR")
 dev.off()
 
@@ -728,6 +751,42 @@ ggplot(test.static.invyr , aes(SDIdq, SDIdq_static))+geom_point()+geom_abline(ae
 
 saveRDS( varying.static.pltcn, "data/Time_varying_SDI_static_SDI_PLT_CN.RDS")
 saveRDS(static_SDI_pltcn, "data/static_SDI_PLT_CN.RDS")
+
+# make the same caluculations on the subplot scale:
+Time_varying_SDI_subp <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT,SUBP, PLT_CN,Year) %>% filter(DIA_Cin > 1 & STATUSCD == 1) %>%
+  summarise(ntrees = n(),
+            TPA = sum(TPA_UNADJ), 
+            Dq = sqrt(sum(DIA_Cin^2, na.rm =TRUE)/ntrees), 
+            SDIdq = ((Dq/10)^1.6)*TPA, ## calculate SDI (Quadratic mean diameter) on the subplot:
+            SDIs = sum(TPA_UNADJ*((DIA_Cin/10)^1.6)), #calculate SDI (Summation Method) on the subplot: 
+            SDIrat = SDIs/SDIdq) 
+
+
+saveRDS(Time_varying_SDI_subp, "/home/rstudio/datasaved/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v4.RDS")
+
+hist(Time_varying_SDI_subp$SDIdq) # SDI dq now falls in the expected range, but skews low
+hist(Time_varying_SDI_subp$SDIs) # SDI s is now very low?? TPA unadj should scale to the acre, but summing means that SDIs will be lower for subplot vs plot
+
+
+
+ggplot(Time_varying_SDI_subp, aes(x = Year, y = SDIdq, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
+
+png(height = 4, width = 7, units = "in", res = 200, "SDIdq_time_Varying_SUBP.png")
+ggplot(Time_varying_SDI_subp, aes(x = Year, y = SDIdq, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
+dev.off()
+
+png(height = 4, width = 7, units = "in", res = 200, "SDIs_time_Varying_SUBP.png")
+ggplot(Time_varying_SDI_subp, aes(x = Year, y = SDIs, group = PLT_CN))+geom_point()+facet_wrap(~STATECD)
+dev.off()
+
+
+png(height = 4, width = 7, units = "in", res = 200, "SDIdq_time_Varying_histogram_SUBP.png")
+ggplot(Time_varying_SDI_subp, aes(SDIdq))+geom_histogram()+geom_vline(aes(xintercept = 450), color = "red", linetype = "dashed")+facet_wrap(~STATECD)
+dev.off()
+
+png(height = 4, width = 7, units = "in", res = 200, "SDIs_time_Varying_histogram_SUBP.png")
+ggplot(Time_varying_SDI_subp, aes(SDIs))+geom_histogram()+geom_vline(aes(xintercept = 450), color = "red", linetype = "dashed")+facet_wrap(~STATECD)
+dev.off()
 
 
 
