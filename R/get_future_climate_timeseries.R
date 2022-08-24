@@ -52,7 +52,7 @@ library(terra)
 #------------------------------------------------------------------
 # read in the data set that has the lat long of the plots/cores we want to extract projections from
 
-cov.data.ll <- readRDS("FIA_inc_data/cov.data.regional.ll.rds")
+cov.data.ll <- readRDS("data/input/data/cov.data.regional.ll.rds")
 
 coordinates(cov.data.ll) <- ~  PLOT_LON + PLOT_LAT
 proj4string(cov.data.ll) <- CRS("+init=epsg:4326")
@@ -129,10 +129,11 @@ system.time(test.points <- terra::extract(ppt, cov.data.xy[1:10,]))
 #user  system elapsed 
 #7.172   4.433  26.616 
 
-rlist <- list()
+
 nyears <- 82#nmonths/12
 startyr <- 2018
 endyr <- 2018+(nyears-1)
+
 
 system.time(extracted.pts <- terra::extract(ppt, cov.data.xy)) # could take awhile to get through
 #extracted.pts2 <- extracted.pts
@@ -150,6 +151,8 @@ hydro.ncs <- paste0(getwd(),"/hydro5tmax/", hydro.files)
 
 # for the precipitation:
 x <- hydro.ncs[1]
+
+
 
 
 ppt = terra::rast(x, "tmax") # get ppt
@@ -180,7 +183,7 @@ mo.year.df <- data.frame(nmonth = 1:nmonths,
 
 # 3rd dimension is the number of months in the downscaled projections
 
-
+rlist <- list()
 nyears <- 82#nmonths/12
 startyr <- 2018
 endyr <- 2018+(nyears-1)
@@ -204,11 +207,59 @@ hydro.ncs <- paste0(getwd(),"/hydro5tmin/", hydro.files)
 x <- hydro.ncs[1]
 
 
+# open the netcdf
+#nc <- nc_open(x)
+
+ppt = terra::rast(x, "tmin") # get ppt
+dim(ppt)  #145   145 94381 # lat, lon, time*projection*senario
+names(ppt) 
+
+# the naming structure is really confusing here, but I think that the 
+# pr_projection_num_num2 identifies the modelprojection from the projection list first, then the month number from 2018 - Jan to 2099-jan
+ppt[names(ppt)[2]]
+
+# try plotting to see what will happen
+terra::plot(ppt[[8]])
+points(cov.data.ll)
 
 
-# get the tmax extracted data and summaries by projection
-extracted.pts <- readRDS( "tmax_future_regional.RDS") 
-#extracted.pts <- readRDS( "ppt_future_regional.RDS")
+
+projection <- read.delim("hydro5tmin/Projections5.txt")
+nmodels <- length(projection[,1])
+# look at the dimensions
+nmonths <- 973#dim(ppt
+proj.df <- data.frame(projection = projection[,1], 
+                      id = 1:length(projection[,1]))
+
+
+mo.year.df <- data.frame(nmonth = 1:nmonths, 
+                         month = c(rep(1:12, 81),1),
+                         year = c(rep(2018:2098, each = 12), 2099))
+
+# 3rd dimension is the number of months in the downscaled projections
+#ntmin <- dim(ppt)
+#nc_close(nc) # close the netcdf file when you are done extracting
+
+
+#user  system elapsed 
+#7.172   4.433  26.616 
+
+rlist <- list()
+nyears <- 82#nmonths/12
+startyr <- 2018
+endyr <- 2018+(nyears-1)
+
+
+system.time(extracted.pts <- terra::extract(ppt, cov.data.xy)) # could take awhile to get through
+#extracted.pts2 <- extracted.pts
+extracted.pts$PLOT_LAT <- cov.data.xy$PLOT_LAT
+extracted.pts$PLOT_LON <- cov.data.xy$PLOT_LON
+saveRDS(extracted.pts, "tmin_future_regional.RDS") 
+
+
+
+#extracted.pts <- readRDS( "tmax_future_regional.RDS") 
+extracted.pts <- read_csv( "data/input/data/tmax_future_regional.csv")
 #colnames(extracted.pts) <- c("ID",paste0("ppt_",rep(1:97, each = 973),"_", rep(startyr:endyr, each = 12), "_", rep(1:12, nyears) ),"PLOT_LAT", "PLOT_LON") # note may need to change this to make more customizable
 extracted.pts.m <- reshape2::melt(extracted.pts, id.vars = c("PLOT_LAT", "PLOT_LON", "ID"))
 #extracted.pts.m$value <- ifelse(extracted.pts.m$value >= 1e+20, NA, extracted.pts.m$value) # set NA values
@@ -217,7 +268,7 @@ extracted.pts.m$variable <- as.character(extracted.pts.m$variable)
 # if the above line crashes R even with the variable as a character, try left_joining with a df tha thas all the names
 
 proj.proj.names = data.frame(proj = rep(1:97, each = 973),
-                             year = rep(c(rep(startyr:2098, each = 12),2099),  97),
+                             year = rep(c(rep(2018:2098, each = 12),2099),  97),
                              month = rep(c(rep(1:12, 81), 1), 97),
                              variable = as.character(unique(extracted.pts.m$variable)))
 
@@ -228,208 +279,168 @@ saveRDS(ext.sep, "future.projections.monthly.tmax.RDS")
 #I use yearly ppt, but we could make a different summary of interest here
 
 
-#------------------------------------------------
-#
-# read in and summarise all the climate variables:
-tmax.sep  <- readRDS( "future.projections.monthly.tmax.RDS")
-yearly.tmax <- tmax.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year, proj) %>% dplyr::summarise(year.tmax.ave = mean(value, na.rm=TRUE)) 
-saveRDS(yearly.tmax, "future.proj.yearly.tmax.RDS")
-rm(yearly.tmax)
-
-AprMayJun.tmax <- tmax.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year, proj) %>% dplyr::filter(month %in% c(4,5,6)) #%>% 
+AprMayJun.tmax <- ext.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year, proj) %>% dplyr::filter(month %in% c(4,5,6)) #%>% 
 rm(tmax.sep)
 AprMayJun.tmax.m <- AprMayJun.tmax %>% dplyr::summarise(tmaxAprMayJun = mean(value, na.rm=TRUE)) 
 saveRDS(AprMayJun.tmax.m, "future.proj.AprMayJun.tmax.RDS")
+rm(extracted.pts.m)
 
 
-rm(AprMayJun.tmax)
+# do the ppt:
+extracted.pts <- read_csv( "data/input/data/ppt_future_regional.csv")
+#colnames(extracted.pts) <- c("ID",paste0("ppt_",rep(1:97, each = 973),"_", rep(startyr:endyr, each = 12), "_", rep(1:12, nyears) ),"PLOT_LAT", "PLOT_LON") # note may need to change this to make more customizable
+extracted.pts.m <- reshape2::melt(extracted.pts, id.vars = c("PLOT_LAT", "PLOT_LON", "ID"))
+#extracted.pts.m$value <- ifelse(extracted.pts.m$value >= 1e+20, NA, extracted.pts.m$value) # set NA values
+extracted.pts.m$variable <- as.character(extracted.pts.m$variable)
+#ext.sep <- extracted.pts.m %>% tidyr::separate(variable, sep = "_", into = c("clim","proj", "year", "month"))
+# if the above line crashes R even with the variable as a character, try left_joining with a df tha thas all the names
 
-ppt.sep  <- readRDS( "future.projections.monthly.ppt.RDS")
-yearly.ppt <- ppt.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year, proj) %>% dplyr::summarise(year.ppt = sum(value, na.rm=TRUE)) 
+proj.proj.names = data.frame(proj = rep(1:97, each = 973),
+                             year = rep(c(rep(2018:2098, each = 12),2099),  97),
+                             month = rep(c(rep(1:12, 81), 1), 97),
+                             variable = as.character(unique(extracted.pts.m$variable)))
+
+ext.sep <- dplyr::left_join(proj.proj.names, extracted.pts.m, by = "variable")
+
+
+saveRDS(ext.sep, "data/output/future.projections.monthly.ppt.RDS")
+#I use yearly ppt, but we could make a different summary of interest here
+
+
+yearly.ppt <- ext.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year, proj) %>% dplyr::summarise(year.ppt = sum(value, na.rm=TRUE)) 
 #AprMayJun.tmax <- tmax.sep %>% dplyr::group_by(PLOT_LON, PLOT_LAT,ID, year) %>% dplyr::filter(month %in% 4:6) %>% dplyr::summarise(tmaxAprMayJun= mean(value, na.rm=TRUE)) 
-saveRDS(yearly.ppt, "future.proj.yearly.ppt.RDS")
+saveRDS(yearly.ppt, "data/output/ffuture.proj.yearly.ppt.RDS")
+
+# need to clean u pthe code below:
+
+
+
+
 rm(ppt.sep)
 rm(yearly.ppt)
 
-
-
-
-
-
-
-
-
-
 # get the projection names
 # because the projection labels were not working for this, I need to read in a text file with all the projection names:
-proj <- read.delim("hydro5_1950_2099/Projections5.txt", header = FALSE)
+proj <- read.delim("data/input/Projections5.txt", header = FALSE)
 #proj.tas <- read.delim("bcsd5/Projections5.txt", header = FALSE)
+proj$proj <- 1:length(proj$V1)
+str_sub(x,-6,-1)
+rcp <- str_sub(proj$V1, -5, -1)
 
-#add the projection names to the tmax and ppt data frames
+model <- str_sub(proj$V1,1, -7)
+proj$rcp <- rcp
+proj$model <- model
+proj2<- proj
+proj2$proj <- as.numeric(proj2$proj)
 
-for( i in seq_along(all.future.ppt)){
-  
-  all.future.tmax[[i]]$proj <- rep(proj[i,], nrow(all.future.tmax[[i]]))
-  
-}
+yearly.ppt.lab <- left_join(yearly.ppt, proj2, by = "proj")
 
-for( i in seq_along(all.future.ppt)){
-  
-  all.future.ppt[[i]]$proj <- rep(proj[i,], nrow(all.future.ppt[[i]]))
-  
-}
-# convert to df
-all.tmax.df <- do.call(rbind, all.future.tmax)
-all.ppt.df <- do.call(rbind, all.future.ppt)
+yearly.tmax.lab <- left_join(AprMayJun.tmax.m, proj2, by = "proj")
 
-
-#all.tmax.df$proj <- rep(proj$V1, sapply(all.future.tmax , nrow))
-#all.ppt.df$proj <- rep(proj$V1, sapply(all.future.ppt , nrow))
-
-ppt.models <- all.ppt.df %>% tidyr::separate(proj, sep = -5, into = c("modelrun", "rcp")) #%>% 
-#tidyr::separate(modelrun, sep = "-", into = c("model", "run"))
-tmax.models <- all.tmax.df %>% tidyr::separate(proj, sep = -5, into = c("modelrun", "rcp")) 
-# summary.tas <- tmax.models %>% dplyr::group_by(lat, lon, year, rcp) %>% dplyr::summarise(sd = sd(tmax.fall.spr, na.rm = TRUE), 
-#                                                             mean = mean(tmax.fall.spr, na.rm = TRUE))
-# 
-# summary.ppt <- ppt.models %>% dplyr::group_by(lat, lon, year, rcp) %>% dplyr::summarise(sd = sd(ppt, na.rm = TRUE), 
-#                                                                                          mean = mean(ppt, na.rm = TRUE))
-# 
-# okay lets merge these together:
-future.climate.ts <- dplyr::left_join(ppt.models, tmax.models, by = c("lat", "lon", "year", "modelrun","rcp"))
-hist(future.climate.ts$year.ppt)
-hist(future.climate.ts$tmax.fall.spr)
-future.climate.ts[future.climate.ts$tmax.fall.spr >= 50,]
-
-future.climate.ts <- future.climate.ts %>% dplyr::select(-climate.x, -climate.y)
-pipo.cores.ll$cov.data
-pipo.cores.ll$future.climate.ts <- future.climate.ts
-
-# make plots of individual future climate models:
+write.csv(yearly.ppt.lab, "data/output/future.climate.ppt.proj.yearly.csv", row.names = FALSE)
+write.csv(yearly.tmax.lab, "data/output/future.climate.tmax.proj.yearly.csv", row.names = FALSE)
 
 
+full.clim <- left_join(yearly.ppt.lab, yearly.tmax.lab, by = c("year", "proj", "rcp","model", "V1", "PLOT_LAT", "PLOT_LON", "ID"))
 
+full.clim$PLT_CN <- cov.data.ll[match(full.clim$PLOT_LON, cov.data.ll$PLOT_LON) & match(full.clim$PLOT_LAT, cov.data.ll$PLOT_LAT),]$PLT_CN
+write.csv(full.clim , "data/output/future.climate.tmax.ppt.proj.yearly.csv", row.names = FALSE)
+full.clim  <- read.csv("data/output/future.climate.tmax.ppt.proj.yearly.csv")
 
-saveRDS(pipo.cores.ll, "pipo.cores.with.downscaled.hydro.ppt.climate_1950_2099_v4.rds")
-
-
-head(pipo.cores.ll)
-
-
-pipo.cores.ll <- readRDS( "pipo.cores.with.downscaled.hydro.ppt.climate_1950_2099_v4.rds")
-head(pipo.cores.ll)
-head(pipo.cores.ll$future.climate.ts)
-future.climate.ts  <- pipo.cores.ll$future.climate.ts
-clim.ts.df <- pipo.cores.ll$future.climate.ts
-clim.ts.df$tmax.fall.spr[is.nan(clim.ts.df$tmax.fall.spr)] <- NA
-
-head(clim.ts.df)
-
-head(future.climate.ts)
-
-ll.df <- unique(future.climate.ts[,c("lat", "lon")])
-test.df<- future.climate.ts %>% filter(lat %in% ll.df[2,]$lat & lon %in% ll.df[2,]$lon)
-test.df$year <- as.numeric(test.df$year)
-ggplot(test.df, aes(year, year.ppt, color = modelrun))+geom_line()+facet_wrap(~rcp)
-ggplot(test.df, aes(year, tmax.fall.spr, color = modelrun))+geom_line()+facet_wrap(~rcp)
-
-
-prev.df<- clim.ts.df  %>% filter(lat %in% ll.df[1,]$lat & lon %in% ll.df[1,]$lon)
-prev.df$year <- as.numeric(prev.df$year)
-ggplot(prev.df, aes(year, tmax.fall.spr, color = modelrun))+geom_line()+facet_wrap(~rcp)
-
+full.clim <- full.clim[!is.na(full.clim$PLT_CN),]
+#note that we will need to do some climate corrections below
 
 # ------------------------------------------------------------------------------------------
 # Compare the time series of climate from CMIP5 models at each site to the observed values
 # ------------------------------------------------------------------------------------------
+# run Rdriverviceregional.R up to the point where we run the model to get time_data
 
+time_data <- readRDS("data/output/time_data.RDS")
 head(cov.data.ll)
 head(time_data)
 
-tmax.fall.spr <- as.data.frame(time_data$tmax.fallspr)
+tmax.AprMayJun <- as.data.frame(time_data$tmaxAprMayJun)
 cov.data.ll.df <- as.data.frame(cov.data.ll)
 
-tmax.fall.spr$lat <- cov.data.ll.df$LAT
-tmax.fall.spr$lon <- cov.data.ll.df$LON
+tmax.AprMayJun $PLOT_LAT <- cov.data.ll.df$PLOT_LAT
+tmax.AprMayJun $PLOT_LON <- cov.data.ll.df$PLOT_LON
+tmax.AprMayJun $PLT_CN <- cov.data.ll.df$PLT_CN
 
-colnames(tmax.fall.spr)[1:53] <- 1966:2018
-tmax.fall.spr.obs <- melt(tmax.fall.spr, id.vars = c("lat", "lon"))
-colnames(tmax.fall.spr.obs) <- c("lat", "lon", "year", "PRISM_fall_spr_tmax")
+colnames(tmax.AprMayJun)[1:53] <- 1966:2018
+tmax.AprMayJun.obs <- melt(tmax.AprMayJun, id.vars = c("PLOT_LAT", "PLOT_LON", "PLT_CN"))
+colnames(tmax.AprMayJun.obs) <- c("PLOT_LAT", "PLOT_LON","PLT_CN", "year", "PRISM_fall_spr_tmax")
 
 
 # get water year precip:
-wateryr_ppt <- time_data$wintP.wateryr
+wateryr_ppt <- data.frame(time_data$wateryr)
 cov.data.ll.df <- as.data.frame(cov.data.ll)
 
-wateryr_ppt$lat <- cov.data.ll.df$LAT
-wateryr_ppt$lon <- cov.data.ll.df$LON
+wateryr_ppt$PLOT_LAT <- cov.data.ll.df$PLOT_LAT
+wateryr_ppt$PLOT_LON <- cov.data.ll.df$PLOT_LON
+wateryr_ppt$PLT_CN <- cov.data.ll.df$PLT_CN
 
 colnames(wateryr_ppt)[1:53] <- 1966:2018
-wateryr_ppt.obs <- melt(wateryr_ppt, id.vars = c("lat", "lon"))
-colnames(wateryr_ppt.obs) <- c("lat", "lon", "year", "PRISM_ppt")
+wateryr_ppt.obs <- melt(wateryr_ppt, id.vars = c("PLOT_LAT", "PLOT_LON", "PLT_CN"))
+colnames(wateryr_ppt.obs) <- c("PLOT_LAT", "PLOT_LON", "PLT_CN", "year", "PRISM_ppt")
 
 # join the prism  historical climates
-obs.climate <- left_join(wateryr_ppt.obs, tmax.fall.spr.obs, by = c("lat", "lon", "year"))
+obs.climate <- left_join(wateryr_ppt.obs, tmax.AprMayJun.obs, by = c("PLOT_LAT", "PLOT_LON", "PLT_CN", "year"))
 
 
 # join the observed climate to the cmip5 dataframe by lat, lon, year & plot the difference:
+# we only have the future 2018-2099, and the past, so we will summarise and compare the means for the period from 1979-2018 to the future period from 2018 - 2057
+obs.means <- obs.climate %>% group_by(PLOT_LAT, PLOT_LON, PLT_CN) %>% filter(year %in% 1999:2018)%>%
+  summarise(mean.ppt = mean(PRISM_ppt, na.rm =TRUE), 
+            mean.tmax = mean(PRISM_fall_spr_tmax, na.rm =TRUE))
 
-fut.past.compare <- left_join(clim.ts.df, obs.climate, by = c("lat", "lon", "year"))
+
+fut.means <- full.clim %>% select(-V1) %>% group_by(PLOT_LAT, PLOT_LON, PLT_CN, proj, rcp, model) %>% filter(year %in% 2018:2037)%>%
+  summarise(mean.fut.ppt = mean(year.ppt, na.rm =TRUE), 
+            mean.fut.tmax = mean(tmaxAprMayJun, na.rm =TRUE))
+
+fut.past.compare <- merge( fut.means, obs.means,by = c( "PLT_CN", "PLOT_LAT", "PLOT_LON"))
 
 ggplot(fut.past.compare, aes(PRISM_ppt, year.ppt))+geom_point()+facet_wrap(~rcp)
 
-fut.past.compare$time_period <- ifelse(fut.past.compare$year < 1965, "1950-1964", 
-                                       ifelse(fut.past.compare$year >= 1965 & fut.past.compare$year < 2018, "1965-2018", 
-                                              ifelse(fut.past.compare$year >= 2018 & fut.past.compare$year < 2049, "2019-2049", 
-                                                     ifelse(fut.past.compare$year >= 2050 & fut.past.compare$year < 2075, "2050-2074", "2075-2099" ))))
 
 
-fut.past.compare$ppt.diff <- fut.past.compare$PRISM_ppt - fut.past.compare$year.ppt
-fut.past.compare$tmax.diff <- fut.past.compare$PRISM_fall_spr_tmax - fut.past.compare$tmax.fall.spr
-
-ts.site.means <- fut.past.compare %>% group_by(lat, lon, rcp, modelrun, time_period ) %>% summarise(ppt.obs = mean(PRISM_ppt, na.rm = TRUE), 
-                                                                                                    tmax.obs = mean(PRISM_fall_spr_tmax, na.rm = TRUE), 
-                                                                                                    ppt.fut = mean(year.ppt, na.rm = TRUE), 
-                                                                                                    tmax.fut = mean(tmax.fall.spr, na.rm = TRUE), 
-                                                                                                    avg.tmax.diff = mean(tmax.diff, na.rm =TRUE), 
-                                                                                                    avg.ppt.diff = mean(ppt.diff, na.rm =TRUE))
-
-
-
-ggplot(ts.site.means %>% filter(time_period %in% c("1965-2018")), aes(avg.tmax.diff, fill= rcp))+geom_histogram()+facet_wrap(~rcp)+xlab("tmax obs - tmax fut")+geom_vline(xintercept = 0)
-ggplot(ts.site.means %>% filter(time_period %in% c("1965-2018")), aes(avg.ppt.diff, fill= rcp))+geom_histogram()+facet_wrap(~rcp)+xlab("ppt obs - ppt fut")+geom_vline(xintercept = 0)
+fut.past.compare$ppt.diff <- fut.past.compare$mean.ppt - fut.past.compare$mean.fut.ppt
+fut.past.compare$tmax.diff <- fut.past.compare$mean.tmax - fut.past.compare$mean.fut.tmax
 
 
 # Adjust the values of future climate so that all future model run means for historic period match the means for each site, 
 
-# get the mean difference just for 1965-2018
-ts.site.means.1965.2018 <- ts.site.means %>% filter(time_period %in% c("1965-2018")) %>% dplyr::select(lat, lon, rcp, modelrun, avg.tmax.diff, avg.ppt.diff)
 
-fut.past.means.compare <- left_join(fut.past.compare, ts.site.means.1965.2018, by =c("lat", "lon", "rcp", "modelrun"))
+fut.past.means.compare <- left_join(full.clim, fut.past.compare, by =c("PLOT_LAT", "PLOT_LON","PLT_CN", "proj","rcp", "model"))
 fut.corr <- fut.past.means.compare
-fut.corr$ppt.corrected <- fut.corr$year.ppt + fut.corr$avg.ppt.diff
+fut.corr$ppt.corrected <- fut.corr$year.ppt + fut.corr$ppt.diff
 fut.corr$ppt.corrected <- ifelse(fut.corr$ppt.corrected < 0, 0, fut.corr$ppt.corrected)
-fut.corr$tmax.corrected <- fut.corr$tmax.fall.spr + fut.corr$avg.tmax.diff
+fut.corr$tmax.corrected <- fut.corr$tmaxAprMayJun + fut.corr$tmax.diff
 
-ggplot()+geom_line(data = test.df, aes(year, tmax.corrected, color = modelrun))+
-  geom_line(data = test.df, aes(year, PRISM_fall_spr_tmax), color = "black")+facet_wrap(~rcp)
 
+fut.corr$time_period <- ifelse(fut.corr$year < 1965, "1950-1964",
+                               ifelse(fut.corr$year >= 1965 & fut.corr$year < 2018, "1965-2018",
+                                      ifelse(fut.corr$year >= 2018 & fut.corr$year < 2049, "2019-2049",
+                                             ifelse(fut.corr$year >= 2050 & fut.corr$year < 2075, "2050-2074", "2075-2099" ))))
 
 
 fut.corr.sub <- fut.corr 
+
+
+
 fut.corr.sub$rcp2 <- ifelse(fut.corr.sub$time_period %in% c("1950-1964", "1965-2018"), "historical", fut.corr.sub$rcp) 
-
-
+# 
+# 
 color.scheme <- c("#d7191c",
                   "#fdae61",
                   "#ffffbf",
                   "#abd9e9",
                   "#2c7bb6")
-
+# 
 temp.boxes <- ggplot()+geom_boxplot(data = fut.corr.sub, aes(time_period, tmax.corrected, fill = rcp2), outlier.alpha = 0.1)+
   scale_fill_manual(values = rev(color.scheme))+theme_bw(base_size = 12)+
   ylab("Spring - Fall Max. Temperature")+xlab("Time Period")+theme(panel.grid = element_blank(), legend.title = element_blank())
-
+# 
 ppt.boxes <- ggplot()+geom_boxplot(data = fut.corr.sub, aes(time_period, ppt.corrected, fill = rcp2),  outlier.alpha = 0.1)+
   scale_fill_manual(values = rev(color.scheme))+theme_bw(base_size = 12)+
   ylab("Total Precipitation")+xlab("Time Period")+theme(panel.grid = element_blank(), legend.title = element_blank())
@@ -437,7 +448,7 @@ ppt.boxes <- ggplot()+geom_boxplot(data = fut.corr.sub, aes(time_period, ppt.cor
 
 rcp.legend <- cowplot::get_legend(ppt.boxes)
 
-png(height = 4, width = 10, units = "in", res = 300, "paper_figures/future_mean_corrected_climate_summary.png")
+png(height = 4, width = 10, units = "in", res = 300, "data/output/future_mean_corrected_climate_summary.png")
 cowplot::plot_grid(
   ppt.boxes+theme(legend.position = "none"), 
   temp.boxes+theme(legend.position = "none"),
@@ -459,11 +470,11 @@ ggplot()+geom_line(data = test.df, aes(year, ppt.corrected, color = modelrun))+
 
 # okay lets save the future climate with the matched means:
 
-saveRDS(fut.corr, "full_time_mean_corrected_CMIP5_model_timeseries.RDS")
-fut.corr <- readRDS( "full_time_mean_corrected_CMIP5_model_timeseries.RDS")
+saveRDS(fut.corr, "data/output/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS")
+fut.corr <- readRDS( "data/output/full_time_mean_corrected_CMIP5_model_timeseries.RDS")
 fut.corr.sub <- fut.corr %>% filter(year >=2018) %>% select(lat, lon, year, rcp, modelrun, ppt.corrected, tmax.corrected)
 
-saveRDS(fut.corr.sub, "pipo.cores.ds.mean.correct.climate_2018_2099.RDS")
+saveRDS(fut.corr.sub, "data/output/pipo.cores.ds.mean.correct.climate_2018_2099.RDS")
 
 
 
