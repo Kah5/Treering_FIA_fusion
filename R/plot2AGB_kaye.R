@@ -422,7 +422,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   both.plot<- cowplot::plot_grid(p, b.plot.all, p.inc, b.flux, ncol = 2, align = "hv")
   
   cat("saving outputs")
-  cowplot::save_plot(paste0("/home/rstudio/data/output/biomass_plots/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
+  cowplot::save_plot(paste0("biomass_plots/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
   
   
   #both.plot.all<- cowplot::plot_grid(b.plot.all, b.flux, ncol = 1, align = "hv")
@@ -440,7 +440,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
        AGB.branchlive, NPP.branchlive,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path("/home/rstudio/",paste0("data/output/biomass_data/plot2AGB_",mort.scheme,".",plot,".",scenario,".Rdata")))
+       file = file.path("/home/rstudio/",paste0("biomass_data/plot2AGB_",mort.scheme,".",plot,".",scenario,".Rdata")))
   
   
   return(total.plot )#, 
