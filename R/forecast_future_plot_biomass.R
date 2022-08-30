@@ -213,7 +213,7 @@ library(rjags)
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 
-
+output.base.name <- "Regional_incifelse_T0"
 out <- as.matrix(jags.comb)
 summary(out)
 betas <- out[,grep(pattern = "beta",colnames(out))]
@@ -293,21 +293,21 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SD
   
 }
 
-
+cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
 simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   # use the forecast function to forecast forward:
   
   treeids <- cov.data.regional %>% filter(plotid %in% x.mat[m,]$plotid) %>% dplyr::select(treeid)
   #if(length(treeids$treeid)>1){
-    
+  
   alphatreeids <- vector()
   for(i in 1:length(treeids$treeid)){
-  alphatreeids[i]<- paste0("alpha_TREE[", treeids[i,], "]")
-  
+    alphatreeids[i]<- paste0("alpha_TREE[", treeids[i,], "]")
+    
   }
   
-    # sample 
+  # sample 
   #alphatreeid <- paste0("alpha_TREE[", x.mat[m,]$plotid, "]")
   
   model.covs <- substring(colnames(betas), 5)
@@ -334,10 +334,10 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   alpha <- get_mcmc_samples("mu", betas = mus, nsamps = nsamps)
   
   if(length(alphatreeids)>1){
-  
-  treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
-  treealphas <- do.call(cbind, treealphas)
-  colnames(treealphas)<- alphatreeids
+    
+    treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
+    treealphas <- do.call(cbind, treealphas)
+    colnames(treealphas)<- alphatreeids
   }else{
     treealphas <- get_mcmc_samples(betas = alphas, nsamps = nsamps)
   }
@@ -432,7 +432,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
   # generate alphas from the tree alphas in the same plot as the tree
   # this will be slightly different for each tree adding uncertaint
-  treealphas.samp <- sample(as.vector(treealphas), size = nmcmc )
+  treealphas.samp <- sample(as.vector(treealphas), size = nsamps )
   
   for(t in 1:time_steps){
     if(t < which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if t is less than the measureyr assign NA (fo now)
@@ -442,19 +442,19 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
     }else{
       if(t == which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if the time step is the measuryr use the measureed DBH
         dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, alpha = treealphas.samp,  SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
-                                                                                                                         ppt = covs$ppt[t], 
-                                                                                                                         tmax = covs$tmax[t], 
-                                                                                                                         MAP = covs$MAP,
-                                                                                                                         MAT = covs$MAT))
+                                                                                                                                                  ppt = covs$ppt[t], 
+                                                                                                                                                  tmax = covs$tmax[t], 
+                                                                                                                                                  MAP = covs$MAP,
+                                                                                                                                                  MAT = covs$MAT))
         forecast[,t] <- dbh.pred
         inc[,t]<- forecast[,t]-x.mat[m,1]
         
       }else{
         dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all, alpha = treealphas.samp, SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
-                                                                                                                         ppt = covs$ppt[t], 
-                                                                                                                         tmax = covs$tmax[t], 
-                                                                                                                         MAP = covs$MAP,
-                                                                                                                         MAT = covs$MAT))
+                                                                                                                                                  ppt = covs$ppt[t], 
+                                                                                                                                                  tmax = covs$tmax[t], 
+                                                                                                                                                  MAP = covs$MAP,
+                                                                                                                                                  MAT = covs$MAT))
         forecast[,t] <- dbh.pred
         inc[,t]<- forecast[,t]-forecast[,t-1]
         
@@ -467,23 +467,23 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   colnames(forecast) <- paste0("x[", m,",", 1:36,"]")
   cat(m)
   
-  saveRDS(forecast, paste0("data/output/xvals_additional_trees/Xvals_tree_",m,".RDS"))
+  saveRDS(forecast, paste0("xvals_additional_trees/Xvals_tree_",m,".RDS"))
   # forecast.med
-  
+  forecast
   
 }
 
 
 # Need to rerun this!
-simulate.xvals.from.model.oos(m = 9077)
+#simulate.xvals.from.model.oos(m = 9077)
 # see how long this will take:
-system.time(lapply(1:10, simulate.xvals.from.model.oos))
+system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
 
 
 sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
 x.mat2 <- do.call(cbind, sims.x.forecast)
 
-saveRDS(x.mat2,"data/output/Xvals_noncored_IGFRegional_mvnmu_revCorr_xfixed.RDS")
+saveRDS(x.mat2, paste0("data/output/Xval_noncored.",output.base.name,".RDS"))
 
 
 #--------------------------------------------------------------------------------------------- 
@@ -510,10 +510,10 @@ ci.names <- parse.MatrixNames(colnames(ci), numeric = TRUE)
 #out.noncored <- as.matrix(readRDS("data/output/Xvals_noncored_IGFRegional_mvnmu_revCorr_xfixed.RDS"))
 # 
 # ### LOADS MCMC OUTPUT INTO OBJECT "OUT"
-# x.cols.noncored   <- which(substr(colnames(out.noncored), 1, 1) == "x") # grab the state variable columns
+x.cols.noncored   <- which(substr(colnames(x.mat2), 1, 1) == "x") # grab the state variable columns
 # 
 # # generate 95% CI of the DBH
-ci.noncored      <- apply(out.noncored[, x.cols.noncored], 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
+ci.noncored      <- apply(x.mat2[, x.cols.noncored], 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
 # #mean.pred.noncored       <- apply(out.noncored[, x.cols.noncored], 2, var) # get the var.pred for the last 800 samples
 # #use mikes funciton to rename the x columns so that they indicate which tree and year it is referring to: x[tree, time]
 ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
@@ -604,10 +604,10 @@ pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant 
 
 # Run AllomAve for each component in Kaye
 kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
-                     parm = "data/output/kaye_pipo.csv")
+                     parm = "kaye_pipo.csv")
 
 # had to read in the kaye_pipo csv...should just upload to the data
-kaye.parm <- read.csv("data/output/kaye_pipo.csv")
+kaye.parm <- read.csv("kaye_pipo.csv")
 
 allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
 allom.stembark = load.allom("Allom.PIPO.5.Rdata")
@@ -616,7 +616,7 @@ allom.branchdead = load.allom("Allom.PIPO.12.Rdata")
 allom.foliage = load.allom("Allom.PIPO.18.Rdata")
 dbh = 1:50 # vector of DBH values to predict over
 
-source("data/output/plot2AGB_kaye.R")
+source("plot2AGB_kaye.R")
 #source("data/output/validation.time.dbh.changingsdi.zero.SDIscaled.R")
 #validation.time.dbh.changingsdi.zeroinc.SDIscaled( plot = unique(plots)[6])
 #lapply(unique(plots)[1:2], validation.time.dbh.changingsdi.zeroinc.SDIscaled)
@@ -653,15 +653,25 @@ full.clim$ppt.scale <- NA
 full.clim$tmax.scale <- NA
 x <- plot
 
+future.clim.subset.26 <- full.clim %>% filter(rcp %in% "rcp26")
+future.clim.subset.45 <- full.clim %>% filter(rcp %in% "rcp45")
+future.clim.subset.60 <- full.clim %>% filter(rcp %in% "rcp60")
+future.clim.subset.85 <- full.clim %>% filter(rcp %in% "rcp85")
+
+future.clim.subset <- future.clim.subset.26 
 # we will use this function to set up the future climate
-scale.fut.clim.by.plt <- function(x){
+scale.fut.clim.by.plt <- function(x, future.clim.subset){
   cat(x)
-  full.clim.plt <-  full.clim %>% filter(PLT_CN == plot)#full.clim.dt[PLT_CN %in% plot]
+  full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
   rowid <- which(cov.data.regional$PLT_CN %in%  x ) # get the row for the climate data
   full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wateryr[rowid,]), na.rm = TRUE)
   full.clim.plt$tmax.scale <- ( full.clim.plt$tmax.corrected-mean(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE))/sd(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE)
   full.clim.plt
 }
+
+
+
+
 
 
 #system.time(scale.fut.clim.by.plt(1))
@@ -718,17 +728,19 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   
   
-  read.xvals <- function(treid){if (file.exists(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))) {
-    readRDS(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))}else{rep(NA, 1000)}}
-  x.additionals <- lapply(y, FUN = read.xvals)
+  #read.xvals <- function(treid){if (file.exists(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))) {
+  #   readRDS(paste0("xvals_additional_trees/Xvals_tree_",treid,".RDS"))}else{rep(NA, 1000)}}
+  # x.additionals <- lapply(y, FUN = read.xvals)
   
-  
+  # alternatively read from x.mat2
+  selx <- which(ci.names.noncored$row %in%  y) 
+  #x.plots <- x.mat2[,selx]
   # calculate CIS names
-  x.plots <- do.call(cbind, x.additionals)
-  ci.noncored      <- apply(x.plots, 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
-  mean.pred.noncored       <- apply(x.plots, 2, mean) # get the var.pred for the last 800 samples
+  #x.plots <- do.call(cbind, x.additionals)
+  #ci.noncored      <- apply(x.plots, 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
+  #mean.dia.noncored       <- apply(x.plots, 2, mean) # get the var.pred for the last 800 samples
   # #use mikes funciton to rename the x columns so that they indicate which tree and year it is referring to: x[tree, time]
-  ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
+  #ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
   
   
   # plot the posterior predictions of DBH for a single tree:
@@ -738,15 +750,15 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   # plot the posterior predictions of DBH for a single tree:
   # dont really need this step any more because we are subsetting
-  sel <- which(ci.names.noncored$row %in% y) # use sel to subset the data for the 415th tree
-  mean.dia.noncored <- mean.pred.noncored[sel]
-  
+  # sel <- which(ci.names.noncored$row %in% y) # use sel to subset the data for the 415th tree
+  # mean.dia.noncored <- mean.pred.noncored[sel]
+  # 
   
   
   # for noncored trees: just seelct the 36 year time point
   tree.ind.noncrored <- lapply(X = y, FUN= function(x){which(ci.names.noncored$row == x & ci.names.noncored$col == 36)})
   i <- do.call(cbind, tree.ind.noncrored )
-  out.noncored.plt <-  x.plots[, i] 
+  out.noncored.plt <-  x.mat2[, i] 
   
   # for cored trees:
   #yrs <- 31:135
@@ -795,8 +807,8 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   treeids <- cored.in.plt$treeid
   #if(length(treeids$treeid)>1){
   
-
-
+  
+  
   
   
   
@@ -931,11 +943,24 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   cat("extracting future climate for the plot")
   
-  fut.clim.plot <- scale.fut.clim.by.plt(PLT_CNint)
+  if(scenario %in% "rcp26"){
+    clim.fut.scen <- future.clim.subset.26 
+  }
+  if(scenario %in% "rcp45"){
+    clim.fut.scen <- future.clim.subset.26 
+  }
+  if(scenario %in% "rcp60"){
+    clim.fut.scen <- future.clim.subset.26 
+  }
+  if(scenario %in% "rcp85"){
+    clim.fut.scen <- future.clim.subset.26 
+  }
+  
+  fut.clim.scen <- scale.fut.clim.by.plt(x = PLT_CNint, future.clim.subset = clim.fut.scen)
   
   #scenario <- "rcp26"
   
-  fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
+  #fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
   
   models <- unique(fut.clim.scen$model) # 21 models
   sample.model <- sample(models, size = length(models), replace= FALSE)
@@ -950,26 +975,38 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
     
     df <- data.frame(ppt = ens.proj.yr$ppt.scale, 
                      tmax = ens.proj.yr$tmax.scale, 
-                     i = i, 
+                     model = i, 
                      year = ens.proj.yr$year)
     df
   }
   
   ens.samps <- lapply(1:length(models), get.ens.df)
   ens.samps.df <- do.call(rbind, ens.samps)
-  ens.means <- ens.samps.df %>% group_by(year) %>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
-                                                             tmax.mean = mean(tmax, na.rm = TRUE))
+  ens.means <- ens.samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
+  #             tmax.mean = mean(tmax, na.rm = TRUE))
   
-  ppt.fut <- ens.means %>% dplyr::select(year, ppt.mean) %>% tidyr::spread(key = year, value = ppt.mean)%>% dplyr::select(`2019`:`2098`)
-  tmax.fut <- ens.means %>% dplyr::select(year, tmax.mean) %>% tidyr::spread(key = year, value = tmax.mean)%>% dplyr::select(`2019`:`2098`)
+  #ppt.fut <- ens.means %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
+  #tmax.fut <- ens.means %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
   
   ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`2001`:`2018`)
   
   tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`2001`:`2018`)
+  hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.means$model))), 
+                              tmax = rep(as.numeric(tmax.hist) , length(unique(ens.means$model))), 
+                              model = rep(1:length(unique(ens.means$model)), each = length(as.numeric(ppt.hist))), 
+                              year = rep(2001:2018, length(unique(ens.means$model))))
   
+  full.df <- rbind(hist.samps.df, ens.samps.df %>% filter(!year %in% 2018))
+  full.df.nodups <- full.df[!duplicated(full.df),]
+  #full.df$rowid <- 1:length(full.df$ppt)
+  full.ens.ppt <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>%  group_by(model)%>%
+    spread(year, value = ppt, drop = FALSE) %>% ungroup ()%>% dplyr::select(-model)
   
-  ppt <- cbind(ppt.hist, ppt.fut)
-  tmax <- cbind(tmax.hist, tmax.fut)
+  full.ens.tmax <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model)%>%
+    spread(year, value = tmax, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
+  
+  #ppt <- cbind(ppt.hist, ppt.fut)
+  #tmax <- cbind(tmax.hist, tmax.fut)
   SDI <- SDI.PLT.SCALED %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint ) %>% dplyr::select(SUBP,`2001`)
   
   MAP <- x.mat[m,]$MAP
@@ -985,8 +1022,8 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   covariates <- list()
   covariates$SDI <- as.matrix(SDI)
-  covariates$ppt <- as.matrix(ppt)
-  covariates$tmax <- as.matrix(tmax)
+  covariates$ppt <- as.matrix(full.ens.ppt)
+  covariates$tmax <- as.matrix(full.ens.tmax) 
   covariates$MAP <- MAP
   covariates$MAT <- MAT
   
@@ -1043,7 +1080,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   # for each tree get the next statespace time step:
   for(t in 1:nt){ # for each year t in the # of trees
     #if(t == 1){
-    
+    mort.code <- 0
     # loop through all of the trees for year t
     for (i in 1:ni){ # for each tree i in the n of trees
       
@@ -1054,10 +1091,10 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
         
       }else{
         dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, alpha= alphas.tree.plot[[i]], SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
-                                                                                                                                   MAP = MAP,
-                                                                                                                                   MAT= MAT,
-                                                                                                                                   ppt = covariates$ppt[,t], 
-                                                                                                                                   tmax = covariates$tmax[,t]))
+                                                                                                                                                                 MAP = MAP,
+                                                                                                                                                                 MAT= MAT,
+                                                                                                                                                                 ppt = covariates$ppt[,t], 
+                                                                                                                                                                 tmax = covariates$tmax[,t]))
         
       }
       increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
@@ -1105,10 +1142,10 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
             #rel.size <- ((75)-mean(dbh.pred[i,,t+1], na.rm =TRUE))/75
             
             mort.prob <- (SDI.raw/(450/nrow(sdi.subp)))*0.60 + rel.size# mortali#/(450/nrow(sdi.subp))#+mort.prob
-          
-            if(!is.na(rel.size)){
-            mort.prob <- ifelse(mort.prob>1, 1, mort.prob)
             
+            if(!is.na(rel.size)){
+              mort.prob <- ifelse(mort.prob>1, 1, mort.prob)
+              
             }else{ # if rel.size is na for some reason...kill off the tree
               
               mort.prob <- 1
@@ -1121,9 +1158,9 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
       # else{
       #   mort.code <- 0
       # }
-        if(mort.code == 1 ){
-          dbh.pred[i,,(t+1):nt] <- 0
-        }
+      if(mort.code == 1 ){
+        dbh.pred[i,,(t+1):nt] <- 0
+      }
       
     }
     
@@ -1151,9 +1188,9 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
       }
     }}
   # save the plot-level arrays:
-  saveRDS(dbh.pred, paste0("data/output/diam_forecasts/PLT.dbh.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
-  saveRDS(sdi.subp, paste0("data/output/diam_forecasts/PLT.sdi.",mort.scheme,".", plot,".", scenario,".SUBP.2001.2018.RDS"))
-  saveRDS(index.df, paste0("data/output/diam_forecasts/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
+  saveRDS(dbh.pred, paste0("diam_forecasts/PLT.dbh.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
+  saveRDS(sdi.subp, paste0("diam_forecasts/PLT.sdi.",mort.scheme,".", plot,".", scenario,".SUBP.2001.2018.RDS"))
+  saveRDS(index.df, paste0("diam_forecasts/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
   # make a plot of all the DBH forecasts:
   
   dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
@@ -1190,7 +1227,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   p.inc <- ggplot() + 
     geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
     geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
-    theme_bw() + ylab("Diameters (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number") 
+    theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number") 
   
   #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
   
@@ -1215,12 +1252,12 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   test.m.time <- test.m %>% dplyr::select(-Var1, -Var3) %>% group_by(Var2) %>% spread(key = id, value = value)
   out <- test.m.time %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(colid.ordered)
-  out <- out[1:50,]
-  out.mean <- colMeans(out)
+  #out <- out[1:50,]
+  out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
   # biomass estimation
   
   cat("start biomass estimates")
-  plot2AGB(combined = combined, out = out, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = scenario, p = p, p.inc = p.inc)
+  plot2AGB(combined = combined, out = out.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = scenario, p = p, p.inc = p.inc)
   
 }
 
@@ -1254,13 +1291,13 @@ lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscal
 lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp85")})
 
 #----------------Run all the same plots but with the scenarios of no climate chage-----------------
-lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[6:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
 lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
 lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
 lapply(unique(plots)[1:10],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
 
 
-
+plot <- "2449012010690"
 # some basic summaries of the 10 plots I ran:
 # need a function to read in the biomass and NPP data for all plots for the given rcp scenario & mortality scheme:
 # note that only rcp85 were saved because I didnt add an rcp label to the data saving process..need to fix
@@ -1270,24 +1307,31 @@ mort.scheme <- "DDonly"
 scenario <- "rcp85"
 
 get_biomass_ests <- function(plot, mort.scheme, scenario){
-      
-    load(paste0("data/output/biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
-    
-    # objects
-    # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
-    # AGB.foliage, NPP.foliage, 
-    # AGB.stembark, NPP.stembark,
-    # AGB.stemwood, NPP.stemwood,
-    # AGB.branchdead, NPP.branchdead,
-    # AGB.branchlive, NPP.branchlive,
+  
+  load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+  
+  # objects
+  # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+  # AGB.foliage, NPP.foliage, 
+  # AGB.stembark, NPP.stembark,
+  # AGB.stemwood, NPP.stemwood,
+  # AGB.branchdead, NPP.branchdead,
+  # AGB.branchlive, NPP.branchlive,
   i <- 1
+  mplot <- 1
+  nt <- ncol(NPP[i,,])
+  
+  # sequentially add up:
+  # branchdead, then foliage, then stembark, then branchlive, then stemwood
+  mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage <- matrix(NA, mplot, nt)
+  mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage <- matrix(NA, mplot,nt)
+  
+  
+  
   mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
   sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
   mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
   sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
-  
-  # sequentially add up:
-  # branchdead, then foliage, then stembark, then branchlive, then stemwood
   
   # branch dead
   mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
@@ -1362,7 +1406,7 @@ get_biomass_ests <- function(plot, mort.scheme, scenario){
   upA.foliage  <- mAGB.foliage  [i, ] + sAGB.foliage  [i, ] * 1.96
   lowA.foliage   <- mAGB.foliage [i, ] - sAGB.foliage [i, ] * 1.96
   
- 
+  
   i <- 1
   # calculate upper and lower bounds
   up  <- mNPP[i, ] + sNPP[i, ] * 1.96
@@ -1371,59 +1415,59 @@ get_biomass_ests <- function(plot, mort.scheme, scenario){
   upA  <- mAGB[i, ] + sAGB[i, ] * 1.96
   lowA <- mAGB[i, ] - sAGB[i, ] * 1.96
   
-    
-    total.plot <- data.frame(plot = plot, 
-                             mort.scheme = mort.scheme,
-                             rcp = scenario,
-                             year = yrvec[2:length(low.stemwood)], 
-                             mAGB = mAGB[,2:length(low.stemwood)], 
-                             mAGB.stemwood = mAGB.stemwood[,2:length(low.stemwood)],
-                             mAGB.stembark = mAGB.stembark[,2:length(low.stemwood)],
-                             mAGB.branchlive = mAGB.branchlive[,2:length(low.stemwood)],
-                             mAGB.branchdead = mAGB.branchdead[,2:length(low.stemwood)],
-                             mAGB.foliage = mAGB.foliage[,2:length(low.stemwood)],
-                             upA = upA[2:length(low.stemwood)], 
-                             lowA = lowA[2:length(low.stemwood)], 
-                             upA.stemwood = upA.stemwood[2:length(low.stemwood)],
-                             upA.stembark = upA.stembark[2:length(low.stemwood)],
-                             upA.branchlive = upA.branchlive[2:length(low.stemwood)],
-                             upA.branchdead = upA.branchdead[2:length(low.stemwood)],
-                             upA.foliage = upA.foliage[2:length(low.stemwood)],
-                             
-                             lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
-                             lowA.stembark = lowA.stembark[2:length(low.stemwood)],
-                             lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
-                             lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
-                             lowA.foliage = lowA.foliage[2:length(low.stemwood)],
-                             
-                             mNPP = mNPP[,2:length(low.stemwood)], 
-                             mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
-                             mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
-                             mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
-                             mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
-                             mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],                          
-                             up = up[2:length(low.stemwood)], 
-                             low = low[2:length(low.stemwood)], 
-                             
-                             
-                             up.stemwood = up.stemwood[2:length(low.stemwood)],
-                             up.stembark = up.stembark[2:length(low.stemwood)],
-                             up.branchlive = up.branchlive[2:length(low.stemwood)],
-                             up.branchdead =  up.branchdead[2:length(low.stemwood)],
-                             up.foliage =up.foliage[2:length(low.stemwood)],
-                             
-                             low.stemwood = low.stemwood[2:length(low.stemwood)],
-                             low.stembark = low.stembark[2:length(low.stemwood)],
-                             low.branchlive = low.branchlive[2:length(low.stemwood)],
-                             low.branchdead = low.branchdead[2:length(low.stemwood)],
-                             low.foliage = low.foliage[2:length(low.stemwood)])
-    
-    total.plot
+  
+  total.plot <- data.frame(plot = plot, 
+                           mort.scheme = mort.scheme,
+                           rcp = scenario,
+                           year = yrvec[2:length(low.stemwood)], 
+                           mAGB = mAGB[,2:length(low.stemwood)], 
+                           mAGB.stemwood = mAGB.stemwood[,2:length(low.stemwood)],
+                           mAGB.stembark = mAGB.stembark[,2:length(low.stemwood)],
+                           mAGB.branchlive = mAGB.branchlive[,2:length(low.stemwood)],
+                           mAGB.branchdead = mAGB.branchdead[,2:length(low.stemwood)],
+                           mAGB.foliage = mAGB.foliage[,2:length(low.stemwood)],
+                           upA = upA[2:length(low.stemwood)], 
+                           lowA = lowA[2:length(low.stemwood)], 
+                           upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                           upA.stembark = upA.stembark[2:length(low.stemwood)],
+                           upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                           upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                           upA.foliage = upA.foliage[2:length(low.stemwood)],
+                           
+                           lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                           lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                           lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                           lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                           lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                           
+                           mNPP = mNPP[,2:length(low.stemwood)], 
+                           mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                           mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                           mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                           mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                           mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],                          
+                           up = up[2:length(low.stemwood)], 
+                           low = low[2:length(low.stemwood)], 
+                           
+                           
+                           up.stemwood = up.stemwood[2:length(low.stemwood)],
+                           up.stembark = up.stembark[2:length(low.stemwood)],
+                           up.branchlive = up.branchlive[2:length(low.stemwood)],
+                           up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                           up.foliage =up.foliage[2:length(low.stemwood)],
+                           
+                           low.stemwood = low.stemwood[2:length(low.stemwood)],
+                           low.stembark = low.stembark[2:length(low.stemwood)],
+                           low.branchlive = low.branchlive[2:length(low.stemwood)],
+                           low.branchdead = low.branchdead[2:length(low.stemwood)],
+                           low.foliage = low.foliage[2:length(low.stemwood)])
+  
+  total.plot
 }
 
 get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
   
-  load(paste0("data/output/biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+  load(paste0("biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
   
   # objects
   # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
@@ -1433,6 +1477,12 @@ get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
   # AGB.branchdead, NPP.branchdead,
   # AGB.branchlive, NPP.branchlive,
   i <- 1
+  
+  # sequentially add up:
+  # branchdead, then foliage, then stembark, then branchlive, then stemwood
+  mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage <- matrix(NA, mplot, nt)
+  mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage <- matrix(NA, mplot,nt)
+  
   mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
   sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
   mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
@@ -1651,7 +1701,7 @@ ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% summaris
 AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB, group = mort.scheme, color = mort.scheme))+theme_bw()+ylab("Total AGB for 10 plots \n (Mg/ha), RCP 8.5")+facet_wrap(~rcp)
 NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for 10  plots \n (Mg/ha), RCP 8.5")+facet_wrap(~rcp)
 
-png(height = 7, width = 10, units = "in", res = 150, "data/output/allrcps.example10plots.total.biomass.png")
+png(height = 7, width = 10, units = "in", res = 150, "allrcps.example10plots.total.biomass.png")
 cowplot::plot_grid(AGB.line, NPP.line, ncol = 1, align = "hv")
 dev.off()
 
@@ -1670,7 +1720,7 @@ b.plot <- ggplot()+
 
 b.plot
 
-png(height = 10, width = 12, units = "in", res = 150, "data/output/Total_biomass_kaye_ten_plots_allrcps_nocc.png")
+png(height = 10, width = 12, units = "in", res = 150, "Total_biomass_kaye_ten_plots_allrcps_nocc.png")
 b.plot
 dev.off()
 
@@ -1691,15 +1741,15 @@ b.flux <- ggplot()+
 
 # save thes summaries:
 
-png(height = 10, width = 12, units = "in", res = 150, "data/output/NPP_biomass_kaye_ten_plots_allrcps_nocc.png")
+png(height = 10, width = 12, units = "in", res = 150, "NPP_biomass_kaye_ten_plots_allrcps_nocc.png")
 b.flux
 dev.off()
 
 
 # calculate the fire flux breakpoint, for each year, as a percent of the total AGB:
 firebreakpoints <- ten.plot.summary %>% group_by(rcp, mort.scheme, year) %>% summarise(ffbp = mNPP,
-                                               ffbp_pct = (mNPP/mAGB)*100, 
-                                               netsink = ifelse(mNPP > 0, "net sink", "net source"))
+                                                                                       ffbp_pct = (mNPP/mAGB)*100, 
+                                                                                       netsink = ifelse(mNPP > 0, "net sink", "net source"))
 
 ggplot(firebreakpoints, aes(year, ffbp_pct, color = netsink))+geom_point()+facet_wrap(~mort.scheme)
 
