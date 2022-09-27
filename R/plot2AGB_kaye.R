@@ -1,4 +1,4 @@
-plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26", p = p, p.inc = p.inc) {
+plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26", p = p, p.inc = p.inc) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -38,10 +38,18 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   Bcov.foliage <- kaye_pipo[[1]][[18]]$cov[c("Bg0", "Bg1"), c("Bg0", "Bg1")]
   Bsd.foliage  <- sqrt(kaye_pipo[[1]][[18]]$statistics["Sg", "Mean"])
   
+  # for dead stemwood: # just use stem wood to calculate dead stemwood
+  b0.dead.stemwood   <- kaye_pipo[[1]][[4]]$statistics["Bg0", "Mean"]
+  b1.dead.stemwood   <- kaye_pipo[[1]][[4]]$statistics["Bg1", "Mean"]
+  B.dead.stemwood    <- kaye_pipo[[1]][[4]]$statistics[c("Bg0", "Bg1"), "Mean"]
+  Bcov.dead.stemwood <- kaye_pipo[[1]][[4]]$cov[c("Bg0", "Bg1"), c("Bg0", "Bg1")]
+  Bsd.dead.stemwood  <- sqrt(kaye_pipo[[1]][[4]]$statistics["Sg", "Mean"])
+  
   
   
   ## prep data: 
   out[out < 0.1] <- 0.1
+  out.dead[is.na(out.dead)] <- 0
   nrep    <- nrow(out)
   ntree   <- nrow(combined)
   nt      <- ncol(out) / ntree
@@ -59,8 +67,8 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   yrvec <- yrvec[!is.na(yrvec)]
   
   ## set up storage
-  NPP<- NPP.stemwood <- NPP.stembark <- NPP.branchlive <- NPP.branchdead <- NPP.foliage <- array(NA, c(mplot, nrep, nt))
-  AGB<- AGB.stemwood <- AGB.stembark <- AGB.branchlive <- AGB.branchdead <- AGB.foliage <- array(NA, c(mplot, nrep, nt))
+  NPP<- NPP.stemwood <- NPP.stembark <- NPP.branchlive <- NPP.branchdead <- NPP.foliage <- NPP.dead <- array(NA, c(mplot, nrep, nt))
+  AGB<- AGB.stemwood <- AGB.stembark <- AGB.branchlive <- AGB.branchdead <- AGB.foliage <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
   #biomass_tsca  <- array(NA, c(mplot, nrep, nt))
   #biomass_acsa3 <- array(NA, c(mplot, nrep, nt))
   #biomass_beal2 <- array(NA, c(mplot, nrep, nt))
@@ -77,6 +85,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     b.branchlive <- mvtnorm::rmvnorm(1, B.branchlive, Bcov.branchlive)
     b.branchdead <- mvtnorm::rmvnorm(1, B.branchdead, Bcov.branchdead)
     b.foliage <- mvtnorm::rmvnorm(1, B.foliage, Bcov.foliage)
+    b.dead <- mvtnorm::rmvnorm(1, B.dead.stemwood, Bcov.dead.stemwood)
     
     ## convert tree diameter to biomass
     biomass.stemwood <- matrix(exp(b.stemwood[1] + b.stemwood[2] * log(out[g, ])), ntree,nt,  byrow = FALSE)#nt)
@@ -84,6 +93,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     biomass.branchlive <- matrix(exp(b.branchlive[1] + b.branchlive[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
     biomass.branchdead <- matrix(exp(b.branchdead[1] + b.branchdead[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
     biomass.foliage <- matrix(exp(b.foliage[1] + b.foliage[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.dead <- matrix(exp(b.dead[1] + b.dead[2] * log(out.dead[g, ])), ntree, nt, byrow = FALSE)#nt)
     
     
     
@@ -106,6 +116,8 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     
     AGB [j, g, ] <- AGB.stemwood[j, g, ] + AGB.stembark[j, g, ] + AGB.branchlive[j, g, ] + AGB.branchdead[j, g, ] +  AGB.foliage[j, g, ]
     
+    AGB.dead[j, g, ] <- apply(biomass.dead, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    
     
     # AGB[j,g,] <- apply(biomass[ijindex[,1]==j,],2,sum,na.rm=TRUE)*unit.conv
     
@@ -121,13 +133,16 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     NPP.branchdead[j, g, ] <- c(0,diff(AGB.branchdead[j, g, ]))
     NPP.foliage[j, g, ] <- c(0,diff(AGB.foliage[j, g, ]))
     NPP[j, g,] <- c(0,diff(AGB[j,g,]))
+    NPP.dead[j, g,] <- c(0,diff(AGB.dead[j,g,]))
     
     #}
     setTxtProgressBar(pb, g)
   }
   
-  mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
-  mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+  mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+  mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+  lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+  hiNPP <- hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
   
   #mbiomass_tsca  <- sbiomass_tsca <- matrix(NA, mplot, nt)
   #mbiomass_acsa3 <- sbiomass_acsa3 <- matrix(NA, mplot, nt)
@@ -137,8 +152,13 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   for (i in seq_len(mplot)) {
     mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
     sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+    lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
     sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+    lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     # sequentially add up:
     # branchdead, then foliage, then stembark, then branchlive, then stemwood
@@ -146,35 +166,73 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     # branch dead
     mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
     sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+    lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
     sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+    lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     # foliage
     mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
     sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+    lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
     sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+    lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     # stembark
     mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
     sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+    lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
     sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+    lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     # branchlive
     mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
     sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+    lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
     sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-    
+    lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     
     # stemwood
     mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
     sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+    lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
     mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
     sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
     
+    lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
+    
+    # dead trees:
+    # stemwood
+    mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+    sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+    lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+    
+    mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+    sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+    
+    lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+    hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     
   }
@@ -184,45 +242,50 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   
   # for (i in seq_len(mplot)) {
   
-  up  <- mNPP[i, ] + sNPP[i, ] * 1.96
-  low <- mNPP[i, ] - sNPP[i, ] * 1.96
+  up  <- hiNPP
+  low <- lowNPP
   
-  up.stemwood  <- mNPP.stemwood[i, ] + sNPP.stemwood[i, ] * 1.96
-  low.stemwood <- mNPP.stemwood[i, ] - sNPP.stemwood[i, ] * 1.96
+  up.deadstem  <- hiNPP.dead
+  low.deadstem <- lowNPP.dead
   
-  up.stembark  <- mNPP.stembark[i, ] + sNPP.stembark[i, ] * 1.96
-  low.stembark <- mNPP.stembark[i, ] - sNPP.stembark[i, ] * 1.96
+  up.stemwood  <- hiNPP.stemwood
+  low.stemwood <- lowNPP.stemwood
   
-  up.branchlive  <- mNPP.branchlive [i, ] + sNPP.branchlive [i, ] * 1.96
-  low.branchlive  <- mNPP.branchlive[i, ] - sNPP.branchlive[i, ] * 1.96
+  up.stembark  <- hiNPP.stembark
+  low.stembark <- lowNPP.stembark
   
-  up.branchdead  <- mNPP.branchdead [i, ] + sNPP.branchdead [i, ] * 1.96
-  low.branchdead  <- mNPP.branchdead[i, ] - sNPP.branchdead[i, ] * 1.96
+  up.branchlive  <- hiNPP.branchlive
+  low.branchlive  <- hiNPP.branchlive
   
-  up.foliage  <- mNPP.foliage  [i, ] + sNPP.foliage  [i, ] * 1.96
-  low.foliage   <- mNPP.foliage [i, ] - sNPP.foliage [i, ] * 1.96
+  up.branchdead  <- hiNPP.branchdead
+  low.branchdead  <- hiNPP.branchdead
+  
+  up.foliage  <- hiNPP.foliage
+  low.foliage   <- lowNPP.foliage
   
   # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
   # lines(yrvec[-1], up)
   # lines(yrvec[-1], low)
-  upA  <- mAGB[i, ] + sAGB[i, ] * 1.96
-  lowA <- mAGB[i, ] - sAGB[i, ] * 1.96
+  upA  <- hiAGB
+  lowA <- lowAGB
   
+  upA.deadstem  <- hiAGB.dead
+  lowA.deadstem <- lowAGB.dead
   
-  upA.stemwood  <- mAGB.stemwood[i, ] + sAGB.stemwood[i, ] * 1.96
-  lowA.stemwood <- mAGB.stemwood[i, ] - sAGB.stemwood[i, ] * 1.96
+  upA.stemwood  <- hiAGB.stemwood
+  lowA.stemwood <- lowAGB.stemwood
   
-  upA.stembark  <- mAGB.stembark[i, ] + sAGB.stembark[i, ] * 1.96
-  lowA.stembark <- mAGB.stembark[i, ] - sAGB.stembark[i, ] * 1.96
+  upA.stembark  <- hiAGB.stembark
+  lowA.stembark <- lowAGB.stembark
   
-  upA.branchlive  <- mAGB.branchlive [i, ] + sAGB.branchlive [i, ] * 1.96
-  lowA.branchlive  <- mAGB.branchlive[i, ] - sAGB.branchlive[i, ] * 1.96
+  upA.branchlive  <- hiAGB.branchlive
+  lowA.branchlive  <- lowAGB.branchlive
   
-  upA.branchdead  <- mAGB.branchdead [i, ] + sAGB.branchdead [i, ] * 1.96
-  lowA.branchdead  <- mAGB.branchdead[i, ] - sAGB.branchdead[i, ] * 1.96
+  upA.branchdead  <- hiAGB.branchdead
+  lowA.branchdead  <- lowAGB.branchdead
   
-  upA.foliage  <- mAGB.foliage  [i, ] + sAGB.foliage  [i, ] * 1.96
-  lowA.foliage   <- mAGB.foliage [i, ] - sAGB.foliage [i, ] * 1.96
+  upA.foliage  <- hiAGB.foliage
+  lowA.foliage   <- lowAGB.foliage
   
   # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
   # lines(yrvec, upA)
@@ -233,11 +296,11 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   # make nicer plots for each plot:
   i <- 1
   # calculate upper and lower bounds
-  up  <- mNPP[i, ] + sNPP[i, ] * 1.96
-  low <- mNPP[i, ] - sNPP[i, ] * 1.96
+  up  <- hiNPP
+  low <- lowNPP
   
-  upA  <- mAGB[i, ] + sAGB[i, ] * 1.96
-  lowA <- mAGB[i, ] - sAGB[i, ] * 1.96
+  upA  <- hiAGB
+  lowA <- lowAGB
   
   
   total.plot <- data.frame(plot = plot, 
@@ -248,6 +311,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
                            mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
                            mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
                            mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                           mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
                            upA = upA[2:length(low.stemwood)], 
                            lowA = lowA[2:length(low.stemwood)], 
                            upA.stemwood = upA.stemwood[2:length(low.stemwood)],
@@ -255,22 +319,28 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
                            upA.branchlive = upA.branchlive[2:length(low.stemwood)],
                            upA.branchdead = upA.branchdead[2:length(low.stemwood)],
                            upA.foliage = upA.foliage[2:length(low.stemwood)],
+                           upA.dead = upA.dead[2:length(low.stemwood)], 
                            
                            lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
                            lowA.stembark = lowA.stembark[2:length(low.stemwood)],
                            lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
                            lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
                            lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                           lowA.dead = lowA.dead[2:length(low.stemwood)], 
                            
                            mNPP = mNPP[i,2:length(low.stemwood)], 
                            mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
                            mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
                            mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
                            mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
-                           mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],                          
+                           mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                           mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                           
                            up = up[2:length(low.stemwood)], 
                            low = low[2:length(low.stemwood)], 
                            
+                           up.dead = up.dead[2:length(low.stemwood)], 
+                           low.dead = low.dead[2:length(low.stemwood)],
                            
                            up.stemwood = up.stemwood[2:length(low.stemwood)],
                            up.stembark = up.stembark[2:length(low.stemwood)],
@@ -322,7 +392,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   
   
   total.plot.all <- data.frame(plot = plot, 
-                               year = yrvec[2:length(low.stemwood)], 
+                               year = yrvec, #[1:length(low.stemwood)], 
                                
                                
                                # upA = upA[2:length(low.stemwood)], 
@@ -332,24 +402,30 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
                                upA.branchlive = upA.branch,
                                upA.branchdead = upA.dead,
                                upA.foliage = upA.needles,
+                               upA.deadstem = upA.deadstem[,2:length(upA.deadstem)],
                                
                                lowA.stemwood = as.numeric(rbind(lapply(lowA.stem, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                lowA.stembark = as.numeric(rbind(lapply(lowA.bark, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                lowA.branchlive = as.numeric(rbind(lapply(lowA.branch, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                lowA.branchdead = as.numeric(rbind(lapply(lowA.dead, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                lowA.foliage = as.numeric(rbind(lapply(lowA.needles, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
+                               lowA.deadstem = as.numeric(rbind(lapply(lowA.deadstem[,2:length(upA.deadstem)], FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                
+                               up.dead = up.dead[2:length(low.stemwood)], 
+                               low.dead = low.dead[2:length(low.stemwood)],
                                up.stemwood = up.stem,
                                up.stembark = up.bark,
                                up.branchlive = up.branch,
                                up.branchdead = up.dead,
                                up.foliage = up.needles,
+                               up.deadstem = up.deadstem[,2:length(upA.deadstem)],
                                
                                low.stemwood = low.stem,
                                low.stembark = low.bark,
                                low.branchlive = low.branch,
                                low.branchdead = low.dead,
-                               low.foliage = low.needles)#,
+                               low.foliage = low.needles, 
+                               low.deadstem = low.deadstem[,2:length(upA.deadstem)])#,
   
   
   b.plot.all <- ggplot()+
@@ -360,11 +436,12 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     
     geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
     geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
+    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
     
     theme_bw()+
     ylab(paste("Plot", plot, "stem  \n biomass (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
     scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1" ))
+                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))
   
   
   b.flux.all <- ggplot()+
@@ -377,7 +454,7 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     theme_bw()+#ylim(ylow, yhi)+
     ylab(paste("Plot", plot, " stem  \n biomass increment (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
     scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1" ))
+                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
   
   
   
@@ -388,10 +465,11 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
     geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
     geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
     geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
+    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = "dead stem"))+
     theme_bw()+
     ylab(paste("Plot", plot, "stem  \n biomass (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
     scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1" ))
+                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
   
   
   
@@ -432,12 +510,13 @@ plot2AGB <- function(combined, out, mort.scheme, allom.stats, unit.conv = 0.02, 
   
   #saveRDS(total.plot, paste0(output, "Plot_biomass_inc_", plot, ".RDS"))
   
-  save(out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+  save(out, out.dead, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
        AGB.foliage, NPP.foliage, 
        AGB.stembark, NPP.stembark,
        AGB.stemwood, NPP.stemwood,
        AGB.branchdead, NPP.branchdead,
        AGB.branchlive, NPP.branchlive,
+       AGB.dead, NPP.dead,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
        file = file.path("/home/rstudio/",paste0("biomass_data/plot2AGB_",mort.scheme,".",plot,".",scenario,".Rdata")))

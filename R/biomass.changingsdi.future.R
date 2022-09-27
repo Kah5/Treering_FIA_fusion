@@ -1,14 +1,14 @@
-biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26"){
+biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26"){
   
   # -------- get the diameter estimates for all trees on the plot: ------------------------
   print(as.character(plot))
   # get id of trees with cores:
   cored.in.plt <- cov.data.regional %>% dplyr::filter (PLT_CN %in% plot)
-  #cored.in.plt$treeid
+  
   
   # get id of trees with out cores:
   trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plot)
-  #trees.in.plt$treeid
+  
   
   
   
@@ -28,18 +28,12 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   
   
   
-  # read.xvals <- function(treid){if (file.exists(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))) {
-  #  readRDS(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))}else{rep(NA, 1000)}}
-  #x.additionals <- lapply(y, FUN = read.xvals)
-  selx <- which(ci.names.noncored$row %in%  y) 
-  #x.plots <- x.mat2[,selx]
-  # calculate CIS names
-  #x.plots <- do.call(cbind, x.additionals)
-  #ci.noncored      <- apply(x.plots, 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
-  #mean.dia.noncored       <- apply(x.plots, 2, mean) # get the var.pred for the last 800 samples
-  # #use mikes funciton to rename the x columns so that they indicate which tree and year it is referring to: x[tree, time]
-  #ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
+  #read.xvals <- function(treid){if (file.exists(paste0("data/output/xvals_additional_trees/Xvals_tree_",treid,".RDS"))) {
+  #   readRDS(paste0("xvals_additional_trees/Xvals_tree_",treid,".RDS"))}else{rep(NA, 1000)}}
+  # x.additionals <- lapply(y, FUN = read.xvals)
   
+  # alternatively read from x.mat2
+  selx <- which(ci.names.noncored$row %in%  y) 
   
   # plot the posterior predictions of DBH for a single tree:
   sel <- which(ci.names$row %in%  x) # use sel to subset the data for the 415th tree
@@ -48,9 +42,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   
   # plot the posterior predictions of DBH for a single tree:
   # dont really need this step any more because we are subsetting
-  # sel <- which(ci.names.noncored$row %in% y) # use sel to subset the data for the 415th tree
-  # mean.dia.noncored <- mean.pred.noncored[sel]
-  # 
+  
   
   
   # for noncored trees: just seelct the 36 year time point
@@ -93,11 +85,10 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   }
   
   
+  
+  
   # set up SDI and subplot information:
-  # get the SDI information form 
   #SDI.matrix
-  
-  
   
   
   
@@ -111,12 +102,6 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   #if(length(treeids$treeid)>1){
   
   
-  
-  
-  
-  
-  
-  
   # use all of the parameter MCMCS:
   #alpha = rep(quantile(alphas[, alphaplotid],0.5), 3299)
   
@@ -127,6 +112,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
     rnorm(nsamps, mean = mean(betas[,x]), sd = sd(betas[,x]))
   }
   
+  nsamps <- nMCMC
   #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = 1000)
   # for each tree generate a random sample for the tree-level intercept:
   
@@ -259,10 +245,20 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
     clim.fut.scen <- future.clim.subset.26 
   }
   
+  scale.fut.clim.by.plt <- function(x, future.clim.subset){
+    cat(x)
+    full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
+    rowid <- which(cov.data.regional$PLT_CN %in%  x ) # get the row for the climate data
+    full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE)
+    full.clim.plt$tmax.scale <- ( full.clim.plt$tmax.corrected-mean(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE))/sd(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE)
+    full.clim.plt
+  }
+  
   fut.clim.scen <- scale.fut.clim.by.plt(x = PLT_CNint, future.clim.subset = clim.fut.scen)
   
   #scenario <- "rcp26"
   
+  #fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
   
   models <- unique(fut.clim.scen$model) # 21 models
   sample.model <- sample(models, size = length(models), replace= FALSE)
@@ -279,58 +275,36 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
                      tmax = ens.proj.yr$tmax.scale, 
                      model = i, 
                      year = ens.proj.yr$year)
-    df$diff.ppt <- NA
-    df$diff.tmax <- NA
-    
-    for(t in 2:82){
-      
-      df[t,]$diff.ppt <- df[t,]$ppt-df[t-1,]$ppt
-      df[t,]$diff.tmax <- df[t,]$tmax - df[t-1,]$tmax
-    }
-    
     df
   }
   
   ens.samps <- lapply(1:length(models), get.ens.df)
   ens.samps.df <- do.call(rbind, ens.samps)
-  # detrend the future climate using differences
-  #unique(duplicated(ens.samps.df)) # no duplicates
-  #unique(duplicated(ens.samps.df[,c("model", "year")]))
-  ens.samps.df  <- ens.samps.df %>% dplyr::select(diff.ppt, diff.tmax, model, year)
-  colnames(ens.samps.df) <- c("ppt", "tmax", "model", "year")
-  #   group_by(model, year)%>% 
-  #  
-  #   #spread(model, ppt)
-  #   mutate(Diff = c(NA, diff(ppt)))%>%
-  # arrange(model, year)
-  #ens.means  
-  #dplyr::mutate(diff.ppt = ifelse(year == 2018, ppt, ppt - lag(ppt)),
-  #             diff.tmax =   ifelse(year == 2018, tmax, diff(tmax)))
+  ens.means <- ens.samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
+  #             tmax.mean = mean(tmax, na.rm = TRUE))
   
-  # ggplot(ens.means, aes(x = year, y = diff.tmax, group = model))+geom_line()
+  #ppt.fut <- ens.means %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
+  #tmax.fut <- ens.means %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
   
   ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`2001`:`2018`)
   
   tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`2001`:`2018`)
-  hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
-                              tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
-                              model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
-                              year = rep(2001:2018, length(unique(ens.samps.df$model))))
+  hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.means$model))), 
+                              tmax = rep(as.numeric(tmax.hist) , length(unique(ens.means$model))), 
+                              model = rep(1:length(unique(ens.means$model)), each = length(as.numeric(ppt.hist))), 
+                              year = rep(2001:2018, length(unique(ens.means$model))))
   
   full.df <- rbind(hist.samps.df, ens.samps.df %>% filter(!year %in% 2018))
   full.df.nodups <- full.df[!duplicated(full.df),]
   #full.df$rowid <- 1:length(full.df$ppt)
-  full.ens.ppt <- na.omit(full.df.nodups)  %>% dplyr::select( ppt, year, model)%>%  group_by(model)%>%
+  full.ens.ppt <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>%  group_by(model)%>%
     spread(year, value = ppt, drop = FALSE) %>% ungroup ()%>% dplyr::select(-model)
   
-  full.ens.tmax <- na.omit(full.df.nodups)  %>% dplyr::select(tmax, year, model)%>%  group_by(model)%>%
+  full.ens.tmax <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model)%>%
     spread(year, value = tmax, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
   
-  
-  
-  
-  ppt <- full.ens.ppt
-  tmax <- full.ens.tmax
+  #ppt <- cbind(ppt.hist, ppt.fut)
+  #tmax <- cbind(tmax.hist, tmax.fut)
   SDI <- SDI.PLT.SCALED %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint ) %>% dplyr::select(SUBP,`2001`)
   
   MAP <- x.mat[m,]$MAP
@@ -346,8 +320,8 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   
   covariates <- list()
   covariates$SDI <- as.matrix(SDI)
-  covariates$ppt <- as.matrix(ppt)
-  covariates$tmax <- as.matrix(tmax)
+  covariates$ppt <- as.matrix(full.ens.ppt)
+  covariates$tmax <- as.matrix(full.ens.tmax) 
   covariates$MAP <- MAP
   covariates$MAT <- MAT
   
@@ -536,7 +510,6 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   }
   
   
-  
   if(density.dependent == TRUE & density.independent == TRUE){
     mort.scheme <- "DIDD"
   }else{
@@ -550,11 +523,11 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
       }
     }}
   # save the plot-level arrays:
-  saveRDS(dbh.pred, paste0("diam_forecasts_nocc/PLT.dbh.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
-  saveRDS(dbh.dead, paste0("diam_forecasts_nocc/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
+  saveRDS(dbh.pred, paste0("diam_forecasts/PLT.dbh.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
+  saveRDS(dbh.dead, paste0("diam_forecasts/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
   
-  saveRDS(sdi.subp, paste0("diam_forecasts_nocc/PLT.sdi.",mort.scheme,".", plot,".", scenario,".SUBP.2001.2018.RDS"))
-  saveRDS(index.df, paste0("diam_forecasts_nocc/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
+  saveRDS(sdi.subp, paste0("diam_forecasts/PLT.sdi.",mort.scheme,".", plot,".", scenario,".SUBP.2001.2018.RDS"))
+  saveRDS(index.df, paste0("diam_forecasts/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".2001.2018.RDS"))
   # make a plot of all the DBH forecasts:
   
   dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
@@ -590,6 +563,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
     geom_ribbon(data = dead.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
     theme_bw() + ylab("Diameters (cm)")+xlab("years after 2018") + ggtitle(paste0("Diameter of dead for plot ", plot))
   
+  #ded
   # make a plot of all the increment forecasts:
   
   inc.quants <- reshape2::melt(apply(increment, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
@@ -614,7 +588,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   
   
   combined <- index.df
-  out.dbh <- as.data.frame(dbh.pred)
+  #out.dbh <- as.data.frame(dbh.pred)
   
   #dbh.mat <- matrix(dbh.pred, nrow = dim(dbh.pred)[2], ncol = prod(dim(dbh.pred)[1],dim(dbh.pred)[3]), byrow = TRUE)
   # dim(dbh.mat)
@@ -634,7 +608,6 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   #out <- out[1:50,]
   out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
   
-  
   # calculate an out for the dead trees
   # var 1 is tree, var2 is mcmc sample, and var 3 is time
   test.m <- melt(dbh.dead, id.vars = dim(dbh.dead)[2])
@@ -652,6 +625,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future.detrend <- function(plot, density.d
   # biomass estimation
   
   cat("start biomass estimates")
-  plot2AGB_nocc(combined = combined, out = out.mean, out.dead = out.mean.dead, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = scenario, p = p, p.inc = p.inc)
+  plot2AGB(combined = combined, out = out.mean, out.dead = out.mean.dead, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = scenario, p = p, p.inc = p.inc)
   
 }
+
