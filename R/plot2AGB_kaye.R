@@ -229,7 +229,7 @@ plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv
     hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
-    sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+    sAGB.dead[i, ] <- apply(AGB.dead[i, , ] , 2, sd, na.rm = TRUE)
     
     lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
     hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
@@ -319,14 +319,14 @@ plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv
                            upA.branchlive = upA.branchlive[2:length(low.stemwood)],
                            upA.branchdead = upA.branchdead[2:length(low.stemwood)],
                            upA.foliage = upA.foliage[2:length(low.stemwood)],
-                           upA.dead = upA.dead[2:length(low.stemwood)], 
+                           upA.dead = upA.deadstem[2:length(low.stemwood)], 
                            
                            lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
                            lowA.stembark = lowA.stembark[2:length(low.stemwood)],
                            lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
                            lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
                            lowA.foliage = lowA.foliage[2:length(low.stemwood)],
-                           lowA.dead = lowA.dead[2:length(low.stemwood)], 
+                           lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
                            
                            mNPP = mNPP[i,2:length(low.stemwood)], 
                            mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
@@ -339,8 +339,8 @@ plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv
                            up = up[2:length(low.stemwood)], 
                            low = low[2:length(low.stemwood)], 
                            
-                           up.dead = up.dead[2:length(low.stemwood)], 
-                           low.dead = low.dead[2:length(low.stemwood)],
+                           up.dead = up.deadstem[2:length(low.stemwood)], 
+                           low.dead = low.deadstem[2:length(low.stemwood)],
                            
                            up.stemwood = up.stemwood[2:length(low.stemwood)],
                            up.stembark = up.stembark[2:length(low.stemwood)],
@@ -411,8 +411,8 @@ plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv
                                lowA.foliage = as.numeric(rbind(lapply(lowA.needles, FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                lowA.deadstem = as.numeric(rbind(lapply(lowA.deadstem[,2:length(upA.deadstem)], FUN = function(x){max(c(0,x), na.rm = TRUE)}))),
                                
-                               up.dead = up.dead[2:length(low.stemwood)], 
-                               low.dead = low.dead[2:length(low.stemwood)],
+                               # up.dead = up.deadstem[2:length(low.stemwood)], 
+                               # low.dead = low.deadstem[2:length(low.stemwood)],
                                up.stemwood = up.stem,
                                up.stembark = up.bark,
                                up.branchlive = up.branch,
@@ -497,7 +497,7 @@ plot2AGB <- function(combined, out,out.dead, mort.scheme, allom.stats, unit.conv
   
   
   
-  both.plot<- cowplot::plot_grid(p, b.plot.all, p.inc, b.flux, ncol = 2, align = "hv")
+  both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
   
   cat("saving outputs")
   cowplot::save_plot(paste0("biomass_plots/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")

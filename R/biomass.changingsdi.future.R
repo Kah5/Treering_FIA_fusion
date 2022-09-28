@@ -76,7 +76,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   nt <- length(2001:2098)
   
   # fill in the array with the diameter estimates for 2018:
-  dbh.pred<- increment <- array(NA, dim = c(ni, nMCMC, nt + 1))
+  dbh.pred <- increment <- array(NA, dim = c(ni, nMCMC, nt + 1))
   # dbh.dead:
   dbh.dead <- dbh.pred
   
@@ -429,9 +429,10 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
       # else{
       #   mort.code <- 0
       # }
-      if(mort.code == 1 ){
+      if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
+        dbh.dead[i,,(t+1):nt] <- dbh.pred[i,,t] # set dead diameter to the last live estimated diameter for the tree
         dbh.pred[i,,(t+1):nt] <- 0 # set live diameter to zero
-        dbh.dead[i,,t:nt] <- dbh.pred[i,,t] # set dead diameter to the last live estimated diameter for the tree
+        
       }
       
     }
@@ -451,29 +452,33 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
         p0 <- 5.5877
         p1 <- 0.005348
         DBH <- dbh.pred[,,t]/2.54
-        RI <- (1/(1+exp(p0 + p1*DBH)))*0.5
+        live.trees <- rowSums(DBH) > 0
+        rownames(DBH) <- 1:nrow(DBH)
+        DBH.live  <- DBH[live.trees,]
+        RI <- (1/(1+exp(p0 + p1*DBH.live)))*0.5
         Y <- 1
         RIP <- 1-(1-RI)^Y # when Y == 1, RI and RIP are equal
         Mort.rate <- mean(colSums(RI)) # total background mortality for the plot
         
-        BA <- pi*(DBH/2)^2
+        BA <- pi*(DBH.live/2)^2
         PCT <- apply(BA, 2, percent_rank)
         MR <- (0.84525-(0.01074*PCT)+(0.0000002*PCT^3))
         
-        n.ded <- round(Mort.rate*nrow(DBH)) # number of trees to kill
+        n.ded <- round(Mort.rate*nrow(DBH.live)) # number of trees to kill
         #n.ded <-1
         MR <- ifelse(MR <0, 0, MR)
         
         avg.mort.prob <- rowMeans(MR)
         
-        dd.treenos <-  which(order(avg.mort.prob) %in% 1:n.ded) # gives the tree # (s) that should die
+        dead.index <-  which(order(avg.mort.prob) %in% 1:n.ded) # gives the tree # (s) that should die
         
-        
+        dd.treenos <- as.numeric(rownames(DBH.live)[dead.index])
         
         
         if(n.ded > 0 ){
+          dbh.dead[dd.treenos,,(t):nt] <- dbh.pred[dd.treenos,,t] # set dead diameter to the last live estimated diameter for the tree
+          
           dbh.pred[dd.treenos,,(t+1):nt] <- 0 # set live diameter to zero
-          dbh.dead[dd.treenos,,t:nt] <- dbh.pred[dd.treenos,,t] # set dead diameter to the last live estimated diameter for the tree
           #dbh.dead[dd.treenos,,t:nt] <- dbh.pred[dd.treenos,,t:nt] # set dead diameter to the last live estimated diameter for the tree
         } 
         #}
@@ -505,7 +510,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
     for(s in sdi.subp[,1]){ # for each subplot s in the # of subplots
       # need to index dbh.pred trees by by the subplot:
       trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
-      sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(dbh.pred[trees.subplot,,t], j = as.character(cored.in.plt$PLT_CN), a = s)
+      sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(dbh.pred[trees.subplot,,t+1], j = as.character(cored.in.plt$PLT_CN), a = s)
     }
   }
   
@@ -563,7 +568,8 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
     geom_ribbon(data = dead.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
     theme_bw() + ylab("Diameters (cm)")+xlab("years after 2018") + ggtitle(paste0("Diameter of dead for plot ", plot))
   
-  #ded
+  ded
+  
   # make a plot of all the increment forecasts:
   
   inc.quants <- reshape2::melt(apply(increment, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
