@@ -1,7 +1,6 @@
 plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26", p = p, p.inc = p.inc) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
-  ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
   ## Allometric statistics
   # for stem wood (4)
@@ -70,7 +69,15 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
   ## set up storage
   NPP<- NPP.stemwood <- NPP.stembark <- NPP.branchlive <- NPP.branchdead <- NPP.foliage <- NPP.dead <- array(NA, c(mplot, nrep, nt))
   AGB<- AGB.stemwood <- AGB.stembark <- AGB.branchlive <- AGB.branchdead <- AGB.foliage <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
-  #biomass_tsca  <- array(NA, c(mplot, nrep, nt))
+  biomass.stemwood <- array(NA, c(nrep,  ntree, nt))
+  biomass.stembark <- array(NA, c(nrep,  ntree, nt))
+  biomass.branchlive <- array(NA, c(nrep,  ntree, nt))
+  biomass.branchdead <- array(NA, c(nrep,  ntree, nt))
+  biomass.foliage <- array(NA, c(nrep,  ntree, nt))
+  biomass.dead <-array(NA, c(nrep,  ntree, nt))
+  
+  diam.dead <- array(NA, c(nrep,  ntree, nt))
+  diam.live <- array(NA, c(nrep,  ntree, nt))
   #biomass_acsa3 <- array(NA, c(mplot, nrep, nt))
   #biomass_beal2 <- array(NA, c(mplot, nrep, nt))
   #biomass_thoc2 <- array(NA, c(mplot, nrep, nt))
@@ -80,6 +87,7 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
   pb <- txtProgressBar(min = 0, max = nrep, style = 3)
   for (g in seq_len(nrep)) {
     # g <- 1
+    j <- 1
     ## Draw allometries
     b.stemwood <- mvtnorm::rmvnorm(1, B.stemwood, Bcov.stemwood)
     b.stembark <- mvtnorm::rmvnorm(1, B.stembark, Bcov.stembark)
@@ -89,12 +97,15 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
     b.dead <- mvtnorm::rmvnorm(1, B.dead.stemwood, Bcov.dead.stemwood)
     
     ## convert tree diameter to biomass
-    biomass.stemwood <- matrix(exp(b.stemwood[1] + b.stemwood[2] * log(out[g, ])), ntree,nt,  byrow = FALSE)#nt)
-    biomass.stembark <- matrix(exp(b.stembark[1] + b.stembark[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
-    biomass.branchlive <- matrix(exp(b.branchlive[1] + b.branchlive[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
-    biomass.branchdead <- matrix(exp(b.branchdead[1] + b.branchdead[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
-    biomass.foliage <- matrix(exp(b.foliage[1] + b.foliage[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
-    biomass.dead <- matrix(exp(b.dead[1] + b.dead[2] * log(out.dead[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.stemwood[g,,] <- matrix(exp(b.stemwood[1] + b.stemwood[2] * log(out[g, ])), ntree,nt,  byrow = FALSE)#nt)
+    biomass.stembark[g,,] <- matrix(exp(b.stembark[1] + b.stembark[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.branchlive[g,,] <- matrix(exp(b.branchlive[1] + b.branchlive[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.branchdead[g,,] <- matrix(exp(b.branchdead[1] + b.branchdead[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.foliage[g,,] <- matrix(exp(b.foliage[1] + b.foliage[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
+    biomass.dead[g,,] <- matrix(exp(b.dead[1] + b.dead[2] * log(out.dead[g, ])), ntree, nt, byrow = FALSE)#nt)
+    
+    diam.dead[g,,] <- matrix(out.dead[g, ], ntree, nt, byrow = FALSE)#nt)
+    diam.live[g,,] <- matrix(out[g, ], ntree, nt, byrow = FALSE)#nt)
     
     
     
@@ -102,22 +113,22 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
     
     # system.time(apply(apply(biomass.stemwood,2, as.numeric), 2, sum, na.rm = TRUE)*unit.conv)
     #system.time(colSums(apply(biomass.stemwood,2, as.numeric), na.rm = TRUE) * unit.conv)
-    j <- 1
+    
     ## aggregate to stand AGB
     
-    AGB.stemwood[j, g, ] <- apply(biomass.stemwood, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.stemwood[j, g, ] <- apply(biomass.stemwood[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
-    AGB.stembark[j, g, ] <- apply(biomass.stembark, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.stembark[j, g, ] <- apply(biomass.stembark[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
-    AGB.branchlive[j, g, ] <- apply(biomass.branchlive, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.branchlive[j, g, ] <- apply(biomass.branchlive[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
-    AGB.branchdead[j, g, ] <- apply(biomass.branchdead, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.branchdead[j, g, ] <- apply(biomass.branchdead[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
-    AGB.foliage[j, g, ] <- apply(biomass.foliage, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.foliage[j, g, ] <- apply(biomass.foliage[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
     AGB [j, g, ] <- AGB.stemwood[j, g, ] + AGB.stembark[j, g, ] + AGB.branchlive[j, g, ] + AGB.branchdead[j, g, ] +  AGB.foliage[j, g, ]
     
-    AGB.dead[j, g, ] <- apply(biomass.dead, 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
+    AGB.dead[j, g, ] <- apply(biomass.dead[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})*unit.conv
     
     
     # AGB[j,g,] <- apply(biomass[ijindex[,1]==j,],2,sum,na.rm=TRUE)*unit.conv
@@ -230,7 +241,7 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
     hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
     
     mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
-    sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+    sAGB.dead[i, ] <- apply(AGB.dead[i, , ] , 2, sd, na.rm = TRUE)
     
     lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
     hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
@@ -501,7 +512,7 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
   both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
   
   cat("saving outputs")
-  cowplot::save_plot(paste0("biomass_plots_nocc/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
+  cowplot::save_plot(paste0("biomass_plots/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
   
   
   #both.plot.all<- cowplot::plot_grid(b.plot.all, b.flux, ncol = 1, align = "hv")
@@ -518,6 +529,17 @@ plot2AGB_nocc <- function(combined, out, out.dead, mort.scheme, allom.stats, uni
        AGB.branchdead, NPP.branchdead,
        AGB.branchlive, NPP.branchlive,
        AGB.dead, NPP.dead,
+       biomass.stemwood , 
+       biomass.stembark , 
+       biomass.branchlive, 
+       biomass.branchdead, 
+       biomass.foliage, 
+       biomass.dead, 
+       
+       diam.dead, 
+       diam.live, 
+       # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
+       # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
        file = file.path("/home/rstudio/",paste0("biomass_data_nocc/plot2AGB_",mort.scheme,".",plot,".",scenario,".Rdata")))
