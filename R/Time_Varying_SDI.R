@@ -159,6 +159,11 @@ FIA.outside.AZ$MEASYEAR <- ifelse(!is.na(FIA.outside.AZ$MEASYR), FIA.outside.AZ$
 PIPO.az.cov <- read.delim("data/PIPOCores518Meta.txt")
 
 PIPO.az.sub <- PIPO.az.cov[,c("CORE_CN","TRE_CN","PLT_CN","STATECD", "COUNTYCD", "PLOT", "SUBPLOT",  "TREE", "SPCD", "T1_DIA", "MEASYEAR")]
+
+FIA.AZ <- left_join(PIPO.az.sub [,c("CORE_CN","TRE_CN","PLT_CN","STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD", "DIA")], 
+                            TREE, by = c("PLT_CN","STATECD", "COUNTYCD", "PLOT", "SUBP",  "TREE", "SPCD", "DIA"))
+
+
 #PIPO.az.sub$STATECD <- 4
 
 #PIPO.az.sub$SPCD <- 122
@@ -753,7 +758,8 @@ saveRDS( varying.static.pltcn, "data/Time_varying_SDI_static_SDI_PLT_CN.RDS")
 saveRDS(static_SDI_pltcn, "data/static_SDI_PLT_CN.RDS")
 
 # make the same caluculations on the subplot scale:
-Time_varying_SDI_subp <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT,SUBP, PLT_CN,Year) %>% filter(DIA_Cin > 1 & STATUSCD == 1) %>%
+Time_varying_SDI_subp <- density.data.TPA %>% ungroup() %>% group_by(STATECD, PLOT,SUBP, PLT_CN,Year) %>% 
+  filter(DIA_Cin > 1 & STATUSCD == 1) %>%
   summarise(ntrees = n(),
             TPA = sum(TPA_UNADJ), 
             Dq = sqrt(sum(DIA_Cin^2, na.rm =TRUE)/ntrees), 

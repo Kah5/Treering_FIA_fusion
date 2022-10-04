@@ -706,32 +706,37 @@ system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot ='2447900010690',
 system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26"))
 
 # run all the plots
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
 
 # run all the plots
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp45")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp45")})
 
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp60")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp60")})
 
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp85")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp85")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp85")})
 
 #----------------Run all the same plots but with the scenarios of no climate chage-----------------
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
+
+#biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = unique(plots)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")
+
+#plot <- "2482552010690"
+
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
+lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
 
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
 
@@ -739,8 +744,8 @@ lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIsca
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45")})
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45")})
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp45")})
-
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60")})
+
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60")})
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60")})
 lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp60")})
@@ -1217,38 +1222,38 @@ get_biomass_ests(plot = "2447353010690", mort.scheme = "DDonly",scenario = "rcp8
 
 
 # RCP8.5
-normort.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")
-DIonly.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp85")
-DDonly.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp85")
-DIDD.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp85")
+normort.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")
+DIonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp85")
+DDonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp85")
+DIDD.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp85")
 
 # RCP 60:
-normort.AGB.60 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp60")
-DIonly.AGB.60 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp60")
-DDonly.AGB.60 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp60")
-DIDD.AGB.60 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp60")
+normort.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp60")
+DIonly.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp60")
+DDonly.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp60")
+DIDD.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp60")
 
 
 # RCP 4.5:
-normort.AGB.45 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
-DIonly.AGB.45 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
-DDonly.AGB.45 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
-DIDD.AGB.45 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
+normort.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
+DIonly.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
+DDonly.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
+DIDD.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
 
 
 # RCP 2.6:
-normort.AGB.26 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
-DIonly.AGB.26 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
-DDonly.AGB.26 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
-DIDD.AGB.26 <- lapply(unique(plots)[11:50], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
+normort.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
+DIonly.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
+DDonly.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
+DIDD.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
 
 
 
 # no climate change scenarios:
-nocc.nomort.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests_ncc, mort.scheme = "nomort", scenario = "rcp26")
-nocc.DIonly.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests_ncc, mort.scheme = "DIonly", scenario = "rcp26")
-nocc.DDonly.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests_ncc, mort.scheme = "DDonly", scenario = "rcp26")
-nocc.DIDD.AGB <- lapply(unique(plots)[11:50], FUN = get_biomass_ests_ncc, mort.scheme = "DIDD", scenario = "rcp26")
+nocc.nomort.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "nomort", scenario = "rcp26")
+nocc.DIonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DIonly", scenario = "rcp26")
+nocc.DDonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DDonly", scenario = "rcp26")
+nocc.DIDD.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DIDD", scenario = "rcp26")
 
 normort.AGB.df <- do.call(rbind, normort.AGB)
 DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
@@ -1382,10 +1387,12 @@ dev.off()
 # try a plot that is stacked barplots:
 
 # big tree vs small tree carbon in forecasts
-get_tree_levelC_ests <- function(plot, mort.scheme, scenario){
-  
-  load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
-  
+get_tree_levelC_ests <- function(plot, mort.scheme, scenario, nocc = FALSE){
+  if(nocc == FALSE){
+    load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+  }else{
+    load(paste0("biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+  }
   # objects
   # out, out.dead AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
   # AGB.foliage, NPP.foliage, 
@@ -1396,11 +1403,11 @@ get_tree_levelC_ests <- function(plot, mort.scheme, scenario){
   
   # lets say large trees > 30 cm dbh and small trees are < 30 cm dbh
   
-  out
-  dim(biomass.dead)
-  AGB
-  AGB.dead
-  
+  # out
+  # dim(biomass.dead)
+  # AGB
+  # AGB.dead
+  # 
   # second value is the median
   #diam.live[,1:10, 1]
   #diam.dead[,1:10, 1]
@@ -1429,20 +1436,227 @@ get_tree_levelC_ests <- function(plot, mort.scheme, scenario){
   
   diam.biomass.df$plot <- plot
   diam.biomass.df$mort.scheme <- mort.scheme
-  diam.biomass.df$scenario <- scenario
+  if(nocc == FALSE){
+    diam.biomass.df$scenario <- scenario
+  }else{
+    diam.biomass.df$scenario <- paste0("nocc", ".", scenario)
+  }
+  
   diam.biomass.df
   #e66101
   #5e3c99
 }
 
 
-btst.AGB.DDID.26 <- lapply(unique(plots)[1:10], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
-btst.AGB.DDID.26.df <- do.call(rbind, btst.AGB.DDID.26)
+# read in and get the tree level estimates
+# RCP 2.6
+btst.AGB.DIDD.26 <- lapply(unique(plots)[1:83], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
+btst.AGB.DIDD.26.df <- do.call(rbind, btst.AGB.DIDD.26)
+btst.AGB.DIDD.26.df
 
-ggplot(na.omit(btst.AGB.DDID.26.df), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
+btst.AGB.nomort.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
+btst.AGB.nomort.26.df <- do.call(rbind, btst.AGB.nomort.26)
+
+btst.AGB.DDonly.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
+btst.AGB.DDonly.26.df <- do.call(rbind, btst.AGB.DDonly.26)
+
+btst.AGB.DIonly.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
+btst.AGB.DIonly.26.df <- do.call(rbind, btst.AGB.DIonly.26)
+
+# RCP 4.5
+btst.AGB.DIDD.45 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
+btst.AGB.DIDD.45.df <- do.call(rbind, btst.AGB.DIDD.45)
+
+btst.AGB.nomort.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
+btst.AGB.nomort.45.df <- do.call(rbind, btst.AGB.nomort.45)
+
+btst.AGB.DDonly.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
+btst.AGB.DDonly.45.df <- do.call(rbind, btst.AGB.DDonly.45)
+
+btst.AGB.DIonly.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
+btst.AGB.DIonly.45.df <- do.call(rbind, btst.AGB.DIonly.45)
+
+# RCP 6.0
+btst.AGB.DIDD.60 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
+btst.AGB.DIDD.60.df <- do.call(rbind, btst.AGB.DIDD.60)
+
+btst.AGB.nomort.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
+btst.AGB.nomort.60.df <- do.call(rbind, btst.AGB.nomort.60)
+
+btst.AGB.DDonly.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
+btst.AGB.DDonly.60.df <- do.call(rbind, btst.AGB.DDonly.60)
+
+btst.AGB.DIonly.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
+btst.AGB.DIonly.60.df <- do.call(rbind, btst.AGB.DIonly.60)
+
+# RCP 8.5
+btst.AGB.DIDD.85 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
+btst.AGB.DIDD.85.df <- do.call(rbind, btst.AGB.DIDD.85)
+
+btst.AGB.nomort.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
+btst.AGB.nomort.85.df <- do.call(rbind, btst.AGB.nomort.85)
+
+btst.AGB.DDonly.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
+btst.AGB.DDonly.85.df <- do.call(rbind, btst.AGB.DDonly.85)
+
+btst.AGB.DIonly.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
+btst.AGB.DIonly.85.df <- do.call(rbind, btst.AGB.DIonly.85)
+
+# no climate change scenario:
+# read in and get the tree level estimates
+# RCP 2.6
+btst.AGB.DIDD.nocc <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
+btst.AGB.DIDD.nocc.df <- do.call(rbind, btst.AGB.DIDD.nocc)
+btst.AGB.DIDD.nocc.df
+
+btst.AGB.nomort.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", nocc = TRUE)})
+btst.AGB.nomort.nocc.df <- do.call(rbind, btst.AGB.nomort.nocc)
+
+btst.AGB.DDonly.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", nocc = TRUE)})
+btst.AGB.DDonly.nocc.df <- do.call(rbind, btst.AGB.DDonly.nocc)
+
+btst.AGB.DIonly.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", nocc = TRUE)})
+btst.AGB.DIonly.nocc.df <- do.call(rbind, btst.AGB.DIonly.nocc)
+
+
+# combine all the tree-level datasets together:
+allplots.treeC <- rbind(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
+                        btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
+                        btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
+                        btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
+                        btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
+
+
+# ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
+#   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
+
+
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_all_50_plots.png")
+ggplot(na.omit(allplots.treeC), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
   ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
   scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_wrap(~plot)
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
+dev.off()
+
+# example for how single plots may vary quite alot!
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_one_plot.png")
+ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[1]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
+  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
+  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
+  scale_fill_manual(name = 'Size class', 
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
+dev.off()
+
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_two_plot.png")
+
+ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[2]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
+  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
+  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
+  scale_fill_manual(name = 'Size class', 
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
+dev.off()
+
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_three_plot.png")
+
+ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[3]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
+  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
+  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
+  scale_fill_manual(name = 'Size class', 
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
+
+dev.off()
+
+
+allplots.treeC.totals <- na.omit(allplots.treeC) %>% group_by(plot, mort.scheme, scenario, size_class, time) %>%
+  summarise(total.AGB.size = sum(AGB, na.rm=TRUE), 
+            avg.diam.size = median(DBH, na.rm = TRUE), 
+            ntrees = n())
+
+# get proportion of total biomass in large vs small trees:
+plotC.totals.spread <- allplots.treeC.totals %>% select(-ntrees, -avg.diam.size) %>% group_by(plot, mort.scheme, scenario, time) %>%
+  spread(size_class, value = total.AGB.size)
+
+plotC.totals.prop <- plotC.totals.spread %>% group_by(plot, mort.scheme, scenario, time) %>%
+  mutate(total.AGB = `big tree` + `small tree`,
+         prop.big = `big tree`/total.AGB, 
+         prop.small = `small tree`/total.AGB) 
+
+
+whole.regionC <- plotC.totals.prop %>% group_by(mort.scheme, scenario, time) %>% mutate(big.dominated = ifelse(prop.big > 0.65, 1, 0), 
+                                                                                        small.dominated = ifelse(prop.small > 0.65, 1, 0), 
+                                                                                        mixed.size = ifelse(prop.small <= 0.65 & prop.small >=0.35, 1, 0))%>%
+  summarise(prop.big.all = mean(prop.big, na.rm =TRUE), 
+            prop.small.all = mean(prop.small, na.rm =TRUE), 
+            sum.AGB = sum(total.AGB, na.rm =TRUE),
+            nplots.big = sum(big.dominated, na.rm = TRUE), 
+            nplots.small = sum(small.dominated, na.rm = TRUE), 
+            nplots.mixed = sum(mixed.size, na.rm = TRUE))
+
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_dominated_nplots.png")
+
+ggplot()+
+  geom_line(data = whole.regionC , aes(x=time,y = nplots.big), color = "#e66101")+
+  geom_line(data = whole.regionC , aes(x=time,y = nplots.small), color= "#5e3c99")+
+  geom_line(data = whole.regionC , aes(x=time,y = nplots.mixed), color= "black")+
+  scale_color_manual(name = 'Size class', 
+                     values =c("big tree dominated"="#e66101","small tree dominated"="#5e3c99", "mixed dominated" = "black"))+
+  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+  
+  ylab(paste("number of plots dominated by big vs small trees"))+    xlab("Year")+
+  
+  theme_bw()+theme(panel.grid = element_blank())
+
+dev.off()
+# plot the number of plots dominated by small vs large trees:
+png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_dominated_prop_biomass.png")
+
+ggplot()+
+  geom_ribbon(data = whole.regionC , aes(x=time,ymin=prop.big.all, ymax=prop.big.all + prop.small.all), fill = "#e66101")+
+  geom_ribbon(data = whole.regionC , aes(x=time,ymin=0, ymax=prop.big.all), fill = "#5e3c99")+
+  scale_fill_manual(name = 'Size class', 
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+
+  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+  
+  ylab(paste("% of total biomass in each size class"))+    xlab("Year")+
+  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
+                     expand = c(0, 0))+
+  theme_bw()+theme(panel.grid = element_blank())
+dev.off()
+
+
+on <- plotC.totals.prop %>% filter(plot %in% "2447353010690")
+
+ggplot()+
+  geom_ribbon(data = on, aes(x=time,ymin=0, ymax=prop.big), fill = "#e66101")+
+  geom_ribbon(data = on, aes(x=time,ymin=prop.big, ymax=prop.big + prop.small), fill = "#5e3c99")+
+  scale_fill_manual(name = 'Size class', 
+                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+
+  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+  
+  ylab(paste("% of total biomass in each size class"))+    xlab("Year")+
+  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
+                     expand = c(0, 0))+
+  theme_bw()+theme(panel.grid = element_blank())
+
+
+ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()
+ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()+geom_density()+facet_wrap(~time)
+
+# how to classify these different trajectories?
+
+plotC.totals.prop %>% group_by(plot, mort.scheme, scenario, time) %>% select(-total.AGB, -prop.small, )
+
+# simple classifcation scheme based on prop large trees:
+emissions.norm <- BBmisc::normalize(emissions, method="standardize")
+clust.pam <- tsclust(emissions.norm, type="partitional", k=2L:17L, distance="dtw", centroid="pam")
+
+# dtwclust to see how many different trajectories there are in the DIDD:
+
+
+
+
+
+
 
 # read in all the diameters from dbh.pred (out) and dbh.dead (out.dead)
 

@@ -55,8 +55,11 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names$row == x & ci.names$col == 36)}) # select just the years 1994:2010 to match the plot level data:
   i.cored <- do.call(rbind, tree.ind.cored )
   
-  nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt[,1]))
-  
+  if(class(out.noncored.plt)== "numeric"){
+    nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt))
+  }else{
+    nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt[,1]))
+  }
   
   out.cored.plt <-  out.cored[(length(out.cored[,1])-nmcmc + 1):length(out.cored[,1]),i.cored] 
   
