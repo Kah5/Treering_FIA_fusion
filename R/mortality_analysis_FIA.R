@@ -201,3 +201,53 @@ plot.mort.by.SDI <- plot.mort %>% group_by(SDIbin) %>% summarise(med.prop = medi
 
 ggplot(plot.mort, aes(x = prop.dead, fill = SDIbin))+geom_density(alpha=0.5)+xlim(0,1)+facet_grid(SDIbin~DIAbin)
 
+##################################################################################
+#        Plot up summaries of mortality by ecoregion
+##################################################################################
+plot.mort <- TREE_remeas %>% group_by(PLT_CN, STATUSCD_CHANGE) %>% summarise(n()) %>% 
+  ungroup() %>% group_by (PLT_CN) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = ifelse(is.na(`2`), 0, `2`/(`0`+`2`)))
+
+
+plot.mort$PLOT_LAT <- PLOT$LAT[match(plot.mort$PLT_CN, PLOT$CN)]
+plot.mort$PLOT_LON <- PLOT$LON[match(plot.mort$PLT_CN, PLOT$CN)]
+
+
+
+eco.regions <- read_sf( "us_eco_l3/us_eco_l3.shp")
+# plot the llevel 3 ecoregions (takes awhile)
+eco.regions %>% 
+  ggplot() +
+  geom_sf() +
+  theme_bw()
+
+st_crs(eco.regions)
+# use lat and long to get ecoregions:
+PLOT.mort_sf <- st_as_sf(plot.mort, coords = c("PLOT_LON", "PLOT_LAT"))
+str(PLOT.sameplts_sf)
+st_crs(PLOT.mort_sf) <- 4326
+PLOT.mort_sf <- st_transform(PLOT.mort_sf, st_crs(eco.regions))
+
+PLOT_intersects <- st_intersects(PLOT.mort_sf, eco.regions)
+
+
+eco.regions_sel_sf <-eco.regions[PLOT_intersects[[1]],]
+
+
+# 
+# Do an spatial join to link the prop.dead plot level data to the ecoregion data
+ecojoin_j <- st_join(eco.regions, PLOT.mort_sf)
+ecojoin_summary <- ecojoin_j %>% group_by(US_L3CODE) %>% summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
+                                                                total_dead = sum(`2`, na.rm = TRUE))
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_average_plot_prop_mort.png")
+ggplot() + 
+  geom_sf(data = ecojoin_summary, aes(fill = avg_prop_dead)) +
+  scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+dev.off()
+
+
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_estimated_mort.png")
+plot(st_geometry(eco.regions), border="#aaaaaa", main="CONUS ECOREGIONS WITH THE 151 forecasted plots")
+plot(st_geometry(eco.regions_sel_sf), add=T, col="red")
+plot(st_geometry(eco.regions_sel_sf), add=T, lwd = 2)
+dev.off()
+

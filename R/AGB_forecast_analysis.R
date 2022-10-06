@@ -1,3 +1,8 @@
+library(ggplot2)
+library(reshape2)
+library(tidyverse)
+library(rgdal)
+
 # reading in the available forecasts (1-184 I believe)
 
 get_biomass_ests <- function(plot, mort.scheme, scenario){
@@ -787,8 +792,20 @@ allplots.treeC <- rbind(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.D
                         btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
                         btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
                         btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
+saveRDS(allplots.treeC, "outputs/allplots.treeC.RDS")
 
+rm(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
+   btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
+   btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
+   btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
+   btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
 
+rm(btst.AGB.nomort.26 , btst.AGB.DIonly.26 , btst.AGB.DDonly.26 , btst.AGB.DIDD.26 , 
+   btst.AGB.nomort.45 , btst.AGB.DIonly.45 , btst.AGB.DDonly.45 , btst.AGB.DIDD.45 ,
+   btst.AGB.nomort.60 , btst.AGB.DIonly.60 , btst.AGB.DDonly.60 , btst.AGB.DIDD.60 , 
+   btst.AGB.nomort.85 , btst.AGB.DIonly.85 , btst.AGB.DDonly.85 , btst.AGB.DIDD.85 , 
+   btst.AGB.nomort.nocc , btst.AGB.DIonly.nocc , btst.AGB.DDonly.nocc , btst.AGB.DIDD.nocc )
+#
 # ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
 #   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
 
@@ -1063,6 +1080,20 @@ allplots.treeDIAM <- rbind(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, bts
                         btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df, 
                         btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
 
+saveRDS(allplots.treeDIAM, "outputs/allplots.treeDiam.forecast.RDS")
+rm(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df, 
+   btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
+   btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df, 
+   btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df, 
+   btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
+rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIAMS.DIDD.26 , 
+   btst.DIAMS.nomort.45 , btst.DIAMS.DIonly.45 , btst.DIAMS.DDonly.45 , btst.DIAMS.DIDD.45 ,
+   btst.DIAMS.nomort.60 , btst.DIAMS.DIonly.60 , btst.DIAMS.DDonly.60 , btst.DIAMS.DIDD.60 , 
+   btst.DIAMS.nomort.85 , btst.DIAMS.DIonly.85 , btst.DIAMS.DDonly.85 , btst.DIAMS.DIDD.85 , 
+   btst.DIAMS.nomort.nocc , btst.DIAMS.DIonly.nocc , btst.DIAMS.DDonly.nocc , btst.DIAMS.DIDD.nocc )
+#
+#
+
 # this gets rid of trees labeled as dead in the live df and vice versa
 allplots.treeDIAMsubset <- allplots.treeDIAM %>% filter(status == df)
 
@@ -1082,8 +1113,212 @@ ggplot(plot.prop.dead, aes(x = time, y = prop.dead, group = plot))+geom_line()+f
 # proportion of dead trees in 2018 :
 ggplot(plot.prop.dead %>% filter(time == 17), aes(x =  prop.dead))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")
 
-# plot size distribution of dead trees in 2018
-
+# plot size distribution of living and dead trees in 2018
 all.trees.2018 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time, status) %>% filter(time == 17)
+
+
 ggplot(all.trees.2018, aes(x =  DBH, fill = status))+geom_histogram(position = "identity", alpha = 0.7)+facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")
+
+# get bins of SDI and DBH:
+#TREE_remeas <- TREE_remeas %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,50,100, 150,200,250,300,350,400, 450,Inf), labels=c("0-50","50-100","100-150", "150-200", "200-250", "250-300", 
+
+# get SDI information and plot
+#                                                                                                      "300-350", "350-400", "400-450", ">450")))
+
+fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
+
+PLOT <- fiadb$PLOT
+SUBPLOT <- fiadb$SUBPLOT
+STATECD <- fiadb$STATECD
+COND <- fiadb$COND
+TREE <- fiadb$TREE
+
+# get the previous survey for each tree: 
+TREE_remeas <- subset(TREE, !is.na(PREVDIA))
+TREE_remeas <- subset(TREE_remeas, STATUSCD == 1 | STATUSCD == 2) 
+
+# Look up previous AGB
+### look up previous AGB, PLT_CN, and CONDID
+TREE_remeas$PREV_DRYBIO_AG <- TREE$DRYBIO_AG[match(TREE_remeas$PREV_TRE_CN, TREE$CN)]
+TREE_remeas$PREV_PLT_CN <- TREE$PLT_CN[match(TREE_remeas$PREV_TRE_CN, TREE$CN)]
+TREE_remeas$PREV_CONDID <- TREE$CONDID[match(TREE_remeas$PREV_TRE_CN, TREE$CN)]
+
+# Subset records with previous AGB found
+TREE_remeas <- subset(TREE_remeas, !is.na(PREV_DRYBIO_AG))
+
+# for growth analysis
+TREE_remeas$DRYBIO_AG_DIFF <- TREE_remeas$DRYBIO_AG - TREE_remeas$PREV_DRYBIO_AG
+TREE_remeas$DIA_DIFF <- TREE_remeas$DIA - TREE_remeas$PREVDIA
+
+# basal area increment
+TREE_remeas$BAt1 <- ((TREE_remeas$PREVDIA/2)^2)*3.14159
+TREE_remeas$BAt2 <- ((TREE_remeas$DIA/2)^2)*3.14159
+TREE_remeas$BA_DIFF <- TREE_remeas$BAt2 - TREE_remeas$BAt1
+
+# Read in plot data and get coordinates and previous measurement year
+#plots <- read.csv(paste(data.path,"PLOT_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+
+TREE_remeas$LAT <- PLOT$LAT[match(TREE_remeas$PLT_CN, PLOT$CN)]
+TREE_remeas$LON <- PLOT$LON[match(TREE_remeas$PLT_CN, PLOT$CN)]
+TREE_remeas$ELEV <- PLOT$ELEV[match(TREE_remeas$PLT_CN, PLOT$CN)]
+TREE_remeas$MEASYEAR <- PLOT$MEASYEAR[match(TREE_remeas$PLT_CN, PLOT$CN)]
+TREE_remeas$PREV_MEASYEAR <- PLOT$MEASYEAR[match(TREE_remeas$PREV_PLT_CN, PLOT$CN)]
+
+# Calculate census interval
+TREE_remeas$CENSUS_INTERVAL <- TREE_remeas$MEASYEAR - TREE_remeas$PREV_MEASYEAR
+
+colnames(TREE_remeas)
+
+# zero if no change, 
+# 2 if the tree died in the census interval
+TREE_remeas$STATUSCD_CHANGE <- ifelse(TREE_remeas$PREV_STATUS_CD == TREE_remeas$STATUSCD, 0, 
+                                      ifelse(TREE_remeas$PREV_STATUS_CD == 1 & TREE_remeas$STATUSCD == 2, 2, NA))
+
+# match up PLOT and COND data
+PLOT$DSTRBYR1 <- COND$DSTRBYR1[match(PLOT$CN, COND$PLT_CN)]
+PLOT$DSTRBYR2 <- COND$DSTRBYR2[match(PLOT$CN, COND$PLT_CN)]
+PLOT$DSTRBYR3 <- COND$DSTRBYR3[match(PLOT$CN, COND$PLT_CN)]
+
+
+PLOT$DSTRBCD1 <- COND$DSTRBCD1[match(PLOT$CN, COND$PLT_CN)]
+PLOT$DSTRBCD2 <- COND$DSTRBCD2[match(PLOT$CN, COND$PLT_CN)]
+PLOT$DSTRBCD3 <- COND$DSTRBCD3[match(PLOT$CN, COND$PLT_CN)]
+
+# Match up the tree and plot data
+TREE$MEASYR <- PLOT$MEASYEAR[match(TREE$PLT_CN, PLOT$CN)]
+TREE$PLOT_LAT <- PLOT$LAT[match(TREE$PLT_CN, PLOT$CN)]
+TREE$PLOT_LON <- PLOT$LON[match(TREE$PLT_CN, PLOT$CN)]
+TREE$DESIGNCD <- PLOT$DESIGNCD[match(TREE$PLT_CN, PLOT$CN)]
+
+
+TREE$DSTRBCD1 <- PLOT$DSTRBCD1[match(TREE$PLT_CN, PLOT$CN)]
+TREE$DSTRBCD2 <- PLOT$DSTRBCD2[match(TREE$PLT_CN, PLOT$CN)]
+TREE$DSTRBCD3 <- PLOT$DSTRBCD3[match(TREE$PLT_CN, PLOT$CN)]
+
+TREE$DSTRBYR1 <- PLOT$DSTRBYR1[match(TREE$PLT_CN, PLOT$CN)]
+TREE$DSTRBYR2 <- PLOT$DSTRBYR2[match(TREE$PLT_CN, PLOT$CN)]
+TREE$DSTRBYR3 <- PLOT$DSTRBYR3[match(TREE$PLT_CN, PLOT$CN)]
+
+
+unique(TREE$MORTCD)
+unique(TREE$STATECD)
+
+# TREE_remeas %>% dplyr::filter(SPCD %in% "122" & STATUSCD %in% c(1, 2)) %>% group_by(STATUSCD_CHANGE) %>% summarise(median.dbh = median(DIA, na.rm = TRUE), 
+#                                                                                                                    median.ht = median(HT, na.rm = TRUE))
+# 
+# ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(DIA))+facet_wrap(~STATUSCD_CHANGE)
+# 
+# ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(HT))+facet_wrap(~STATUSCD_CHANGE)
+
+# goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
+# compare these to biomass estimates
+# get a static estimate of SDI, which includes the dead trees:
+
+static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(DIA > 1) %>%
+  group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>%
+  summarise(ntrees_static = n(),
+            TPA_static =sum(TPA_UNADJ), 
+            Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/ntrees_static), 
+            SDIdq_static = ((Dq_static/10)^1.6)*TPA_static, #calculate SDI (Summation Method) on the subplot:
+            SDIs_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE))#, ## calculate SDI (Quadratic mean diameter) on the subplot:
+
+
+hist(static_SDI_pltcn$SDIs_static) 
+
+TREE$SDIs_static <- static_SDI_pltcn$SDIs_static[match(TREE$PLT_CN, static_SDI_pltcn$PLT_CN)]
+# join up the SDI static with the forecasts:
+# this is the most recent SDI in the dataset, not the SDI estimated by the forecast
+all.trees.2018$SDIs_static <- static_SDI_pltcn$SDIs_static[match(all.trees.2018$plot, static_SDI_pltcn$PLT_CN)]
+
+all.trees.2018 <- all.trees.2018 %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,50,100, 150,200,250,300,350,400, 450,Inf), labels=c("0-50","50-100","100-150", "150-200", "200-250", "250-300", 
+                                                                                                                             "300-350", "350-400", "400-450", ">450")))
+
+all.trees.2018$DIA <- all.trees.2018$DBH/2.54
+all.trees.2018 <- all.trees.2018 %>% mutate(DIAbin=cut(DIA, breaks=c(0,5,10, 15,20,25,30,35,40, 45,Inf), labels=c("0-5","5-10","10-15", "15-20", "20-25", "25-30", 
+                                                                                                            "30-35", "35-40", "40-45", ">45")))
+prop.dead.2018 <- all.trees.2018 %>% group_by(SDIbin, DIAbin, status) %>% summarise(n()) %>% 
+  ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`n()`, key = status) %>% mutate(prop.dead = `dead`/`live`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
+
+png(height = 4, width = 6, units = "in", res = 150, "outputs/scatter_prop_mort_by_dia_sdi_lines_forecast.png")
+ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = prop.dead, color = SDIbin, group = SDIbin))+
+  geom_point()+geom_line()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+dev.off()
+
+png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_dia_forecast.png")
+ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = DIAbin))+
+  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+dev.off()
+
+png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_sdi_forecast.png")
+ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = SDIbin))+
+  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("SDI Class")+theme(panel.grid = element_blank())
+dev.off()
+
+png(height = 4, width = 6, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast.png")
+ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = prop.dead))+
+  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+
+dev.off()
+
+
+# We cant compare to the number of dead for these same plots over this time period because there is not linkage of annual and periodic
+TREE.sameplts <- TREE_REMEAS %>% filter(PREV_PLT_CN %in% unique(plotnos))
+length(unique(TREE.sameplts$PLT_CN))
+
+# but we have some data on these trees/plots that could be useful:
+TREE.sameplts <- TREE %>% filter(PLT_CN %in% unique(plotnos))
+length(unique(TREE.sameplts$PLT_CN))
+
+head(TREE.sameplts)
+
+PLOT.sameplts <- PLOT %>% filter(CN %in% unique(plotnos))
+
+
+prop.dead.2018.plot <- all.trees.2018 %>% group_by(plot, status) %>% mutate(n()) %>% 
+  ungroup() %>% group_by (plot) %>% spread(`n()`, key = status) %>% mutate(prop.dead = `dead`/`live`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
+
+####################################################################################
+# Summary by ecoregion
+####################################################################################
+# read in the ecoregion shapefile:
+####################################################################################
+
+# library(rgdal)
+# library(ggspatial)
+# library(raster)
+# library(cowplot)
+# library(egg)
+# library(rnaturalearth)
+# library(sf)
+# library(hddtools)
+
+
+eco.regions <- read_sf( "us_eco_l3/us_eco_l3.shp")
+# plot the llevel 3 ecoregions (takes awhile)
+eco.regions %>% 
+  ggplot() +
+  geom_sf() +
+  theme_bw()
+
+st_crs(eco.regions)
+# use lat and long to get ecoregions:
+PLOT.sameplts_sf <- st_as_sf(PLOT.sameplts, coords = c("LON", "LAT"))
+str(PLOT.sameplts_sf)
+st_crs(PLOT.sameplts_sf) <- 4326
+PLOT.sameplts_sf <- st_transform(PLOT.sameplts_sf, st_crs(eco.regions))
+
+PLOT_intersects <- st_intersects(PLOT.sameplts_sf, eco.regions)
+
+
+eco.regions_sel_sf <-eco.regions[PLOT_intersects[[1]],]
+
+# plot
+
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_ECOREGIONS_WITH_THE_151_FORECASTED_PLOTS.png")
+plot(st_geometry(eco.regions), border="#aaaaaa", main="CONUS ECOREGIONS WITH THE 151 forecasted plots")
+plot(st_geometry(eco.regions_sel_sf), add=T, col="red")
+plot(st_geometry(eco.regions_sel_sf), add=T, lwd = 2)
+dev.off()
+
+
 
