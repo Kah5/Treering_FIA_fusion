@@ -221,32 +221,47 @@ eco.regions %>%
   theme_bw()
 
 st_crs(eco.regions)
+#-124.79,49.38, 24.41, -101
+bbox <- st_as_sf(as(raster::extent(-124.79, -101, 24.41, 49.38), "SpatialPolygons"))
+st_crs(bbox) <- 4326
+bbox <- st_transform(bbox, st_crs(eco.regions))
+
+eco_crop <- st_crop(eco.regions, bbox)
+
 # use lat and long to get ecoregions:
 PLOT.mort_sf <- st_as_sf(plot.mort, coords = c("PLOT_LON", "PLOT_LAT"))
 str(PLOT.sameplts_sf)
 st_crs(PLOT.mort_sf) <- 4326
-PLOT.mort_sf <- st_transform(PLOT.mort_sf, st_crs(eco.regions))
+PLOT.mort_sf <- st_transform(PLOT.mort_sf, st_crs(eco_crop))
 
-PLOT_intersects <- st_intersects(PLOT.mort_sf, eco.regions)
+PLOT_intersects <- st_intersects(PLOT.mort_sf, eco_crop)
 
 
-eco.regions_sel_sf <-eco.regions[PLOT_intersects[[1]],]
+eco_crop_sel_sf <-eco_crop[PLOT_intersects[[1]],]
 
 
 # 
 # Do an spatial join to link the prop.dead plot level data to the ecoregion data
-ecojoin_j <- st_join(eco.regions, PLOT.mort_sf)
-ecojoin_summary <- ecojoin_j %>% group_by(US_L3CODE) %>% summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
-                                                                total_dead = sum(`2`, na.rm = TRUE))
+ecojoin_j <- st_join(eco_crop, PLOT.mort_sf)
+ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
+                                                                total_dead = sum(`2`, na.rm = TRUE), 
+                                                                total_living = sum(`0`, na.rm =TRUE), 
+                                                                prop_dead_ecoregion = ifelse(total_dead == 0, 0, total_dead/(total_dead + total_living)))
+
+
 png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_average_plot_prop_mort.png")
 ggplot() + 
   geom_sf(data = ecojoin_summary, aes(fill = avg_prop_dead)) +
   scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
 dev.off()
 
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_ecoregions_of_IW.png")
+ggplot() + 
+  geom_sf(data = eco_crop, aes(fill = US_L3NAME)) 
+dev.off()
 
 png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_estimated_mort.png")
-plot(st_geometry(eco.regions), border="#aaaaaa", main="CONUS ECOREGIONS WITH THE 151 forecasted plots")
+plot(st_geometry(eco_crop), border="#aaaaaa", main="CONUS ECOREGIONS WITH THE 151 forecasted plots")
 plot(st_geometry(eco.regions_sel_sf), add=T, col="red")
 plot(st_geometry(eco.regions_sel_sf), add=T, lwd = 2)
 dev.off()
