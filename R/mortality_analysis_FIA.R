@@ -256,21 +256,35 @@ TREE_remeas_sf <- st_transform(TREE_remeas_sf, st_crs(eco_crop))
 # 
 # Do an spatial join to link the prop.dead plot level data to the ecoregion data
 ecojoin_j <- st_join(eco_crop, PLOT.mort_sf)
-ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% 
+ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% 
+  group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% 
   summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
+            avg_mort_rate = median(prop.dead)/mean(CENSUS_INT),
              total_dead = sum(`2`, na.rm = TRUE), 
              total_living = sum(`0`, na.rm =TRUE), 
              prop_dead_ecoregion = ifelse(total_dead == 0, 0, total_dead/(total_dead + total_living)),
-            mortality_rate_ecoregion = prop_dead_ecoregion/CENSUS_INT)
+            mortality_rate_ecoregion = prop_dead_ecoregion/mean(CENSUS_INT, na.rm = TRUE))
 
 
-png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_average_plot_prop_mort.png")
+png(height = 8, width = 6, units = "in", res = 200, "CONUS_FIA_average_plot_mort_Rate.png")
+ggplot() + 
+  geom_sf(data = ecojoin_summary, aes(fill = avg_mort_rate)) +
+  scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+dev.off()
+
+png(height = 8, width = 6, units = "in", res = 200, "CONUS_FIA_average_ecoregion_mort_rate.png")
+ggplot() + 
+  geom_sf(data =  ecojoin_summary, aes(fill = mortality_rate_ecoregion)) +
+  scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+dev.off()
+
+png(height = 8, width = 6, units = "in", res = 200, "CONUS_FIA_average_plot_prop_mort.png")
 ggplot() + 
   geom_sf(data = ecojoin_summary, aes(fill = avg_prop_dead)) +
   scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
 dev.off()
 
-png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_average_ecoregion_prop_mort.png")
+png(height = 8, width = 6, units = "in", res = 200, "CONUS_FIA_average_ecoregion_prop_mort.png")
 ggplot() + 
   geom_sf(data =  ecojoin_summary, aes(fill = prop_dead_ecoregion)) +
   scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
