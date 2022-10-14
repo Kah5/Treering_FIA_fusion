@@ -465,7 +465,7 @@ get_biomass_ests(plot = "2447353010690", mort.scheme = "DDonly",scenario = "rcp8
 
 # list files and get all the plot numbers:
 
-filenames <- list.files(path = "forecasts_AGB/biomass_data", pattern = "rcp85")
+filenames <- list.files(path = "forecasts_AGB/biomass_data", pattern = "rcp26")
 
 # get the plot numbers that were run
 plotnos <- do.call(rbind, stringr::str_split(filenames, pattern = "\\."))[,2]
@@ -504,7 +504,7 @@ DIDD.AGB.45 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.schem
 normort.AGB.26 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
 DIonly.AGB.26 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
 DDonly.AGB.26 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
-DIDD.AGB.26 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
+DIDD.AGB.26 <- lapply(unique(plotnos)[1:323], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
 
 
 
@@ -655,6 +655,7 @@ dev.off()
 # -------------------------------------------------------------------------------
 #big tree vs small tree carbon in forecasts
 get_tree_levelC_ests <- function(plot, mort.scheme, scenario, nocc = FALSE){
+  cat(paste("reading data from", plot))
   if(nocc == FALSE){
     load(paste0("forecasts_AGB/biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
   }else{
@@ -717,9 +718,13 @@ get_tree_levelC_ests <- function(plot, mort.scheme, scenario, nocc = FALSE){
 
 # read in and get the tree level estimates
 # RCP 2.6
-btst.AGB.DIDD.26 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
+btst.AGB.DIDD.26 <- lapply(unique(plotnos)[1:264], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
 btst.AGB.DIDD.26.df <- do.call(rbind, btst.AGB.DIDD.26)
 btst.AGB.DIDD.26.df
+
+
+
+unique(plotnos)[1:264] %in% "2668869010690"
 
 btst.AGB.nomort.26<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
 btst.AGB.nomort.26.df <- do.call(rbind, btst.AGB.nomort.26)
@@ -996,7 +1001,7 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, nocc = FAL
 
 # read in and get the tree level estimates
 # RCP 2.6
-btst.DIAMS.DIDD.26 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
+btst.DIAMS.DIDD.26 <- lapply(unique(plotnos)[1:264], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
 btst.DIAMS.DIDD.26.df <- do.call(rbind, btst.DIAMS.DIDD.26)
 btst.DIAMS.DIDD.26.df
 
@@ -1094,6 +1099,8 @@ rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIA
 #
 #
 
+# since we have the data on more for DDID and rcp26:
+allplots.treeDIAM <- btst.DIAMS.DIDD.26.df
 # this gets rid of trees labeled as dead in the live df and vice versa
 allplots.treeDIAMsubset <- allplots.treeDIAM %>% filter(status == df)
 
@@ -1239,22 +1246,22 @@ all.trees.2018 <- all.trees.2018 %>% mutate(DIAbin=cut(DIA, breaks=c(0,5,10, 15,
 prop.dead.2018 <- all.trees.2018 %>% group_by(SDIbin, DIAbin, status) %>% summarise(n()) %>% 
   ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`n()`, key = status) %>% mutate(prop.dead = `dead`/`live`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/scatter_prop_mort_by_dia_sdi_lines_forecast.png")
+png(height = 4, width = 6, units = "in", res = 150, "outputs/scatter_prop_mort_by_dia_sdi_lines_forecast_26_DDID.png")
 ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = prop.dead, color = SDIbin, group = SDIbin))+
   geom_point()+geom_line()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_dia_forecast.png")
+png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_dia_forecast_26_DDID.png")
 ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = DIAbin))+
   geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_sdi_forecast.png")
+png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_prop_mort_by_sdi_forecast_26_DDID.png")
 ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = SDIbin))+
   geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("SDI Class")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast.png")
+png(height = 4, width = 6, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast_26_DDID.png")
 ggplot(prop.dead.2018 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = prop.dead))+
   geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
 
@@ -1272,10 +1279,13 @@ length(unique(TREE.sameplts$PLT_CN))
 head(TREE.sameplts)
 
 PLOT.sameplts <- PLOT %>% filter(CN %in% unique(plotnos))
+colnames(all.trees.2018)[7] <- "CN"
+forecast.2018 <- left_join(PLOT.sameplts, all.trees.2018, by = "CN")
+
+prop.dead.2018.plot <- forecast.2018 %>% group_by(CN, status) %>% mutate(n()) %>% 
+  ungroup() %>% group_by (CN) %>% spread(`n()`, key = status) %>% mutate(prop.dead = `dead`/(`live`+`dead`)) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
 
-prop.dead.2018.plot <- all.trees.2018 %>% group_by(plot, status) %>% mutate(n()) %>% 
-  ungroup() %>% group_by (plot) %>% spread(`n()`, key = status) %>% mutate(prop.dead = `dead`/`live`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
 ####################################################################################
 # Summary by ecoregion
@@ -1295,18 +1305,26 @@ prop.dead.2018.plot <- all.trees.2018 %>% group_by(plot, status) %>% mutate(n())
 
 eco.regions <- read_sf( "us_eco_l3/us_eco_l3.shp")
 # plot the llevel 3 ecoregions (takes awhile)
-eco.regions %>% 
-  ggplot() +
-  geom_sf() +
-  theme_bw()
+# eco.regions %>% 
+#   ggplot() +
+#   geom_sf() +
+#   theme_bw()
 
 st_crs(eco.regions)
 # use lat and long to get ecoregions:
-PLOT.sameplts_sf <- st_as_sf(PLOT.sameplts, coords = c("LON", "LAT"))
+PLOT.sameplts_sf <- st_as_sf(prop.dead.2018.plot, coords = c("LON", "LAT"))
 str(PLOT.sameplts_sf)
 st_crs(PLOT.sameplts_sf) <- 4326
 PLOT.sameplts_sf <- st_transform(PLOT.sameplts_sf, st_crs(eco.regions))
 
+#-124.79,49.38, 24.41, -101
+bbox <- st_as_sf(as(raster::extent(-124.79, -101, 24.41, 49.38), "SpatialPolygons"))
+st_crs(bbox) <- 4326
+bbox <- st_transform(bbox, st_crs(eco.regions))
+
+eco_crop <- st_crop(eco.regions, bbox)
+
+#left_join(PLOT.sameplts_sf, prop.dead.2018.plot, by = "")
 PLOT_intersects <- st_intersects(PLOT.sameplts_sf, eco.regions)
 
 
@@ -1320,5 +1338,35 @@ plot(st_geometry(eco.regions_sel_sf), add=T, col="red")
 plot(st_geometry(eco.regions_sel_sf), add=T, lwd = 2)
 dev.off()
 
+# TREE_remeas_sf <- st_as_sf(TREE_remeas, coords = c("PLOT_LON", "PLOT_LAT"))
+# #str(PLOT.sameplts_sf)
+# st_crs(TREE_remeas_sf) <- 4326
+# 
+# TREE_remeas_sf <- st_transform(TREE_remeas_sf, st_crs(eco_crop))
+# 
+# # 
+# Do an spatial join to link the prop.dead plot level data to the ecoregion data
+ecojoin_j <- st_join(eco_crop, PLOT.sameplts_sf )
+ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
+                                                                                                                                                                                          total_dead = sum(dead, na.rm = TRUE), 
+                                                                                                                                                                                          total_living = sum(live, na.rm =TRUE), 
+                                                                                                                                                                                          prop_dead_ecoregion = ifelse(total_dead == 0, 0, total_dead/(total_dead + total_living)), 
+                                                                                                                                                                                          SDI = mean(SDIs_static, na.rm =TRUE))
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_forecast_average_plot_prop_mort.png")
+ggplot() + 
+  geom_sf(data = ecojoin_summary, aes(fill = avg_prop_dead)) +
+  scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+dev.off()
+
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_forecast_average_ecoregion_prop_mort.png")
+ggplot() + 
+  geom_sf(data =  ecojoin_summary, aes(fill = prop_dead_ecoregion)) +
+  scale_fill_gradientn(colours = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+dev.off()
+
+png(height = 6, width = 11, units = "in", res = 200, "CONUS_ecoregions_of_IW.png")
+ggplot() + 
+  geom_sf(data = eco_crop, aes(fill = US_L3NAME)) 
+dev.off()
 
 

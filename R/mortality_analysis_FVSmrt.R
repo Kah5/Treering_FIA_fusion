@@ -138,7 +138,8 @@ ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), 
 ggplot()+geom_point(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(x = SDIs_static, y = DIA, color = as.character(STATUSCD_CHANGE)))#+facet_wrap(~STATUSCD)
 
 
-TREE_remeas <- TREE_remeas %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,135, 270,450, Inf), labels=c("0-135","136-270","270-450", ">450")))
+TREE_remeas <- TREE_remeas %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,50,100, 150,200,250,300,350,400, 450,Inf), labels=c("0-50","50-100","100-150", "150-200", "200-250", "250-300", 
+                                                                                                               "300-350", "350-400", "400-450", ">450")))
 TREE_remeas <- TREE_remeas %>% mutate(DIAbin=cut(DIA, breaks=c(0,5,10, 15,20,25,30,35,40, 45,Inf), labels=c("0-5","5-10","10-15", "15-20", "20-25", "25-30", 
                                                                                                                "30-35", "35-40", "40-45", ">45")))
 
@@ -156,32 +157,30 @@ ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" & !
 dev.off()
 # calculate the proportion of dead trees in each sdi and dbh class?
 # this is binned across all the data so not exactly the mortality rate
-prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE) %>% summarise(`n()` = sum(TPA_UNADJ)) %>% 
-  ungroup() %>% group_by ( SDIbin, DIAbin) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/(`0` + `2`)) %>% 
-  mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead), 
-         mortality.rate = prop.dead/10) # assuming a 10 year interval...need to calculate with survey year
+prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE) %>% summarise(n()) %>% 
+  ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/`0`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
 
 hist(prop.dead$prop.dead)
 
 
-png(height = 4, width = 6, units = "in", res = 150, "scatter_mort_rate_by_dia_sdi_lines_remeas.png")
-ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y =mortality.rate, color = SDIbin, group = SDIbin))+
-  geom_point()+geom_line()+theme_bw()+ylab("Mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+png(height = 4, width = 6, units = "in", res = 150, "/home/rstudio/data/output/scatter_prop_mort_by_dia_sdi_lines_remeas.png")
+ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = prop.dead, color = SDIbin, group = SDIbin))+
+  geom_point()+geom_line()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "boxplot_mort_rate_by_dia_remeas.png")
-ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes( y =mortality.rate, x = DIAbin))+
-  geom_boxplot()+theme_bw()+ylab("Mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+png(height = 4, width = 6, units = "in", res = 150, "/home/rstudio/data/output/boxplot_prop_mort_by_dia_remeas.png")
+ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = DIAbin))+
+  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "boxplot_mort_rate_by_sdi_remeas.png")
-ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes( y = mortality.rate, x = SDIbin))+
-  geom_boxplot()+theme_bw()+ylab("Mortality rate")+xlab("SDI Class")+theme(panel.grid = element_blank())
+png(height = 4, width = 6, units = "in", res = 150, "/home/rstudio/data/output/boxplot_prop_mort_by_sdi_remeas.png")
+ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes( y = prop.dead, x = SDIbin))+
+  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("SDI Class")+theme(panel.grid = element_blank())
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "tile_mort_rate_by_dia_sdi_remeas.png")
-ggplot(prop.dead %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = mortality.rate))+
+png(height = 4, width = 6, units = "in", res = 150, "/home/rstudio/data/output/tile_prop_mort_by_dia_sdi_remeas.png")
+ggplot(prop.dead %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = prop.dead))+
   geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
 
 dev.off()
@@ -189,28 +188,24 @@ dev.off()
 
 # calculate plot-level mortality rates for size classes, then summarise across SDI:
 # this is strange...because some diabins only have dead trees while some only have live trees..
-plot.mort <- TREE_remeas %>% group_by(PLT_CN, DIAbin, STATUSCD_CHANGE,CENSUS_INTERVAL) %>% summarise(`n()` = sum(TPA_UNADJ),
-                                                                                                     CENSUS_INTERVAL = mean(CENSUS_INTERVAL, na.rm = TRUE)) %>% 
-  ungroup() %>% group_by (PLT_CN,DIAbin,CENSUS_INTERVAL) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/(`0`+`2`),
-                                                                                                             mortality.rate = prop.dead/CENSUS_INTERVAL)
+plot.mort <- TREE_remeas %>% group_by(PLT_CN, DIAbin, STATUSCD_CHANGE) %>% summarise(n()) %>% 
+  ungroup() %>% group_by (PLT_CN,DIAbin,) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/`0`)
 
 plot.mort$SDIs_static <- static_SDI_pltcn$SDIs_static[match(plot.mort$PLT_CN, static_SDI_pltcn$PLT_CN)]
 
-plot.mort <- plot.mort %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,135, 270,450, Inf), labels=c("0-135","136-270","270-450", ">450")))
+plot.mort <- plot.mort %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,50,100, 150,200,250,300,350,400, 450,Inf), labels=c("0-50","50-100","100-150", "150-200", "200-250", "250-300", 
+                                                                                                                          "300-350", "350-400", "400-450", ">450")))
 
 head(plot.mort)
-plot.mort.by.SDI <- plot.mort %>% group_by(SDIbin) %>% summarise(med.prop = median(prop.dead, na.rm = TRUE),
-                                                                 med.mort.rate = median(mortality.rate, na.rm = TRUE))
+plot.mort.by.SDI <- plot.mort %>% group_by(SDIbin) %>% summarise(med.prop = median(prop.dead, na.rm = TRUE))
 
 ggplot(plot.mort, aes(x = prop.dead, fill = SDIbin))+geom_density(alpha=0.5)+xlim(0,1)+facet_grid(SDIbin~DIAbin)
 
 ##################################################################################
 #        Plot up summaries of mortality by ecoregion
 ##################################################################################
-plot.mort <- TREE_remeas %>% group_by(PLT_CN, STATUSCD_CHANGE) %>% summarise(`n()` = sum(TPA_UNADJ), 
-                                                                             CENSUS_INT = mean(CENSUS_INTERVAL, na.rm =TRUE)) %>% 
-  ungroup() %>% group_by (PLT_CN, CENSUS_INT) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = ifelse(is.na(`2`), 0, `2`/(`0`+`2`)),
-                                                                                      mortality.rate = prop.dead/CENSUS_INT)
+plot.mort <- TREE_remeas %>% group_by(PLT_CN, STATUSCD_CHANGE) %>% summarise(n()) %>% 
+  ungroup() %>% group_by (PLT_CN) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = ifelse(is.na(`2`), 0, `2`/(`0`+`2`)))
 
 
 plot.mort$PLOT_LAT <- PLOT$LAT[match(plot.mort$PLT_CN, PLOT$CN)]
@@ -222,10 +217,10 @@ TREE_remeas$PLOT_LON <- PLOT$LON[match(TREE_remeas$PLT_CN, PLOT$CN)]
 
 eco.regions <- read_sf( "us_eco_l3/us_eco_l3.shp")
 # plot the llevel 3 ecoregions (takes awhile)
-# eco.regions %>% 
-#   ggplot() +
-#   geom_sf() +
-#   theme_bw()
+eco.regions %>% 
+  ggplot() +
+  geom_sf() +
+  theme_bw()
 
 st_crs(eco.regions)
 #-124.79,49.38, 24.41, -101
@@ -256,12 +251,10 @@ TREE_remeas_sf <- st_transform(TREE_remeas_sf, st_crs(eco_crop))
 # 
 # Do an spatial join to link the prop.dead plot level data to the ecoregion data
 ecojoin_j <- st_join(eco_crop, PLOT.mort_sf)
-ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% 
-  summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
-             total_dead = sum(`2`, na.rm = TRUE), 
-             total_living = sum(`0`, na.rm =TRUE), 
-             prop_dead_ecoregion = ifelse(total_dead == 0, 0, total_dead/(total_dead + total_living)),
-            mortality_rate_ecoregion = prop_dead_ecoregion/CENSUS_INT)
+ecojoin_summary <- ecojoin_j %>% select(-NA_L2CODE, -NA_L2NAME,-L2_KEY, -NA_L1CODE, -NA_L1NAME, -L1_KEY) %>% group_by(US_L3CODE, US_L3NAME, L3_KEY, Shape_Leng, Shape_Area) %>% summarise(avg_prop_dead = median(prop.dead, na.rm = TRUE), 
+                                                                total_dead = sum(`2`, na.rm = TRUE), 
+                                                                total_living = sum(`0`, na.rm =TRUE), 
+                                                                prop_dead_ecoregion = ifelse(total_dead == 0, 0, total_dead/(total_dead + total_living)))
 
 
 png(height = 6, width = 11, units = "in", res = 200, "CONUS_FIA_average_plot_prop_mort.png")
