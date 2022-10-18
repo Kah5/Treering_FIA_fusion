@@ -133,7 +133,7 @@ TMAX <- get_ordered_climate("TMAX")
 # -------------------------------------------------------------------------------
 # read in the SDI time plot level data:
 #--------------------------------------------------------------------------------
-tv.sdi <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v4.RDS"))
+tv.sdi <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v5.RDS"))
 
 # get the tv.sdi estimates from just the x.mat plots and subplots?
 # reshape tv.sdi:
@@ -485,7 +485,7 @@ x.mat2 <- do.call(cbind, sims.x.forecast)
 
 saveRDS(x.mat2, paste0("data/output/Xval_noncored.",output.base.name,".RDS"))
 
-
+x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
 #--------------------------------------------------------------------------------------------- 
 # forecast from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
@@ -696,20 +696,37 @@ scale.fut.clim.by.plt <- function(x, future.clim.subset){
 #                    n = n()) 
 
 set.seed(22)
-plot <- "2449012010690"
+plot <- "2904285010690"
 # implement mortality stochastically based on scaled SDI of the subplot:
+unique(plots)
 
-
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2447900010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26"))
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2447900010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26"))
+system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2961996010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26"))
+system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26"))
 system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26"))
 system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26"))
 
-# run all the plots
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
+# run all the plots for this scenario and 
+# started at 4:40 pm....
+lapply(unique(plots)[600:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
+#stopped with plot "2587295010690" (plot 288)
+plot <- "3215491010690"
+unique(plots) %in% 3215491010690
+# Error in `$<-.data.frame`(`*tmp*`, "TPA_UNADJ", value = c(6.01805, 6.01805 : 
+#                                                             replacement has 2 rows, data has 3
+lapply(unique(plots)[600:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
+# stopped wtih plot "plot2874190010690" # plot 383..384...with this error...Skip for now
+unique(plots) %in% "3170850010690" # plot 578
+plot <- "3320827010690"
+# Error in if (mean(dbh.pred[i, , t]) == 0) { : 
+#     missing value where TRUE/FALSE needed
+
+unique(plots) %in% "2611722010690"
+
+lapply(unique(plots)[1:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
+lapply(unique(plots)[664:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
+# plot 663 throwing an error
+# Error in if (score > best$score && (!only.loose || (lmin <= dmin && lmax >=  : 
+#                                                 missing value where TRUE/FALSE needed
 
 # run all the plots
 lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
@@ -731,7 +748,7 @@ lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIs
 
 #biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = unique(plots)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")
 
-#plot <- "2482552010690"
+plot <- "2482552010690"
 
 lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
 lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
