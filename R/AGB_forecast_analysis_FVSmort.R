@@ -1551,9 +1551,29 @@ for(i in 170:length(unique(plotnos))){
 TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
 }
 
+# note to speed this up we could do the summarise onces on all the plots, then feed that df and just filter to get the plot number in the function?
 
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 
 # lets join plot these over time for each plot:
 
-ggplot(TI.CI.FORECASTS, aes(x = time, y = TI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)
+ggplot(TI.CI.FORECASTS, aes(x = time, y = TI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")
+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = CI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")
+
+# note that TI is in m/min and CI is in km/hr
+ggplot(TI.CI.FORECASTS, aes(x = TI))+geom_histogram()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")
+
+ggplot(TI.CI.FORECASTS, aes(x = CI))+geom_histogram()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")
+# are the values are reasonable ?
+# CI ranges from 0-500km/hr for most data points...with some values >1000...those seem high but that means that unrealistic windspeeds are required for sustaining a crown fire
+# TI ranges from 0-150 m/min, which I think is reasonable...
+# Should compare to some values in the literature...
+# I havent changed any of the fuel inputs yet or winddirections.
+
+
+
