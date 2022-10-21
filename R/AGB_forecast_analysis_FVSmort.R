@@ -6,8 +6,8 @@ library(rgdal)
 # reading in the available forecasts (1-184 I believe)
 
 get_biomass_ests <- function(plot, mort.scheme, scenario){
-  
-  load(paste0("forecasts_AGB/biomass_data_FVSmort/plot2AGB_",mort.scheme,".", as.character(plot),".",scenario, ".Rdata"))
+  cat (paste("reading in forecasts from plot ", plot))
+  load(paste0("forecasts_AGB/biomass_data_FVSmort26all//plot2AGB_",mort.scheme,".", as.character(plot),".",scenario, ".Rdata"))
   #load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
   # objects
   # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
@@ -463,9 +463,41 @@ get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
 
 # list files and get all the plot numbers:
 
-filenames <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "rcp26")
+filenames.DDonly.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp26")
+filenames.DIonly.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp26")
+filenames.DIDD.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp26")
+filenames.nomort.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp26")
+
+# 
+# filenames.DDonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp45")
+# filenames.DIonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp45")
+# filenames.DIDD.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp45")
+# filenames.nomort.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp45")
+# 
+# 
+plotnos.DDonly.26 <- do.call(rbind, stringr::str_split(filenames.DDonly.26, pattern = "\\."))[,2]
+plotnos.DIonly.26 <- do.call(rbind, stringr::str_split(filenames.DIonly.26 , pattern = "\\."))[,2]
+plotnos.DIDD.26 <- do.call(rbind, stringr::str_split(filenames.DIDD.26, pattern = "\\."))[,2]
+ plotnos.nomort.26 <- do.call(rbind, stringr::str_split(filenames.nomort.26, pattern = "\\."))[,2]
+# 
+# plotnos.DDonly.45 <- do.call(rbind, stringr::str_split(filenames.DDonly.45, pattern = "\\."))[,2]
+# plotnos.DIonly.45 <- do.call(rbind, stringr::str_split(filenames.DIonly.45 , pattern = "\\."))[,2]
+# plotnos.DIDD.45 <- do.call(rbind, stringr::str_split(filenames.DIDD.45, pattern = "\\."))[,2]
+# plotnos.nomort.45 <- do.call(rbind, stringr::str_split(filenames.nomort.45, pattern = "\\."))[,2]
+# 
+length(unique(plotnos.DDonly.26))
+length(unique(plotnos.DIonly.26))
+length(unique(plotnos.DIDD.26))
+length(unique(plotnos.nomort.26))
+# 
+# length(unique(plotnos.DDonly.45))
+# length(unique(plotnos.DIonly.45))
+# length(unique(plotnos.DIDD.45))
+# length(unique(plotnos.nomort.45))
 
 # get the plot numbers that were run
+filenames <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "rcp26")
+
 plotnos <- do.call(rbind, stringr::str_split(filenames, pattern = "\\."))[,2]
 unique(plotnos)
 
@@ -495,10 +527,10 @@ DIDD.AGB.60 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.schem
 
 
 # RCP 4.5:
-normort.AGB.45 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
-DIonly.AGB.45 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
-DDonly.AGB.45 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
-DIDD.AGB.45 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
+normort.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
+DIonly.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
+DDonly.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
+DIDD.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
 
 
 # RCP 2.6:
@@ -553,7 +585,7 @@ all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df,
                     normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
                     normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df, 
                     nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
-all10plots <- DIDD.AGB.26.df
+all.AGB.26 <- rbind(normort.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df)
 
 ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
@@ -1451,6 +1483,47 @@ dev.off()
 #------------------------------------------------------------------------------------
 # get torching and crowning indices from the diameter distributions
 #------------------------------------------------------------------------------------
+# get the aboveground woody biomass component:
+all.woody.agb.26 <- all.AGB.26 %>% group_by(plot, mort.scheme, rcp, year) %>% #select(mAGB.stemwood, mAGB.stembark, mAGB.branchdead, mAGB.branchlive) %>%
+  summarise(woody.biomass = mAGB.stemwood + mAGB.stembark + mAGB.branchdead + mAGB.branchlive)
+time.df <- data.frame(year = unique(all.woody.agb.26$year),
+           time = 1:length(unique(all.woody.agb.26$year)))
+
+colnames(all.woody.agb.26)[3] <- "scenario"
+
+all.woody.agb.26 <- left_join(all.woody.agb.26, time.df)
+# get the diameter distributions of each plot
+forecast.plt <- allplots.treeDIAMsubset #%>% filter(plot %in% plt)
+
+forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
+forecast.plt$BA <- (pi*(forecast.plt$DBH/2)^2)/10000 # should be in m2
+
+plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>%group_by (plot, mort.scheme, scenario, time) %>% summarise(ba = sum(BA, na.rm =TRUE), 
+                                                                                                                            #ht = mean(HT_m, na.rm = TRUE), 
+                                                                                                                            tph = sum(TPH, na.rm = TRUE))
+
+library(firebehavioR)
+data(fuelModels, fuelMoisture)
+exampSurfFuel = fuelModels['TU1',]
+
+fuelMoisture['D1L1',]
+
+exampFuelMoisture = fuelMoisture['D2L2',]
+
+naw.az <- terra::rast("nawfd_arizona.tif")
+plot(naw.az)
+rm(naw.az)
+fuelModels
+# read in the summary stats from the MTRI fuels product:
+# ideally down the road I will draw samples and propagate the uncertainty through
+
+NAM.means <- read.csv("NAmWildlandFuelsDatabase_evt_groups_2022-10-18.csv")
+pipo.fuels <- NAM.means %>% filter(evt_group_name %in% "Ponderosa Pine Forest| Woodland and Savanna" )
+
+colnames(pipo.fuels)
+
+
+
 get_torch_crown_indices_FORECASTS <- function(plt){
   
   ex.plt <- TREE %>% filter(PLT_CN %in% plt)
@@ -1459,21 +1532,25 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   ex.plt$DBH_m <-ex.plt$DIA*2.54 
   ex.plt$BA <- (pi*(ex.plt$DBH_m/2)^2)/10000 # should be in m2
   
-  forecast.plt <- allplots.treeDIAMsubset %>% filter(plot %in% plt)
+  # forecast.plt <- allplots.treeDIAMsubset %>% filter(plot %in% plt)
+  # 
+  # forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
+  # forecast.plt$BA <- (pi*(forecast.plt$DBH/2)^2)/10000 # should be in m2
   
-  forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
-  forecast.plt$BA <- (pi*(forecast.plt$DBH/2)^2)/10000 # should be in m2
+  plt.characters <- plt.characteristics.all %>% filter(plot %in% plt) %>% group_by(mort.scheme, scenario, time)
   
-  plt.characteristics <- forecast.plt %>% filter(df %in% "live")%>%group_by (plot, mort.scheme, scenario, time) %>% summarise(ba = sum(BA, na.rm =TRUE), 
-                                                                    #ht = mean(HT_m, na.rm = TRUE), 
-                                                                    tph = sum(TPH, na.rm = TRUE))
+  plt.woody.agb <- all.woody.agb.26  %>% filter(plot %in% plt)%>% group_by(mort.scheme, scenario, time )
   
+  plt.characteristics <- left_join(plt.characters, plt.woody.agb , by = c("plot", "mort.scheme","scenario","time"))
   # calculate height from the FIA survey data
   survey.characteristics <- ex.plt  %>% summarise(ba = sum(BA, na.rm =TRUE), 
                                       ht = mean(HT_m, na.rm = TRUE), 
                                       tph = sum(TPH, na.rm = TRUE))
   plt.CrownFuel <- matrix(NA, nrow = length(plt.characteristics$plot), ncol = 3)
+  
+  cat(paste("calculating crown fuels for plot", plt))
   for(i in 1:length(plt.characteristics$plot)){
+    #cat(paste("year", i))
     plt.CrownFuel[i,] = as.matrix(canFuel(ba = plt.characteristics[i,]$ba, ht = survey.characteristics$ht, tph = plt.characteristics[i,]$tph, type = "pp")) # pp is ponderosa pine:
   }
   colnames(plt.CrownFuel) <- c("cfl", "cbd", "cbh")
@@ -1488,11 +1565,31 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   
   # Choose an example fuel model and fuel mositure scenario
   # need to do some research on what this is/means
-  
+  #all.woody.agb.26  %>% filter(plot %in% plt)
+  repno <- length(plt.characteristics$woody.biomass)
   
   exampSurfFuel = fuelModels['A10',]
   
-  
+  pipoSurfFuel <- data.frame(fuelModelType = rep("S", repno),
+                            loadLitter = rep( pipo.fuels$fl_litter_mg_p_ha_mean, repno),
+                            load1hr = rep( pipo.fuels$fl_1hr_mg_p_ha_mean, repno),
+                            load10hr = rep( pipo.fuels$fl_10hr_mg_p_ha_mean, repno),
+                            load100hr = rep( pipo.fuels$fl_100hr_mg_p_ha_mean, repno),
+                            loadLiveHerb = rep( pipo.fuels$fl_herb_mg_p_ha_mean, repno), 
+                            loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, plt.characteristics$woody.biomass*0.001 ), # convert kg/ha to Mg/ha
+                            savLitter = rep( exampSurfFuel$savLitter, repno),   
+                            sav1hr = rep( exampSurfFuel$sav1hr, repno),   
+                            sav10hr = rep( exampSurfFuel$sav10hr, repno),   
+                            sav100hr = rep( exampSurfFuel$sav100hr,  repno),  
+                            savLiveHerb = rep( exampSurfFuel$savLiveHerb,  repno),  
+                            savLiveWoody = rep( exampSurfFuel$savLiveWoody,  repno),  
+                            
+                            fuelBedDepth = rep( pipo.fuels$fl_duff_mg_p_ha_mean, repno), 
+                            mxDead = rep( exampSurfFuel$mxDead, repno), 
+                            heat = rep( exampSurfFuel$heat,  repno), 
+                            description = rep( exampSurfFuel$description, repno), 
+                            source = rep( exampSurfFuel$source, repno))
+
   # assume very dry dead fuel loads:
   #fuelMoisture['D1L1',]
   
@@ -1520,7 +1617,9 @@ get_torch_crown_indices_FORECASTS <- function(plt){
       ex.2[[i]]$fireBehavior$`Torching Index [m/min]` <- 0
       ex.2[[i]]$fireBehavior$`Crowning Index [km/hr]` <- 0
     }else{
-    ex.2[[i]] = rothermel(exampSurfFuel, exampFuelMoisture, exampCrownFuel[i,], exampEnviro)
+      
+      #surfFuel, moisture, crownFuel, enviro, rosMult = 1, cfbForm = "f", folMoist = "y"
+    ex.2[[i]] = rothermel(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "n")
     }
     
     TI.CI.list[[i]] <- data.frame(TI =  ex.2[[i]]$fireBehavior$`Torching Index [m/min]`, 
@@ -1541,13 +1640,13 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   TI.CI.df <- do.call(rbind, TI.CI.list)
   TI.CI.df
 }
-
+plt <- plotnos[1]
 a <- get_torch_crown_indices_FORECASTS(plotnos[170])
 
 # get it for all the plotnos:
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
-for(i in 170:length(unique(plotnos))){
+for(i in 1:length(unique(plotnos))){
 TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
 }
 
