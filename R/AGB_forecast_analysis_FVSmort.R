@@ -2,6 +2,7 @@ library(ggplot2)
 library(reshape2)
 library(tidyverse)
 library(rgdal)
+library(firebehavioR)
 
 # reading in the available forecasts (1-184 I believe)
 
@@ -535,9 +536,9 @@ DIDD.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DI
 
 # RCP 2.6:
 normort.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
-DIonly.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
 DDonly.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
 DIDD.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
+DIonly.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
 
 
 
@@ -586,6 +587,7 @@ all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df,
                     normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df, 
                     nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
 all.AGB.26 <- rbind(normort.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df)
+saveRDS(all.AGB.26, "all.AGB.26.tempfile.RDS")
 
 ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
@@ -1163,6 +1165,7 @@ btst.DIAMS.nomort.26<- lapply(unique(plotnos), FUN = function(x){get_tree_diam_l
 # since we have the data on more for DDID and rcp26:
 
 allplots.treeDIAM <- rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.nomort.26.df)
+saveRDS(allplots.treeDIAM, "allplots.treeDIAM.26.tempfile.RDS")
 # this gets rid of trees labeled as dead in the live df and vice versa
 allplots.treeDIAMsubset <- allplots.treeDIAM #%>% filter(status == df)
 
@@ -1502,7 +1505,7 @@ plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>%group_by (p
                                                                                                                             #ht = mean(HT_m, na.rm = TRUE), 
                                                                                                                             tph = sum(TPH, na.rm = TRUE))
 
-library(firebehavioR)
+#library(firebehavioR)
 data(fuelModels, fuelMoisture)
 exampSurfFuel = fuelModels['TU1',]
 
@@ -1510,10 +1513,10 @@ fuelMoisture['D1L1',]
 
 exampFuelMoisture = fuelMoisture['D2L2',]
 
-naw.az <- terra::rast("nawfd_arizona.tif")
-plot(naw.az)
-rm(naw.az)
-fuelModels
+# naw.az <- terra::rast("nawfd_arizona.tif")
+# plot(naw.az)
+# rm(naw.az)
+# fuelModels
 # read in the summary stats from the MTRI fuels product:
 # ideally down the road I will draw samples and propagate the uncertainty through
 
@@ -1568,7 +1571,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   #all.woody.agb.26  %>% filter(plot %in% plt)
   repno <- length(plt.characteristics$woody.biomass)
   
-  exampSurfFuel = fuelModels['A10',]
+  exampSurfFuel = fuelModels['SH2',]
   
   pipoSurfFuel <- data.frame(fuelModelType = rep("S", repno),
                             loadLitter = rep( pipo.fuels$fl_litter_mg_p_ha_mean, repno),
@@ -1619,7 +1622,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
     }else{
       
       #surfFuel, moisture, crownFuel, enviro, rosMult = 1, cfbForm = "f", folMoist = "y"
-    ex.2[[i]] = rothermel(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "n")
+    ex.2[[i]] = rothermel(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "y")
     }
     
     TI.CI.list[[i]] <- data.frame(TI =  ex.2[[i]]$fireBehavior$`Torching Index [m/min]`, 
@@ -1641,12 +1644,16 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   TI.CI.df
 }
 plt <- plotnos[1]
-a <- get_torch_crown_indices_FORECASTS(plotnos[170])
+a <- get_torch_crown_indices_FORECASTS(plotnos[1])
+a
 
+ggplot(a, aes(time, TI))+geom_point()+facet_wrap(~mort.scheme)
 # get it for all the plotnos:
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
-for(i in 1:length(unique(plotnos))){
+TI.CI.list <- list()
+#for(i in 1:length(unique(plotnos))){
+  for(i in 1:10){
 TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
 }
 
