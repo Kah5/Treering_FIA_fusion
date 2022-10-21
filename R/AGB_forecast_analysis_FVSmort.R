@@ -1652,8 +1652,8 @@ ggplot(a, aes(time, TI))+geom_point()+facet_wrap(~mort.scheme)
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
 TI.CI.list <- list()
-#for(i in 1:length(unique(plotnos))){
-  for(i in 1:10){
+for(i in 1:length(unique(plotnos))){
+#  for(i in 1:10){
 TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
 }
 
@@ -1675,11 +1675,26 @@ ggplot(TI.CI.FORECASTS, aes(x = TI))+geom_histogram()+facet_wrap(~mort.scheme)+
 
 ggplot(TI.CI.FORECASTS, aes(x = CI))+geom_histogram()+facet_wrap(~mort.scheme)+
   theme(legend.position = "none")
+
+TI.CI.summary <- TI.CI.FORECASTS %>% group_by(mort.scheme, scenario, PLT_CN) %>% summarise(TI.mean = mean(TI), 
+                                                                          TI.97.5 =quantile(TI, 0.975), 
+                                                                          TI.02.5 = quantile(TI, 0.025), 
+                                                                          
+                                                                          CI.mean = mean(CI), 
+                                                                          CI.97.5 =quantile(CI, 0.975), 
+                                                                          CI.02.5 = quantile(CI, 0.025))
+
+
 # are the values are reasonable ?
-# CI ranges from 0-500km/hr for most data points...with some values >1000...those seem high but that means that unrealistic windspeeds are required for sustaining a crown fire
-# TI ranges from 0-150 m/min, which I think is reasonable...
+min(TI.CI.summary$CI.02.5)/1.609
+max(TI.CI.summary$CI.97.5)/1.609
+# CI ranges from 40-346 km/hr (25mph - 215mph) for most data points...with some values >300..those seem high but that means that unrealistic windspeeds are required for sustaining a crown fire
+
+(min(TI.CI.summary$TI.02.5)/1000)*60
+(max(TI.CI.summary$TI.97.5)/1000)
+# TI ranges seem pretty unreasonable... from 1375.26m/min-8.548876e+14 m/min, or 82km/hr - 854887602381km/hr
 # Should compare to some values in the literature...
-# I havent changed any of the fuel inputs yet or winddirections.
+# I think this probably has something to do with our height in the crown model, the fuel moisture, or wind characteristics
 
 
 
