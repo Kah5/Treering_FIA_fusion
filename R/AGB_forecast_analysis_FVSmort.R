@@ -1495,14 +1495,28 @@ time.df <- data.frame(year = unique(all.woody.agb.26$year),
 colnames(all.woody.agb.26)[3] <- "scenario"
 
 all.woody.agb.26 <- left_join(all.woody.agb.26, time.df)
+
+
+
+# to estimate ht from DIameters, generate a simple relationship:
+pipo.tree <- TREE %>% filter(SPCD %in% "122")
+
+glm.ht.dia <- lm(data = pipo.tree, HT ~ DIA)
+summary(glm.ht.dia)
+
+glm.ht.dia$coefficients
+
+
 # get the diameter distributions of each plot
 forecast.plt <- allplots.treeDIAMsubset #%>% filter(plot %in% plt)
 
 forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
 forecast.plt$BA <- (pi*(forecast.plt$DBH/2)^2)/10000 # should be in m2
+forecast.plt$HT <- forecast.plt$DIA*glm.ht.dia$coefficients[2] + glm.ht.dia$coefficients[1]
+forecast.plt$HT_m <- forecast.plt$HT/3.281
 
 plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>%group_by (plot, mort.scheme, scenario, time) %>% summarise(ba = sum(BA, na.rm =TRUE), 
-                                                                                                                            #ht = mean(HT_m, na.rm = TRUE), 
+                                                                                                                            ht = mean(HT_m, na.rm = TRUE), 
                                                                                                                             tph = sum(TPH, na.rm = TRUE))
 
 #library(firebehavioR)
@@ -1527,13 +1541,14 @@ colnames(pipo.fuels)
 
 
 
+
 get_torch_crown_indices_FORECASTS <- function(plt){
   
-  ex.plt <- TREE %>% filter(PLT_CN %in% plt)
-  ex.plt$HT_m <- ex.plt$HT*0.304
-  ex.plt$TPH <- ex.plt$TPA_UNADJ*(1/0.404686)
-  ex.plt$DBH_m <-ex.plt$DIA*2.54 
-  ex.plt$BA <- (pi*(ex.plt$DBH_m/2)^2)/10000 # should be in m2
+  # ex.plt <- TREE %>% filter(PLT_CN %in% plt)
+  # ex.plt$HT_m <- ex.plt$HT*0.304
+  # ex.plt$TPH <- ex.plt$TPA_UNADJ*(1/0.404686)
+  # ex.plt$DBH_m <-ex.plt$DIA*2.54 
+  # ex.plt$BA <- (pi*(ex.plt$DBH_m/2)^2)/10000 # should be in m2
   
   # forecast.plt <- allplots.treeDIAMsubset %>% filter(plot %in% plt)
   # 
@@ -1546,15 +1561,15 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   
   plt.characteristics <- left_join(plt.characters, plt.woody.agb , by = c("plot", "mort.scheme","scenario","time"))
   # calculate height from the FIA survey data
-  survey.characteristics <- ex.plt  %>% summarise(ba = sum(BA, na.rm =TRUE), 
-                                      ht = mean(HT_m, na.rm = TRUE), 
-                                      tph = sum(TPH, na.rm = TRUE))
+  # survey.characteristics <- ex.plt  %>% summarise(ba = sum(BA, na.rm =TRUE), 
+  #                                     ht = mean(HT_m, na.rm = TRUE), 
+  #                                     tph = sum(TPH, na.rm = TRUE))
   plt.CrownFuel <- matrix(NA, nrow = length(plt.characteristics$plot), ncol = 3)
   
   cat(paste("calculating crown fuels for plot", plt))
   for(i in 1:length(plt.characteristics$plot)){
     #cat(paste("year", i))
-    plt.CrownFuel[i,] = as.matrix(canFuel(ba = plt.characteristics[i,]$ba, ht = survey.characteristics$ht, tph = plt.characteristics[i,]$tph, type = "pp")) # pp is ponderosa pine:
+    plt.CrownFuel[i,] = as.matrix(canFuel(ba = plt.characteristics[i,]$ba, ht = plt.characteristics[i,]$ht, tph = plt.characteristics[i,]$tph, type = "pp")) # pp is ponderosa pine:
   }
   colnames(plt.CrownFuel) <- c("cfl", "cbd", "cbh")
   
@@ -1622,7 +1637,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
     }else{
       
       #surfFuel, moisture, crownFuel, enviro, rosMult = 1, cfbForm = "f", folMoist = "y"
-    ex.2[[i]] = rothermel(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "y")
+    ex.2[[i]] = CI.TI.rothermal(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "y")
     }
     
     TI.CI.list[[i]] <- data.frame(TI =  ex.2[[i]]$fireBehavior$`Torching Index [m/min]`, 
@@ -1652,6 +1667,7 @@ ggplot(a, aes(time, TI))+geom_point()+facet_wrap(~mort.scheme)
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
 TI.CI.list <- list()
+
 for(i in 1:length(unique(plotnos))){
 #  for(i in 1:10){
 TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
@@ -1660,7 +1676,7 @@ TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
 # note to speed this up we could do the summarise onces on all the plots, then feed that df and just filter to get the plot number in the function?
 
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
-
+unique(TI.CI.FORECASTS$PLT_CN)
 # lets join plot these over time for each plot:
 
 ggplot(TI.CI.FORECASTS, aes(x = time, y = TI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
