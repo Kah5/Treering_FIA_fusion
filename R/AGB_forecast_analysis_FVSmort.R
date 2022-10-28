@@ -235,9 +235,11 @@ get_biomass_ests <- function(plot, mort.scheme, scenario){
 
 
 get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
+  cat (paste("reading in forecasts from plot ", plot))
   
   load(paste0("forecasts_AGB/biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
   
+  #load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
   # objects
   # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
   # AGB.foliage, NPP.foliage, 
@@ -459,6 +461,7 @@ get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
   
   
   total.plot
+                           
 }
 
 
@@ -470,31 +473,67 @@ filenames.DIDD.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/
 filenames.nomort.26 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp26")
 
 # 
-# filenames.DDonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp45")
-# filenames.DIonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp45")
-# filenames.DIDD.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp45")
-# filenames.nomort.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp45")
+filenames.DDonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp45")
+filenames.DIonly.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp45")
+filenames.DIDD.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp45")
+filenames.nomort.45 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp45")
 # 
 # 
+
+filenames.DDonly.60 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp60")
+filenames.DIonly.60 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp60")
+filenames.DIDD.60 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp60")
+filenames.nomort.60 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp60")
+
+filenames.DDonly.85 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DDonly.*\\.rcp85")
+filenames.DIonly.85 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIonly.*\\.rcp85")
+filenames.DIDD.85 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "DIDD.*\\.rcp85")
+filenames.nomort.85 <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "nomort.*\\.rcp85")
+
+
+
 plotnos.DDonly.26 <- do.call(rbind, stringr::str_split(filenames.DDonly.26, pattern = "\\."))[,2]
 plotnos.DIonly.26 <- do.call(rbind, stringr::str_split(filenames.DIonly.26 , pattern = "\\."))[,2]
 plotnos.DIDD.26 <- do.call(rbind, stringr::str_split(filenames.DIDD.26, pattern = "\\."))[,2]
  plotnos.nomort.26 <- do.call(rbind, stringr::str_split(filenames.nomort.26, pattern = "\\."))[,2]
 # 
-# plotnos.DDonly.45 <- do.call(rbind, stringr::str_split(filenames.DDonly.45, pattern = "\\."))[,2]
-# plotnos.DIonly.45 <- do.call(rbind, stringr::str_split(filenames.DIonly.45 , pattern = "\\."))[,2]
-# plotnos.DIDD.45 <- do.call(rbind, stringr::str_split(filenames.DIDD.45, pattern = "\\."))[,2]
-# plotnos.nomort.45 <- do.call(rbind, stringr::str_split(filenames.nomort.45, pattern = "\\."))[,2]
+plotnos.DDonly.45 <- do.call(rbind, stringr::str_split(filenames.DDonly.45, pattern = "\\."))[,2]
+plotnos.DIonly.45 <- do.call(rbind, stringr::str_split(filenames.DIonly.45 , pattern = "\\."))[,2]
+plotnos.DIDD.45 <- do.call(rbind, stringr::str_split(filenames.DIDD.45, pattern = "\\."))[,2]
+plotnos.nomort.45 <- do.call(rbind, stringr::str_split(filenames.nomort.45, pattern = "\\."))[,2]
+
+plotnos.DDonly.60 <- do.call(rbind, stringr::str_split(filenames.DDonly.60, pattern = "\\."))[,2]
+plotnos.DIonly.60 <- do.call(rbind, stringr::str_split(filenames.DIonly.60 , pattern = "\\."))[,2]
+plotnos.DIDD.60 <- do.call(rbind, stringr::str_split(filenames.DIDD.60, pattern = "\\."))[,2]
+plotnos.nomort.60 <- do.call(rbind, stringr::str_split(filenames.nomort.60, pattern = "\\."))[,2]
+
+
+plotnos.DDonly.85 <- do.call(rbind, stringr::str_split(filenames.DDonly.85, pattern = "\\."))[,2]
+plotnos.DIonly.85 <- do.call(rbind, stringr::str_split(filenames.DIonly.85 , pattern = "\\."))[,2]
+plotnos.DIDD.85 <- do.call(rbind, stringr::str_split(filenames.DIDD.85, pattern = "\\."))[,2]
+plotnos.nomort.85 <- do.call(rbind, stringr::str_split(filenames.nomort.85, pattern = "\\."))[,2]
+
+
 # 
 length(unique(plotnos.DDonly.26))
 length(unique(plotnos.DIonly.26))
 length(unique(plotnos.DIDD.26))
 length(unique(plotnos.nomort.26))
 # 
-# length(unique(plotnos.DDonly.45))
-# length(unique(plotnos.DIonly.45))
-# length(unique(plotnos.DIDD.45))
-# length(unique(plotnos.nomort.45))
+length(unique(plotnos.DDonly.45))
+length(unique(plotnos.DIonly.45))
+length(unique(plotnos.DIDD.45))
+length(unique(plotnos.nomort.45))
+
+length(unique(plotnos.DDonly.60))
+length(unique(plotnos.DIonly.60))
+length(unique(plotnos.DIDD.60))
+length(unique(plotnos.nomort.60))
+
+length(unique(plotnos.DDonly.85))
+length(unique(plotnos.DIonly.85))
+length(unique(plotnos.DIDD.85))
+length(unique(plotnos.nomort.85))
 
 # get the plot numbers that were run
 filenames <- list.files(path = "forecasts_AGB/biomass_data_FVSmort26all/", pattern = "rcp26")
@@ -506,47 +545,57 @@ unique(plotnos)
 get_biomass_ests(plot = unique(plotnos)[1], mort.scheme = "DIDD",scenario = "rcp26")
 
 # check that 151 plots were also run for the no climate change scenario
-filenames.nocc <- list.files(path = "forecasts_AGB/biomass_data_nocc", pattern = "rcp26")
-plotnos.nocc <- do.call(rbind, stringr::str_split(filenames, pattern = "\\."))[,2]
-unique(plotnos.nocc)
+filenames.DDonly.26.nocc <- list.files(path = "forecasts_AGB/biomass_data_nocc/", pattern = "DDonly.*\\.rcp26")
+filenames.DIonly.26.nocc <- list.files(path = "forecasts_AGB/biomass_data_nocc/", pattern = "DIonly.*\\.rcp26")
+filenames.DIDD.26.nocc <- list.files(path = "forecasts_AGB/biomass_data_nocc/", pattern = "DIDD.*\\.rcp26")
+filenames.nomort.26.nocc <- list.files(path = "forecasts_AGB/biomass_data_nocc/", pattern = "nomort.*\\.rcp26")
 
+plotnos.DDonly.nocc <- do.call(rbind, stringr::str_split(filenames.DDonly.26.nocc, pattern = "\\."))[,2]
+plotnos.DIonly.nocc <- do.call(rbind, stringr::str_split(filenames.DIonly.26.nocc, pattern = "\\."))[,2]
+plotnos.DIDD.nocc <- do.call(rbind, stringr::str_split(filenames.DIDD.26.nocc, pattern = "\\."))[,2]
+plotnos.nomort.nocc <- do.call(rbind, stringr::str_split(filenames.nomort.26.nocc, pattern = "\\."))[,2]
+
+length(unique(plotnos.DDonly.nocc))
+length(unique(plotnos.DIonly.nocc))
+length(unique(plotnos.DIDD.nocc))
+length(unique(plotnos.nomort.nocc))
 
 # -------------------------------------------------------------------------------
 # read in forecasts for all scenarios and mortality conditions
 # -------------------------------------------------------------------------------
 # RCP8.5
-normort.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")
-DIonly.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp85")
-DDonly.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp85")
-DIDD.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp85")
+normort.AGB <- lapply(unique(plotnos.nomort.85), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")
+DIonly.AGB <- lapply(unique(plotnos.DIonly.85), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp85")
+DDonly.AGB <- lapply(unique(plotnos.DDonly.85), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp85")
+DIDD.AGB <- lapply(unique(plotnos.DIDD.85), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp85")
 
 # RCP 60:
-normort.AGB.60 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp60")
-DIonly.AGB.60 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp60")
-DDonly.AGB.60 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp60")
-DIDD.AGB.60 <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp60")
+normort.AGB.60 <- lapply(unique(plotnos.nomort.60), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp60")
+DIonly.AGB.60 <- lapply(unique(plotnos.DIonly.60), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp60")
+DDonly.AGB.60 <- lapply(unique(plotnos.DDonly.60), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp60")
+DIDD.AGB.60 <- lapply(unique(plotnos.DIDD.60), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp60")
 
 
 # RCP 4.5:
-normort.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
-DIonly.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
-DDonly.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
-DIDD.AGB.45 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
+normort.AGB.45 <- lapply(unique(plotnos.nomort.45), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
+DIonly.AGB.45 <- lapply(unique(plotnos.DIonly.45), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
+DDonly.AGB.45 <- lapply(unique(plotnos.DDonly.45), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
+DIDD.AGB.45 <- lapply(unique(plotnos.DIDD.45), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
 
 
 # RCP 2.6:
-normort.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
-DDonly.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
-DIDD.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
-DIonly.AGB.26 <- lapply(unique(plotnos), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
+normort.AGB.26 <- lapply(unique(plotnos.nomort.26), FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
+DDonly.AGB.26 <- lapply(unique(plotnos.DDonly.26), FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
+DIDD.AGB.26 <- lapply(unique(plotnos.DIDD.26), FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
+DIonly.AGB.26 <- lapply(unique(plotnos.DIonly.26), FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
 
 
 
-# no climate change scenarios:
-nocc.nomort.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests_ncc, mort.scheme = "nomort", scenario = "rcp26")
-nocc.DIonly.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests_ncc, mort.scheme = "DIonly", scenario = "rcp26")
-nocc.DDonly.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests_ncc, mort.scheme = "DDonly", scenario = "rcp26")
-nocc.DIDD.AGB <- lapply(unique(plotnos)[1:151], FUN = get_biomass_ests_ncc, mort.scheme = "DIDD", scenario = "rcp26")
+# # no climate change scenarios:
+nocc.nomort.AGB <- lapply(unique(plotnos.nomort.nocc), FUN = get_biomass_ests_ncc, mort.scheme = "nomort", scenario = "rcp26")
+nocc.DIonly.AGB <- lapply(unique(plotnos.DIonly.nocc), FUN = get_biomass_ests_ncc, mort.scheme = "DIonly", scenario = "rcp26")
+nocc.DDonly.AGB <- lapply(unique(plotnos.DDonly.nocc), FUN = get_biomass_ests_ncc, mort.scheme = "DDonly", scenario = "rcp26")
+nocc.DIDD.AGB <- lapply(unique(plotnos.DIDD.nocc), FUN = get_biomass_ests_ncc, mort.scheme = "DIDD", scenario = "rcp26")
 
 normort.AGB.df <- do.call(rbind, normort.AGB)
 DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
@@ -584,14 +633,32 @@ nocc.DIDD.AGB.df <- do.call(rbind, nocc.DIDD.AGB)
 all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df, 
                     normort.AGB.60.df, DIonly.AGB.60.df, DDonly.AGB.60.df, DIDD.AGB.60.df, 
                     normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
-                    normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df, 
-                    nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
-all.AGB.26 <- rbind(normort.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df)
-saveRDS(all.AGB.26, "all.AGB.26.tempfile.RDS")
+                    normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df) #, 
+                    #nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
+all.AGB.26.nomort <- rbind(nocc.nomort.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df, nocc.DIonly.AGB.df)
 
-ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
+saveRDS(all10plots, "all.AGB.10.25.22tempfile.RDS")
+all10plot <- readRDS( "all.AGB.10.25.22tempfile.RDS")
+all10plot.nocc<- rbind(all.AGB.26.nomort, all10plot)
+saveRDS(all10plot.nocc, "all.AGB.10.26.22tempfile.RDS")
+all10plot.nocc <- readRDS("all.AGB.10.26.22tempfile.RDS")
+ 
+ten.plot.summary <- all10plot.nocc %>% filter(plot %in% plotnos.DIDD.nocc) %>% group_by(mort.scheme, rcp, year) %>% 
   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
 
+spread.AGB <- ten.plot.summary %>% group_by(year, mort.scheme) %>% select(year,mort.scheme, rcp, mAGB) %>% 
+  spread(rcp, mAGB) %>% mutate(rcp26.diff = `no climate change rcp26` - `rcp26` , 
+                               rcp45.diff =  `no climate change rcp26` -`rcp45`,
+                               rcp60.diff =  `no climate change rcp26`-`rcp60` ,
+                               rcp85.diff = `no climate change rcp26`-`rcp85` , 
+                               
+                               pct.rcp26.diff = (`no climate change rcp26`-`rcp26`)/`no climate change rcp26`, 
+                               pct.rcp45.diff = (`no climate change rcp26`-`rcp45`)/`no climate change rcp26`,
+                               pct.rcp60.diff = (`no climate change rcp26`-`rcp60`) /`no climate change rcp26`,
+                               pct.rcp85.diff = (`no climate change rcp26`-`rcp85`) / `no climate change rcp26`, 
+                               )
+spread.AGB.diffs <- melt(spread.AGB %>% select(year, mort.scheme, rcp26.diff:rcp85.diff), id.vars = c("year", "mort.scheme"))
+spread.AGB.pct.diffs <- melt(spread.AGB %>% select(year, mort.scheme, pct.rcp26.diff:pct.rcp85.diff), id.vars = c("year", "mort.scheme"))
 
 
 added.up.tenplot.summary <- ten.plot.summary %>% group_by(mort.scheme, rcp, year) %>% 
@@ -614,14 +681,23 @@ added.up.tenplot.summary <- ten.plot.summary %>% group_by(mort.scheme, rcp, year
 # -------------------------------------------------------------------------------
 #  make plots of total biomass across the region
 # -------------------------------------------------------------------------------
-AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB, group = mort.scheme, color = mort.scheme))+theme_bw()+ylab("Total AGB for 351 plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp)
-NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for 351  plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp)
+AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB, group = mort.scheme, color = mort.scheme))+theme_bw()+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)+ylim(0,1.7e7)
+NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for all  plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)+ylim(-6e5,2e5)
 
-png(height = 7, width = 10, units = "in", res = 150, "forecasts_AGB/output/example351plots.total.biomass.png")
+png(height = 7, width = 10, units = "in", res = 150, "forecasts_AGB/output/exampleallrunplots.total.biomass.png")
 cowplot::plot_grid(AGB.line, NPP.line, ncol = 1, align = "hv")
 dev.off()
 
+# difference lines:
 
+AGB.line.diff <- ggplot()+geom_line(data = spread.AGB.diffs , aes(year, value, group = mort.scheme, color = mort.scheme))+theme_bw()
++ylab("Difference in AGB between \n no cliamte change and each scenario")+facet_wrap(~variable, ncol = 5)#+ylim(0,1.7e7)
+AGB.line.pctdiff <- ggplot()+geom_line(data = spread.AGB.pct.diffs , aes(year, value*100, group = mort.scheme, color = mort.scheme))+
+  theme_bw()+ylab("Percent Difference in AGB between \n no cliamte change and each scenario")+facet_wrap(~variable, ncol = 5)#+ylim(0,1.7e7)
+
+png(height = 7, width = 10, units = "in", res = 150, "forecasts_AGB/output/exampleallrunplots.mean_diffs_AGB.png")
+cowplot::plot_grid(AGB.line.diff, AGB.line.pctdiff , ncol = 1, align = "hv")
+dev.off()
 b.plot <- ggplot()+
   #geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
   geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
@@ -638,7 +714,7 @@ b.plot <- ggplot()+
 
 b.plot
 
-png(height = 10, width = 12, units = "in", res = 150, "forecasts_AGB/output/Total_biomass_kaye_151_plots_allrcps_nocc.png")
+png(height = 10, width = 12, units = "in", res = 150, "forecasts_AGB/output/Total_biomass_kaye_allrun_plots_allrcps_nocc.png")
 b.plot
 dev.off()
 
@@ -757,7 +833,7 @@ get_tree_levelC_ests_FVS <- function(plot, mort.scheme, scenario, nocc = FALSE){
 
 # read in and get the tree level estimates
 # RCP 2.6
-btst.AGB.DIDD.26 <- lapply(unique(plotnos), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
+btst.AGB.DIDD.26 <- lapply(unique(plotnos.DIDD.26), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
 btst.AGB.DIDD.26.df <- do.call(rbind, btst.AGB.DIDD.26)
 btst.AGB.DIDD.26.df
 plot = "2873938010690"
@@ -767,58 +843,61 @@ unique(plotnos)[1:264] %in% "2668869010690"
 plot <- c("2611722010690","2616304010690")
  idx <-!unique(plotnos) %in% plot
 
-btst.AGB.nomort.26<- lapply(unique(plotnos), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
+btst.AGB.nomort.26<- lapply(unique(plotnos.nomort.26), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
 btst.AGB.nomort.26.df <- do.call(rbind, btst.AGB.nomort.26)
 
-btst.AGB.DDonly.26<- lapply(unique(plotnos), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
+btst.AGB.DDonly.26<- lapply(unique(plotnos.DDonly.26), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
 btst.AGB.DDonly.26.df <- do.call(rbind, btst.AGB.DDonly.26)
 
-btst.AGB.DIonly.26<- lapply(unique(plotnos)[idx], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
+
+unique(plotnos.DIonly.26) %in% 2616304010690
+btst.AGB.DIonly.26<- lapply(unique(plotnos.DIonly.26), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
 btst.AGB.DIonly.26.df <- do.call(rbind, btst.AGB.DIonly.26)
 
 # RCP 4.5
-btst.AGB.DIDD.45 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
+btst.AGB.DIDD.45 <- lapply(unique(plotnos.DIDD.45), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
 btst.AGB.DIDD.45.df <- do.call(rbind, btst.AGB.DIDD.45)
 
-btst.AGB.nomort.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
+btst.AGB.nomort.45<- lapply(unique(plotnos.nomort.45), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
 btst.AGB.nomort.45.df <- do.call(rbind, btst.AGB.nomort.45)
 
-btst.AGB.DDonly.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
+btst.AGB.DDonly.45<- lapply(unique(plotnos.DDonly.45), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
 btst.AGB.DDonly.45.df <- do.call(rbind, btst.AGB.DDonly.45)
 
-btst.AGB.DIonly.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
+btst.AGB.DIonly.45<- lapply(unique(plotnos.DIonly.45), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
 btst.AGB.DIonly.45.df <- do.call(rbind, btst.AGB.DIonly.45)
 
+unique(plotnos.DDonly.60) %in% "2616304010690"
 # RCP 6.0
-btst.AGB.DIDD.60 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
+btst.AGB.DIDD.60 <- lapply(unique(plotnos.DIDD.60), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
 btst.AGB.DIDD.60.df <- do.call(rbind, btst.AGB.DIDD.60)
 
-btst.AGB.nomort.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
+btst.AGB.nomort.60<- lapply(unique(plotnos.nomort.60), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
 btst.AGB.nomort.60.df <- do.call(rbind, btst.AGB.nomort.60)
 
-btst.AGB.DDonly.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
+btst.AGB.DDonly.60<- lapply(unique(plotnos.DDonly.60), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
 btst.AGB.DDonly.60.df <- do.call(rbind, btst.AGB.DDonly.60)
 
-btst.AGB.DIonly.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
+btst.AGB.DIonly.60<- lapply(unique(plotnos.DIonly.60), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
 btst.AGB.DIonly.60.df <- do.call(rbind, btst.AGB.DIonly.60)
 
 # RCP 8.5
-btst.AGB.DIDD.85 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
+btst.AGB.DIDD.85 <- lapply(unique(plotnos.DIDD.85), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
 btst.AGB.DIDD.85.df <- do.call(rbind, btst.AGB.DIDD.85)
 
-btst.AGB.nomort.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
+btst.AGB.nomort.85<- lapply(unique(plotnos.nomort.85), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
 btst.AGB.nomort.85.df <- do.call(rbind, btst.AGB.nomort.85)
 
-btst.AGB.DDonly.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
+btst.AGB.DDonly.85<- lapply(unique(plotnos.DDonly.85), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
 btst.AGB.DDonly.85.df <- do.call(rbind, btst.AGB.DDonly.85)
 
-btst.AGB.DIonly.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
+btst.AGB.DIonly.85<- lapply(unique(plotnos.DIonly.85), FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
 btst.AGB.DIonly.85.df <- do.call(rbind, btst.AGB.DIonly.85)
 
 # no climate change scenario:
 # read in and get the tree level estimates
 # RCP 2.6
-btst.AGB.DIDD.nocc <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
+btst.AGB.DIDD.nocc <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
 btst.AGB.DIDD.nocc.df <- do.call(rbind, btst.AGB.DIDD.nocc)
 btst.AGB.DIDD.nocc.df
 
@@ -836,10 +915,10 @@ btst.AGB.DIonly.nocc.df <- do.call(rbind, btst.AGB.DIonly.nocc)
 allplots.treeC <- rbind(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
                         btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
                         btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
-                        btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
-                        btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
-saveRDS(allplots.treeC, "outputs/allplots.treeC.RDS")
-
+                        btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df) #, 
+                        #btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
+saveRDS(allplots.treeC, "outputs/allplots.treeC10.24.22.RDS")
+allplots.treeC <- readRDS("outputs/allplots.treeC10.24.22.RDS")
 rm(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
    btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
    btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
@@ -855,9 +934,9 @@ rm(btst.AGB.nomort.26 , btst.AGB.DIonly.26 , btst.AGB.DDonly.26 , btst.AGB.DIDD.
 # ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
 #   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
 
-allplots.treeC <- rbind(btst.AGB.DIDD.26.df, btst.AGB.nomort.26.df,  btst.AGB.DDonly.26.df)
+#allplots.treeC <- rbind(btst.AGB.DIDD.26.df, btst.AGB.nomort.26.df,  btst.AGB.DDonly.26.df)
 
-png(height = 10, width = 10, units = "in", res = 150, "forecasts_AGB/output/big_tree_vs_small_tree_all_539_plots.png")
+png(height = 10, width = 10, units = "in", res = 150, "forecasts_AGB/output/big_tree_vs_small_tree_all_run_plots.png")
 ggplot(na.omit(allplots.treeC), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
   ylab("Median AGB (kg/acre)")+theme_bw()+theme(panel.grid = element_blank())+
   scale_fill_manual(name = 'Size class', 
@@ -1001,7 +1080,8 @@ clust.pam <- tsclust(emissions.norm, type="partitional", k=2L:17L, distance="dtw
 #  make plots of big tree vs small tree mortality
 # -------------------------------------------------------------------------------
 get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, nocc = FALSE){
-  if(nocc == FALSE){
+ cat(paste0("reading in plot "), plot)
+   if(nocc == FALSE){
     load(paste0("forecasts_AGB/biomass_data_FVSmort26all//plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
   }else{
     load(paste0("forecasts_AGB/biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
@@ -1064,73 +1144,87 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, nocc = FAL
 plot <- unique(plotnos)[1]
 # read in and get the tree level estimates
 # RCP 2.6
-btst.DIAMS.DIDD.26 <- lapply(unique(plotnos), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
+btst.DIAMS.DIDD.26 <- lapply(unique(plotnos.DIDD.26), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
 btst.DIAMS.DIDD.26.df <- do.call(rbind, btst.DIAMS.DIDD.26)
 btst.DIAMS.DIDD.26.df
 
-btst.DIAMS.nomort.26<- lapply(unique(plotnos), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
+btst.DIAMS.nomort.26<- lapply(unique(plotnos.nomort.26), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
  btst.DIAMS.nomort.26.df <- do.call(rbind, btst.DIAMS.nomort.26)
 # 
- btst.DIAMS.DDonly.26<- lapply(unique(plotnos), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
+ btst.DIAMS.DDonly.26<- lapply(unique(plotnos.DDonly.26), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
  btst.DIAMS.DDonly.26.df <- do.call(rbind, btst.DIAMS.DDonly.26)
 # 
- btst.DIAMS.DIonly.26<- lapply(unique(plotnos), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
+ btst.DIAMS.DIonly.26<- lapply(unique(plotnos.DIonly.26), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
  btst.DIAMS.DIonly.26.df <- do.call(rbind, btst.DIAMS.DIonly.26)
 # 
+ 
+rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.nomort.26.df)
+saveRDS(rcp26.DIAMS, "rcp26.btst.DIAMS.RDS")
 # # RCP 4.5
-# btst.DIAMS.DIDD.45 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
-# btst.DIAMS.DIDD.45.df <- do.call(rbind, btst.DIAMS.DIDD.45)
-# 
-# btst.DIAMS.nomort.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
-# btst.DIAMS.nomort.45.df <- do.call(rbind, btst.DIAMS.nomort.45)
-# 
-# btst.DIAMS.DDonly.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
-# btst.DIAMS.DDonly.45.df <- do.call(rbind, btst.DIAMS.DDonly.45)
-# 
-# btst.DIAMS.DIonly.45<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
-# btst.DIAMS.DIonly.45.df <- do.call(rbind, btst.DIAMS.DIonly.45)
-# 
-# # RCP 6.0
-# btst.DIAMS.DIDD.60 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
-# btst.DIAMS.DIDD.60.df <- do.call(rbind, btst.DIAMS.DIDD.60)
-# 
-# btst.DIAMS.nomort.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
-# btst.DIAMS.nomort.60.df <- do.call(rbind, btst.DIAMS.nomort.60)
-# 
-# btst.DIAMS.DDonly.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
-# btst.DIAMS.DDonly.60.df <- do.call(rbind, btst.DIAMS.DDonly.60)
-# 
-# btst.DIAMS.DIonly.60<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
-# btst.DIAMS.DIonly.60.df <- do.call(rbind, btst.DIAMS.DIonly.60)
-# 
-# # RCP 8.5
-# btst.DIAMS.DIDD.85 <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
-# btst.DIAMS.DIDD.85.df <- do.call(rbind, btst.DIAMS.DIDD.85)
-# 
-# btst.DIAMS.nomort.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
-# btst.DIAMS.nomort.85.df <- do.call(rbind, btst.DIAMS.nomort.85)
-# 
-# btst.DIAMS.DDonly.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
-# btst.DIAMS.DDonly.85.df <- do.call(rbind, btst.DIAMS.DDonly.85)
-# 
-# btst.DIAMS.DIonly.85<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
-# btst.DIAMS.DIonly.85.df <- do.call(rbind, btst.DIAMS.DIonly.85)
-# 
+btst.DIAMS.DIDD.45 <- lapply(unique(plotnos.DIDD.45), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
+btst.DIAMS.DIDD.45.df <- do.call(rbind, btst.DIAMS.DIDD.45)
+
+btst.DIAMS.nomort.45<- lapply(unique(plotnos.nomort.45), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
+btst.DIAMS.nomort.45.df <- do.call(rbind, btst.DIAMS.nomort.45)
+
+btst.DIAMS.DDonly.45<- lapply(unique(plotnos.DDonly.45), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
+btst.DIAMS.DDonly.45.df <- do.call(rbind, btst.DIAMS.DDonly.45)
+
+btst.DIAMS.DIonly.45<- lapply(unique(plotnos.DIonly.45), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
+btst.DIAMS.DIonly.45.df <- do.call(rbind, btst.DIAMS.DIonly.45)
+
+
+rcp45.DIAMS <-  rbind(btst.DIAMS.DIDD.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.nomort.45.df)
+saveRDS(rcp45.DIAMS, "rcp45.btst.DIAMS.RDS")
+
+# RCP 6.0
+btst.DIAMS.DIDD.60 <- lapply(unique(plotnos.DIDD.60), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
+btst.DIAMS.DIDD.60.df <- do.call(rbind, btst.DIAMS.DIDD.60)
+
+btst.DIAMS.nomort.60<- lapply(unique(plotnos.nomort.60), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
+btst.DIAMS.nomort.60.df <- do.call(rbind, btst.DIAMS.nomort.60)
+
+btst.DIAMS.DDonly.60<- lapply(unique(plotnos.DDonly.60), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
+btst.DIAMS.DDonly.60.df <- do.call(rbind, btst.DIAMS.DDonly.60)
+
+btst.DIAMS.DIonly.60<- lapply(unique(plotnos.DIonly.60), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
+btst.DIAMS.DIonly.60.df <- do.call(rbind, btst.DIAMS.DIonly.60)
+
+rcp60.DIAMS <-  rbind(btst.DIAMS.DIDD.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.nomort.60.df)
+saveRDS(rcp60.DIAMS, "rcp60.btst.DIAMS.RDS")
+
+# RCP 8.5
+btst.DIAMS.DIDD.85 <- lapply(unique(plotnos.DIDD.85), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
+btst.DIAMS.DIDD.85.df <- do.call(rbind, btst.DIAMS.DIDD.85)
+
+btst.DIAMS.nomort.85<- lapply(unique(plotnos.nomort.85), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
+btst.DIAMS.nomort.85.df <- do.call(rbind, btst.DIAMS.nomort.85)
+
+btst.DIAMS.DDonly.85<- lapply(unique(plotnos.DDonly.85), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
+btst.DIAMS.DDonly.85.df <- do.call(rbind, btst.DIAMS.DDonly.85)
+
+btst.DIAMS.DIonly.85<- lapply(unique(plotnos.DIonly.85), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
+btst.DIAMS.DIonly.85.df <- do.call(rbind, btst.DIAMS.DIonly.85)
+
+rcp85.DIAMS <-  rbind(btst.DIAMS.DIDD.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.nomort.85.df)
+saveRDS(rcp85.DIAMS, "rcp85.btst.DIAMS.RDS")
 # # no climate change scenario:
 # # read in and get the tree level estimates
 # # RCP 2.6
-# btst.DIAMS.DIDD.nocc <- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
-# btst.DIAMS.DIDD.nocc.df <- do.call(rbind, btst.DIAMS.DIDD.nocc)
-# btst.DIAMS.DIDD.nocc.df
-# 
-# btst.DIAMS.nomort.nocc<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", nocc = TRUE)})
-# btst.DIAMS.nomort.nocc.df <- do.call(rbind, btst.DIAMS.nomort.nocc)
-# 
-# btst.DIAMS.DDonly.nocc<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", nocc = TRUE)})
-# btst.DIAMS.DDonly.nocc.df <- do.call(rbind, btst.DIAMS.DDonly.nocc)
-# 
-# btst.DIAMS.DIonly.nocc<- lapply(unique(plotnos)[1:151], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", nocc = TRUE)})
-# btst.DIAMS.DIonly.nocc.df <- do.call(rbind, btst.DIAMS.DIonly.nocc)
+btst.DIAMS.DIDD.nocc <- lapply(unique(plotnos.DIDD.nocc), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
+btst.DIAMS.DIDD.nocc.df <- do.call(rbind, btst.DIAMS.DIDD.nocc)
+#btst.DIAMS.DIDD.nocc.df
+
+idx.plt <- !unique(plotnos.nomort.nocc) %in% "2533786010690"
+
+btst.DIAMS.nomort.nocc<- lapply(unique(plotnos.nomort.nocc)[idx.plt], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", nocc = TRUE)})
+btst.DIAMS.nomort.nocc.df <- do.call(rbind, btst.DIAMS.nomort.nocc)
+
+btst.DIAMS.DDonly.nocc<- lapply(unique(plotnos.DDonly.nocc), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", nocc = TRUE)})
+btst.DIAMS.DDonly.nocc.df <- do.call(rbind, btst.DIAMS.DDonly.nocc)
+
+btst.DIAMS.DIonly.nocc<- lapply(unique(plotnos.DIonly.nocc), FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", nocc = TRUE)})
+btst.DIAMS.DIonly.nocc.df <- do.call(rbind, btst.DIAMS.DIonly.nocc)
 # 
 # 
 # 
@@ -1142,32 +1236,46 @@ btst.DIAMS.nomort.26<- lapply(unique(plotnos), FUN = function(x){get_tree_diam_l
 # ggplot(filtered.test, aes(x = time, y = DBH, group = tree, color = df))+geom_point()
 # 
 # # combine all the tree-level datasets together:
-# allplots.treeDIAM <- rbind(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df, 
-#                         btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
-#                         btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df, 
-#                         btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df, 
-#                         btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
-# 
-# saveRDS(allplots.treeDIAM, "outputs/allplots.treeDiam.forecast.RDS")
-# rm(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df, 
-#    btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
-#    btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df, 
-#    btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df, 
-#    btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
-# rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIAMS.DIDD.26 , 
-#    btst.DIAMS.nomort.45 , btst.DIAMS.DIonly.45 , btst.DIAMS.DDonly.45 , btst.DIAMS.DIDD.45 ,
-#    btst.DIAMS.nomort.60 , btst.DIAMS.DIonly.60 , btst.DIAMS.DDonly.60 , btst.DIAMS.DIDD.60 , 
-#    btst.DIAMS.nomort.85 , btst.DIAMS.DIonly.85 , btst.DIAMS.DDonly.85 , btst.DIAMS.DIDD.85 , 
-#    btst.DIAMS.nomort.nocc , btst.DIAMS.DIonly.nocc , btst.DIAMS.DDonly.nocc , btst.DIAMS.DIDD.nocc )
-# #
-# #
+allplots.treeDIAM <- rbind(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df,
+                        btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
+                        btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df,
+                        btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df) #,
+                        #btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
+nocc.allplots.treeeDIAM <- rbind(btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
+saveRDS(nocc.allplots.treeeDIAM, "outputs/allplots.treeDiam.forecast.nocc.RDS")
+
+saveRDS(allplots.treeDIAM, "outputs/allplots.treeDiam.forecast.RDS")
+
+
+rm(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df,
+   btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
+   btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df,
+   btst.DIAMS.nomort.85.df, btst.DIAMS.DIonly.85.df, btst.DIAMS.DDonly.85.df, btst.DIAMS.DIDD.85.df) #,
+   #btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
+rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIAMS.DIDD.26 ,
+   btst.DIAMS.nomort.45 , btst.DIAMS.DIonly.45 , btst.DIAMS.DDonly.45 , btst.DIAMS.DIDD.45 ,
+   btst.DIAMS.nomort.60 , btst.DIAMS.DIonly.60 , btst.DIAMS.DDonly.60 , btst.DIAMS.DIDD.60 ,
+   btst.DIAMS.nomort.85 , btst.DIAMS.DIonly.85 , btst.DIAMS.DDonly.85 , btst.DIAMS.DIDD.85) #,
+   #btst.DIAMS.nomort.nocc , btst.DIAMS.DIonly.nocc , btst.DIAMS.DDonly.nocc , btst.DIAMS.DIDD.nocc )
+#
+#
 
 # since we have the data on more for DDID and rcp26:
+rcp26.DIAMS<- readRDS("rcp26.btst.DIAMS.RDS")
+rcp45.DIAMS<- readRDS("rcp45.btst.DIAMS.RDS")
+rcp60.DIAMS<- readRDS("rcp60.btst.DIAMS.RDS")
+rcp85.DIAMS<- readRDS("rcp85.btst.DIAMS.RDS")
+nocc.allplots.treeeDIAM <- readRDS("outputs/allplots.treeDiam.forecast.nocc.RDS")
 
-allplots.treeDIAM <- rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.nomort.26.df)
-saveRDS(allplots.treeDIAM, "allplots.treeDIAM.26.tempfile.RDS")
+allplots.treeDIAM <- rbind(rcp26.DIAMS, rcp45.DIAMS, rcp60.DIAMS, rcp85.DIAMS, nocc.allplots.treeeDIAM)
+saveRDS(allplots.treeDIAM, "allplots.treeDIAM.allrcp.tempfile.RDS")
+allplots.treeDIAMsubset <- readRDS( "allplots.treeDIAM.allrcp.tempfile.RDS")
+
+rm(rcp26.DIAMS, rcp45.DIAMS, rcp60.DIAMS, rcp85.DIAMS) # remove to save on space
+
 # this gets rid of trees labeled as dead in the live df and vice versa
-allplots.treeDIAMsubset <- allplots.treeDIAM #%>% filter(status == df)
+#allplots.treeDIAMsubset <- allplots.treeDIAM #%>% filter(status == df)
+rm(allplots.treeDIAM)
 
 region.ndead <- allplots.treeDIAMsubset %>% group_by(df,  mort.scheme, scenario, time) %>% summarise(ntree = sum(TPA))
 ggplot(region.ndead, aes(x = time, y = ntree, color = df))+geom_point()+facet_wrap(~mort.scheme)
@@ -1194,13 +1302,14 @@ all.trees.2001.2010 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.schem
   summarise(ntree = sum(TPA))%>%ungroup()  %>% 
   group_by(plot, mort.scheme, scenario, time) %>% spread(df, value = ntree)%>% group_by(plot, mort.scheme, scenario, time) %>% 
   mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)))# gets # dead for each plot in each year
-
+saveRDS(all.trees.2001.2010, "all.trees.2001.2010.rds")
+all.trees.2001.2010 <- readRDS("all.trees.2001.2010.rds")
 
 all.trees.2011.2020 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time) %>% filter(time %in% 11:20)%>%
   summarise(ntree = sum(TPA))%>%ungroup()  %>% 
   group_by(plot, mort.scheme, scenario, time) %>% spread(df, value = ntree)%>% group_by(plot, mort.scheme, scenario, time) %>% 
   mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)))# gets # dead for each plot in each year
-
+saveRDS(all.trees.2011.2020, "all.trees.2011.2020.rds")
 # calculate mortality rate for each plot, but wait to join with another variable
 # for the first time period mortality rate is just the proportion at time 10
 plot.mort.rate.2001.2010 <- all.trees.2001.2010 %>% group_by(plot, mort.scheme, scenario) %>% filter(time == 10)%>% mutate(mortality.rate = prop.dead/10) %>% dplyr::select(-time)
@@ -1238,6 +1347,7 @@ SUBPLOT <- fiadb$SUBPLOT
 STATECD <- fiadb$STATECD
 COND <- fiadb$COND
 TREE <- fiadb$TREE
+rm(fiadb)
 
 # get the previous survey for each tree: 
 TREE_remeas <- subset(TREE, !is.na(PREVDIA))
@@ -1341,28 +1451,61 @@ allplots.treeDIAMsubset <- allplots.treeDIAMsubset %>% mutate(SDIbin=cut(SDIs_st
 allplots.treeDIAMsubset$DIA <- allplots.treeDIAMsubset$DBH/2.54
 allplots.treeDIAMsubset <- allplots.treeDIAMsubset %>% mutate(DIAbin=cut(DIA, breaks=c(0,5,10, 15,20,25,30,35,40, 45,Inf), labels=c("0-5","5-10","10-15", "15-20", "20-25", "25-30", 
                                                                                                             "30-35", "35-40", "40-45", ">45")))
-prop.dead.2020 <- allplots.treeDIAMsubset %>% group_by(SDIbin, DIAbin, df) %>% filter(time %in% 1:20) %>% summarise(ntree = sum(TPA)) %>% 
-  ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`ntree`, key = df) %>% mutate(prop.dead = `dead`/(`dead`+`live`)) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead),
+prop.dead.2020 <- allplots.treeDIAMsubset %>% group_by(SDIbin, DIAbin, df, mort.scheme, scenario) %>% filter(time %in% 1:20) %>% summarise(ntree = sum(TPA)) %>% 
+  ungroup() %>% group_by (SDIbin, DIAbin, mort.scheme, scenario) %>% spread(`ntree`, key = df) %>% mutate(prop.dead = `dead`/(`dead`+`live`)) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead),
                                                                                                                            mort.rate = prop.dead/20)
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/scatter_mort_rate_by_dia_sdi_lines_forecast_26_DDID.png")
+prop.dead.2020$total = prop.dead.2020$dead + prop.dead.2020$live
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/scatter_mort_rate_by_dia_sdi_lines_forecast_all.png")
 ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = mort.rate, color = SDIbin, group = SDIbin))+
-  geom_point()+geom_line()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+  geom_point()+geom_line()+theme_bw()+ylab("mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_mort_rate_by_dia_forecast_26_DDID.png")
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/scatter_total_by_dia_sdi_lines_forecast_all.png")
+ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = total, color = SDIbin, group = SDIbin))+
+  geom_point()+geom_line()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_totals_rate_by_dia_forecast_all.png")
+ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = total, x = DIAbin))+
+  geom_boxplot()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_mort_rate_by_dia_forecast_all.png")
 ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = mort.rate, x = DIAbin))+
-  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
+  geom_boxplot()+theme_bw()+ylab("mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/boxplot_mort_rate_by_sdi_forecast_26_DDID.png")
+png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_mort_rate_by_sdi_forecast_all.png")
 ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = mort.rate, x = SDIbin))+
-  geom_boxplot()+theme_bw()+ylab("proportion of trees dead")+xlab("SDI Class")+theme(panel.grid = element_blank())
+  geom_boxplot()+theme_bw()+ylab("mortality rate")+xlab("SDI Class")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
-png(height = 4, width = 6, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast_26_DDID.png")
+png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_total_by_sdi_forecast_all.png")
+ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = total, x = SDIbin))+
+  geom_boxplot()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("SDI Class")+theme(panel.grid = element_blank())+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast_all.png")
 ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = mort.rate))+
-  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
+  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+dev.off()
+
+png(height = 10, width = 10, units = "in", res = 150, "outputs/tile_total_by_dia_sdi_forecast_all.png")
+ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = total))+
+  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 dev.off()
 
@@ -1487,8 +1630,10 @@ dev.off()
 # get torching and crowning indices from the diameter distributions
 #------------------------------------------------------------------------------------
 # get the aboveground woody biomass component:
-all.woody.agb.26 <- all.AGB.26 %>% group_by(plot, mort.scheme, rcp, year) %>% #select(mAGB.stemwood, mAGB.stembark, mAGB.branchdead, mAGB.branchlive) %>%
-  summarise(woody.biomass = mAGB.stemwood + mAGB.stembark + mAGB.branchdead + mAGB.branchlive)
+all10plot.nocc<- readRDS("all.AGB.10.26.22tempfile.RDS")
+all.woody.agb.26 <- all10plot.nocc %>% group_by(plot, mort.scheme, rcp, year) %>% #select(mAGB.stemwood, mAGB.stembark, mAGB.branchdead, mAGB.branchlive) %>%
+  summarise(woody.biomass = mAGB.stemwood + mAGB.stembark + mAGB.branchlive, 
+            dead = mAGB.dead)
 time.df <- data.frame(year = unique(all.woody.agb.26$year),
            time = 1:length(unique(all.woody.agb.26$year)))
 
@@ -1496,7 +1641,7 @@ colnames(all.woody.agb.26)[3] <- "scenario"
 
 all.woody.agb.26 <- left_join(all.woody.agb.26, time.df)
 
-
+unique(all.woody.agb.26$scenario)
 
 # to estimate ht from DIameters, generate a simple relationship:
 pipo.tree <- TREE %>% filter(SPCD %in% "122")
@@ -1506,26 +1651,40 @@ summary(glm.ht.dia)
 
 glm.ht.dia$coefficients
 
-
+rm(fiadb)
 # get the diameter distributions of each plot
-forecast.plt <- allplots.treeDIAMsubset #%>% filter(plot %in% plt)
+forecast.plt  <- readRDS("allplots.treeDIAM.allrcp.tempfile.RDS")
+#forecast.plt <- allplots.treeDIAM
+rm(allplots.treeDIAM)
+#forecast.plt <- allplots.treeDIAMsubset #%>% filter(plot %in% plt)
 
 forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
-forecast.plt$BA <- (pi*(forecast.plt$DBH/2)^2)/10000 # should be in m2
-forecast.plt$HT <- forecast.plt$DIA*glm.ht.dia$coefficients[2] + glm.ht.dia$coefficients[1]
-forecast.plt$HT_m <- forecast.plt$HT/3.281
+forecast.plt$BA <- ((pi*(forecast.plt$DBH/2)^2)*forecast.plt$TPH)*(1/10000) # convert from sq cm to sq m and multiply by # trees/ha # tree BAshould be in m2/ha
+forecast.plt$HT <- (forecast.plt$DBH/2.54)*glm.ht.dia$coefficients[2] + glm.ht.dia$coefficients[1]
+forecast.plt$HT_m <- forecast.plt$HT*0.304
+forecast.plt$HT_m <- ifelse(forecast.plt$HT_m > 62, 62, forecast.plt$HT_m)
 
-plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>%group_by (plot, mort.scheme, scenario, time) %>% summarise(ba = sum(BA, na.rm =TRUE), 
-                                                                                                                            ht = mean(HT_m, na.rm = TRUE), 
-                                                                                                                            tph = sum(TPH, na.rm = TRUE))
+# select some years to assess fire risk in:
+# lets say year 1 (2002), 24 (2025), 49 2050, 74, 97 2098
+plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>% filter(time %in% c(1, 24, 49,74,97))%>% 
+  group_by (plot, mort.scheme, scenario, time) %>% summarise(ba = sum(BA, na.rm =TRUE), 
+                                                             ht = mean(HT_m, na.rm = TRUE), 
+                                                             tph = sum(TPH, na.rm = TRUE))
+plt.characteristics.all$ba <- ifelse(plt.characteristics.all$ba >= quantile(plt.characteristics.all$ba, 0.975),quantile(plt.characteristics.all$ba, 0.975), plt.characteristics.all$ba)
+ 
+all.woody.agb.26 <- all.woody.agb.26 %>%  filter(time %in% c(1, 24, 49,74,97))
 
-#library(firebehavioR)
+summary(all.woody.agb.26$woody.biomass*0.001)
+summary(all.woody.agb.26$dead*0.001)
+summary(plt.characteristics.all$ba)
+
+library(firebehavioR)
 data(fuelModels, fuelMoisture)
 exampSurfFuel = fuelModels['TU1',]
 
 fuelMoisture['D1L1',]
 
-exampFuelMoisture = fuelMoisture['D2L2',]
+exampFuelMoisture = fuelMoisture['D1L1',]
 
 # naw.az <- terra::rast("nawfd_arizona.tif")
 # plot(naw.az)
@@ -1575,7 +1734,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   
   exampCrownFuel = data.frame(
     CBD = plt.CrownFuel[,"cbd"], # Canopy bulk density
-    FMC = rep(100,length(plt.CrownFuel[,"cbd"])),  # foliar moisture content..assuming 100%?
+    FMC = rep(80,length(plt.CrownFuel[,"cbd"])),  # foliar moisture content..assuming 100%?
     CBH = plt.CrownFuel[,"cbh"], # Canopy base height
     CFL = plt.CrownFuel[,"cfl"] # canopy fuel load
   )
@@ -1586,15 +1745,18 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   #all.woody.agb.26  %>% filter(plot %in% plt)
   repno <- length(plt.characteristics$woody.biomass)
   
-  exampSurfFuel = fuelModels['SH2',]
+  exampSurfFuel = fuelModels['TU5',]
   
   pipoSurfFuel <- data.frame(fuelModelType = rep("S", repno),
                             loadLitter = rep( pipo.fuels$fl_litter_mg_p_ha_mean, repno),
-                            load1hr = rep( pipo.fuels$fl_1hr_mg_p_ha_mean, repno),
-                            load10hr = rep( pipo.fuels$fl_10hr_mg_p_ha_mean, repno),
-                            load100hr = rep( pipo.fuels$fl_100hr_mg_p_ha_mean, repno),
+                            load1hr = ifelse(plt.characteristics$dead*0.001 ==0 |
+                                               is.na(plt.characteristics$dead), pipo.fuels$fl_1hr_mg_p_ha_q25, ((plt.characteristics$dead*0.001))*0.10),
+                            load10hr = ifelse(plt.characteristics$dead*0.001 == 0|
+                                                is.na(plt.characteristics$dead),  pipo.fuels$fl_10hr_mg_p_ha_q25, ((plt.characteristics$dead*0.001))*0.30),
+                            load100hr = ifelse(plt.characteristics$dead*0.001 == 0|
+                                                 is.na(plt.characteristics$dead),   pipo.fuels$fl_100hr_mg_p_ha_q25,((plt.characteristics$dead*0.001))*0.30),
                             loadLiveHerb = rep( pipo.fuels$fl_herb_mg_p_ha_mean, repno), 
-                            loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, plt.characteristics$woody.biomass*0.001 ), # convert kg/ha to Mg/ha
+                            loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, (plt.characteristics$woody.biomass*0.001)), # convert kg/acre to Mg/ha
                             savLitter = rep( exampSurfFuel$savLitter, repno),   
                             sav1hr = rep( exampSurfFuel$sav1hr, repno),   
                             sav10hr = rep( exampSurfFuel$sav10hr, repno),   
@@ -1608,6 +1770,12 @@ get_torch_crown_indices_FORECASTS <- function(plt){
                             description = rep( exampSurfFuel$description, repno), 
                             source = rep( exampSurfFuel$source, repno))
 
+  
+  pipoSurfFuel$load1hr <-ifelse(pipoSurfFuel$load1hr > pipo.fuels$fl_1hr_mg_p_ha_max, pipo.fuels$fl_1hr_mg_p_ha_max, pipoSurfFuel$load1hr)
+  pipoSurfFuel$load10hr <-ifelse(pipoSurfFuel$load10hr > pipo.fuels$fl_10hr_mg_p_ha_max, pipo.fuels$fl_10hr_mg_p_ha_max, pipoSurfFuel$load10hr)
+  pipoSurfFuel$load100hr <-ifelse(pipoSurfFuel$load100hr > pipo.fuels$fl_100hr_mg_p_ha_max, pipo.fuels$fl_100hr_mg_p_ha_max, pipoSurfFuel$load100hr)
+  
+  
   # assume very dry dead fuel loads:
   #fuelMoisture['D1L1',]
   
@@ -1615,7 +1783,14 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   # get slope from COND data
   #ex.plot.data <-PLOT %>% filter(CN %in% "2447353010690") 
   ex.COND.data <-COND %>% filter(PLT_CN %in% plt) 
-  
+  if(nrow(ex.COND.data)==0){
+    exampEnviro = data.frame(
+      slope = 0,
+      windspeed = 35, # windspeed (at 10m, open)
+      direction = 35, # direction of wind, from uphill
+      waf = 0.2 # Wind adjustment factor
+    )
+  }else{
   
   exampEnviro = data.frame(
     slope = ex.COND.data$SLOPE,
@@ -1623,7 +1798,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
     direction = 0, # direction of wind, from uphill
     waf = 0.2 # Wind adjustment factor
   )
-  
+  }
   
   # now lets calculate the TI and CI
   #plt.CrownFuel <- matrix(NA, nrow = length(plt.characteristics$plot), ncol = 3)
@@ -1642,10 +1817,23 @@ get_torch_crown_indices_FORECASTS <- function(plt){
     
     TI.CI.list[[i]] <- data.frame(TI =  ex.2[[i]]$fireBehavior$`Torching Index [m/min]`, 
                            CI =  ex.2[[i]]$fireBehavior$`Crowning Index [km/hr]`, 
+                           TI_km_hr =  (ex.2[[i]]$fireBehavior$`Torching Index [m/min]`*0.001)*60,
+                           TI_km_hr_trunc =  ifelse((ex.2[[i]]$fireBehavior$`Torching Index [m/min]`*0.001)*60 >= 200, 200, (ex.2[[i]]$fireBehavior$`Torching Index [m/min]`*0.001)*60),
+                           CI_km_hr_trunc =  ifelse(ex.2[[i]]$fireBehavior$`Crowning Index [km/hr]` >= 200, 200, ex.2[[i]]$fireBehavior$`Crowning Index [km/hr]`),
+                           
                            PLT_CN = plt, 
                            mort.scheme = plt.characteristics[i,]$mort.scheme, 
                            scenario = plt.characteristics[i,]$scenario, 
-                           time= plt.characteristics[i,]$time)
+                           time= plt.characteristics[i,]$time, 
+                           CBD = exampCrownFuel[i,"CBD"], 
+                           CFL = exampCrownFuel[i,"CFL"], 
+                           tph = plt.characteristics[i,]$tph,
+                           ht = plt.characteristics[i,]$ht,
+                           ba = plt.characteristics[i,]$ba,
+                           AGB.live = pipoSurfFuel[i,"loadLiveWoody"], 
+                           load1hr = pipoSurfFuel[i,"load1hr"], 
+                           load10hr = pipoSurfFuel[i,"load10hr"], 
+                           load100hr = pipoSurfFuel[i,"load100hr"])
     
   }
   #ex.2 = rothermel(exampSurfFuel, exampFuelMoisture, exampCrownFuel, exampEnviro)
@@ -1658,47 +1846,110 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   TI.CI.df <- do.call(rbind, TI.CI.list)
   TI.CI.df
 }
-plt <- plotnos[1]
-a <- get_torch_crown_indices_FORECASTS(plotnos[1])
-a
 
-ggplot(a, aes(time, TI))+geom_point()+facet_wrap(~mort.scheme)
+a3 <- get_torch_crown_indices_FORECASTS(plt = plotnos.DDonly.26[1])
+a3
+summary(a3$TI_km_hr_trunc)
+summary(a3$TI)
+a3 %>% filter(scenario %in% "nocc.rcp26")
+ggplot(a3, aes(time, TI_km_hr, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+
+ggplot(a3, aes(AGB.live, TI_km_hr_trunc, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+ggplot(a3, aes(load100hr, TI_km_hr_trunc, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+
+
+ggplot(a3, aes(time, CI_km_hr_trunc, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+ggplot(a3, aes(AGB.live, CI_km_hr_trunc, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+ggplot(a3, aes(load100hr, CI_km_hr_trunc, color = scenario))+geom_point()+facet_wrap(~mort.scheme)
+
 # get it for all the plotnos:
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
+plotnos.DDonly.26
+
 TI.CI.list <- list()
 
-for(i in 1:length(unique(plotnos))){
-#  for(i in 1:10){
-TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos)[i])
+for(i in 1:length(unique(plotnos.DDonly.26))){
+#for(i in 1:10){
+  #  for(i in 1:10){
+TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(unique(plotnos.DDonly.26)[i])
 }
-
+plt <- unique(plotnos.DDonly.26)[i]
+#67
 # note to speed this up we could do the summarise onces on all the plots, then feed that df and just filter to get the plot number in the function?
 
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
-unique(TI.CI.FORECASTS$PLT_CN)
-# lets join plot these over time for each plot:
+#TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-ggplot(TI.CI.FORECASTS, aes(x = time, y = TI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba.rds")
+
+summary(TI.CI.FORECASTS$load1hr)
+summary(TI.CI.FORECASTS$AGB.live)
+
+
+# define high low hazards--using how its defined here: https://www.fs.usda.gov/rm/pubs/rmrs_p029/rmrs_p029_039_048.pdf
+# High-hazard forest conditions were defined as
+# having a crowning index less than 25 mph, moderate hazard from 25 to 50
+# mph, and low hazard greater than 50 mph.
+high.crown.haz <- 25*1.60934
+low.crown.haz <- 50*1.60934
+
+TI.CI.FORECASTS$crown_hazard <- ifelse(TI.CI.FORECASTS$CI_km_hr_trunc <= high.crown.haz, "high fire hazard",
+                                       ifelse(TI.CI.FORECASTS$CI_km_hr_trunc > high.crown.haz & TI.CI.FORECASTS$CI_km_hr_trunc <= low.crown.haz, "moderate fire hazard", "low fire hazard"))
+
+crown_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, time) %>% mutate(total.plts = n()) %>% ungroup() %>%
+  group_by(crown_hazard, scenario, mort.scheme, time) %>% summarise(nplots = n(), 
+                                                                    pct.plts = (nplots/total.plts)*100)
+
+crown_hazard.summary$crown_hazard <- factor(crown_hazard.summary$crown_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
+
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_pct_plts_4years.png")
+ggplot()+geom_bar(data = na.omit(crown_hazard.summary), aes(x = time, y = pct.plts, fill = crown_hazard), position="fill", stat="identity")+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "crown hazard")+
+  theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
+dev.off()
+
+
+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = TI_km_hr_trunc, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
   theme(legend.position = "none")
 
 ggplot(TI.CI.FORECASTS, aes(x = time, y = CI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
   theme(legend.position = "none")
 
 # note that TI is in m/min and CI is in km/hr
-ggplot(TI.CI.FORECASTS, aes(x = TI))+geom_histogram()+facet_wrap(~mort.scheme)+
+ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_wrap(~mort.scheme)+
   theme(legend.position = "none")
 
-ggplot(TI.CI.FORECASTS, aes(x = CI))+geom_histogram()+facet_wrap(~mort.scheme)+
-  theme(legend.position = "none")
 
-TI.CI.summary <- TI.CI.FORECASTS %>% group_by(mort.scheme, scenario, PLT_CN) %>% summarise(TI.mean = mean(TI), 
-                                                                          TI.97.5 =quantile(TI, 0.975), 
-                                                                          TI.02.5 = quantile(TI, 0.025), 
+
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists.png")
+ggplot(TI.CI.FORECASTS, aes(x = CI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+
+  theme(legend.position = "none")+geom_vline(aes(xintercept = c(high.crown.haz)))+geom_vline(aes(xintercept = c(low.crown.haz)))
+dev.off()
+
+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = CI_km_hr_trunc, group = scenario, fill = scenario))+geom_boxplot()+facet_wrap(~mort.scheme, ncol = 4)+
+  theme(legend.position = "none")+ylim(0,100)
+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = (TI/1000)*60, group = scenario, fill = scenario))+geom_boxplot()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")+ylim(0,100000)
+
+
+TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
+
+
+
+TI.CI.summary <- TI.CI.FORECASTS %>% group_by(mort.scheme, scenario, PLT_CN) %>% summarise(TI.mean = mean(TI, na.rm = TRUE), 
+                                                                          TI.97.5 =quantile(TI, 0.975, na.rm = TRUE), 
+                                                                          TI.02.5 = quantile(TI, 0.025, na.rm = TRUE), 
                                                                           
-                                                                          CI.mean = mean(CI), 
-                                                                          CI.97.5 =quantile(CI, 0.975), 
-                                                                          CI.02.5 = quantile(CI, 0.025))
+                                                                          CI.mean = mean(CI, na.rm = TRUE), 
+                                                                          CI.97.5 =quantile(CI, 0.975, na.rm = TRUE), 
+                                                                          CI.02.5 = quantile(CI, 0.025, na.rm = TRUE))
+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = (TI/1000)*60, group = scenario, fill = scenario))+geom_boxplot()+facet_wrap(~mort.scheme)+
+  theme(legend.position = "none")+ylim(0,100000)
 
 
 # are the values are reasonable ?
