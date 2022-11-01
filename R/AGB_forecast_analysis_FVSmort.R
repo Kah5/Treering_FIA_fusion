@@ -1642,6 +1642,7 @@ colnames(all.woody.agb.26)[3] <- "scenario"
 all.woody.agb.26 <- left_join(all.woody.agb.26, time.df)
 
 unique(all.woody.agb.26$scenario)
+rm(all10plot.nocc)
 
 # to estimate ht from DIameters, generate a simple relationship:
 pipo.tree <- TREE %>% filter(SPCD %in% "122")
@@ -1656,6 +1657,10 @@ rm(fiadb)
 forecast.plt  <- readRDS("allplots.treeDIAM.allrcp.tempfile.RDS")
 #forecast.plt <- allplots.treeDIAM
 rm(allplots.treeDIAM)
+rm(SUBPLOT)
+rm(TREE_remeas)
+rm(NPP.line)
+rm(allplots.treeDIAMsubset)
 #forecast.plt <- allplots.treeDIAMsubset #%>% filter(plot %in% plt)
 
 forecast.plt$TPH <- forecast.plt$TPA*(1/0.404686)
@@ -1673,8 +1678,11 @@ plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>% filter(tim
 plt.characteristics.all$ba <- ifelse(plt.characteristics.all$ba >= quantile(plt.characteristics.all$ba, 0.975),quantile(plt.characteristics.all$ba, 0.975), plt.characteristics.all$ba)
  
 all.woody.agb.26 <- all.woody.agb.26 %>%  filter(time %in% c(1, 24, 49,74,97))
+all.woody.agb.26$woody.biomass <- ifelse(all.woody.agb.26$woody.biomass >= quantile(all.woody.agb.26$woody.biomass, c(0.999)), quantile(all.woody.agb.26$woody.biomass, c(0.999)), all.woody.agb.26$woody.biomass)
+all.woody.agb.26$dead <- ifelse(all.woody.agb.26$dead >= quantile(all.woody.agb.26$dead, c(0.999)), quantile(all.woody.agb.26$dead, c(0.999)), all.woody.agb.26$dead)
 
-summary(all.woody.agb.26$woody.biomass*0.001)
+
+summary(all.woody.agb.26$woody.biomass/1000)
 summary(all.woody.agb.26$dead*0.001)
 summary(plt.characteristics.all$ba)
 
@@ -1748,7 +1756,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   exampSurfFuel = fuelModels['TU5',]
   
   pipoSurfFuel <- data.frame(fuelModelType = rep("S", repno),
-                            loadLitter = rep( pipo.fuels$fl_litter_mg_p_ha_mean, repno),
+                            loadLitter = rep( pipo.fuels$fl_litter_mg_p_ha_q50, repno),
                             load1hr = ifelse(plt.characteristics$dead*0.001 ==0 |
                                                is.na(plt.characteristics$dead), pipo.fuels$fl_1hr_mg_p_ha_q25, ((plt.characteristics$dead*0.001))*0.10),
                             load10hr = ifelse(plt.characteristics$dead*0.001 == 0|
@@ -1756,7 +1764,8 @@ get_torch_crown_indices_FORECASTS <- function(plt){
                             load100hr = ifelse(plt.characteristics$dead*0.001 == 0|
                                                  is.na(plt.characteristics$dead),   pipo.fuels$fl_100hr_mg_p_ha_q25,((plt.characteristics$dead*0.001))*0.30),
                             loadLiveHerb = rep( pipo.fuels$fl_herb_mg_p_ha_mean, repno), 
-                            loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, (plt.characteristics$woody.biomass*0.001)), # convert kg/acre to Mg/ha
+                            loadLiveWoody = rep( pipo.fuels$fl_shrub_mg_p_ha_mean, repno), 
+                            #loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, (plt.characteristics$woody.biomass*0.001)), # convert kg/acre to Mg/ha
                             savLitter = rep( exampSurfFuel$savLitter, repno),   
                             sav1hr = rep( exampSurfFuel$sav1hr, repno),   
                             sav10hr = rep( exampSurfFuel$sav10hr, repno),   
@@ -1783,20 +1792,25 @@ get_torch_crown_indices_FORECASTS <- function(plt){
   # get slope from COND data
   #ex.plot.data <-PLOT %>% filter(CN %in% "2447353010690") 
   ex.COND.data <-COND %>% filter(PLT_CN %in% plt) 
+  waffull <- vector()
+  for(i in 1:length(plt.characteristics$ht)){
+    waffull[i] <- waf(pipo.fuels$fl_duff_mg_p_ha_mean, plt.characteristics[i,]$ht, sheltered = "y")
+  }
+    
   if(nrow(ex.COND.data)==0){
     exampEnviro = data.frame(
-      slope = 0,
-      windspeed = 35, # windspeed (at 10m, open)
-      direction = 35, # direction of wind, from uphill
-      waf = 0.2 # Wind adjustment factor
+      slope = rep(0, length(plt.characteristics$ht)),
+      windspeed = rep(40, length(plt.characteristics$ht)), # windspeed (at 10m, open)
+      direction = rep(0,length(plt.characteristics$ht)), # direction of wind, from uphill
+      waf = waffull # Wind adjustment factor
     )
   }else{
   
   exampEnviro = data.frame(
-    slope = ex.COND.data$SLOPE,
-    windspeed = 40, # windspeed (at 10m, open)
-    direction = 0, # direction of wind, from uphill
-    waf = 0.2 # Wind adjustment factor
+    slope = rep(ex.COND.data$SLOPE, length(plt.characteristics$ht)),
+    windspeed = rep(40, length(plt.characteristics$ht)), # windspeed (at 10m, open)
+    direction = rep(0,length(plt.characteristics$ht)), # direction of wind, from uphill
+    waf = waffull # Wind adjustment factor
   )
   }
   
@@ -1812,7 +1826,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
     }else{
       
       #surfFuel, moisture, crownFuel, enviro, rosMult = 1, cfbForm = "f", folMoist = "y"
-    ex.2[[i]] = CI.TI.rothermal(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro, rosMult = 1, cfbForm = "f", folMoist = "y")
+    ex.2[[i]] = CI.TI.rothermal(surfFuel = pipoSurfFuel[i,], moisture = exampFuelMoisture, crownFuel= exampCrownFuel[i,], enviro = exampEnviro[i,], rosMult = 1, cfbForm = "f", folMoist = "y")
     }
     
     TI.CI.list[[i]] <- data.frame(TI =  ex.2[[i]]$fireBehavior$`Torching Index [m/min]`, 
@@ -1865,7 +1879,7 @@ ggplot(a3, aes(load100hr, CI_km_hr_trunc, color = scenario))+geom_point()+facet_
 # get it for all the plotnos:
 # this takes some time on my computer...
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
-plotnos.DDonly.26
+plt <- plotnos.DDonly.26[1]
 
 TI.CI.list <- list()
 
@@ -1881,7 +1895,8 @@ plt <- unique(plotnos.DDonly.26)[i]
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 #TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba.rds")
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_nodynamicwoody.rds")
+TI.CI.FORECASTS <- readRDS( "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_nodynamicwoody.rds")
 
 summary(TI.CI.FORECASTS$load1hr)
 summary(TI.CI.FORECASTS$AGB.live)
@@ -1909,6 +1924,8 @@ ggplot()+geom_bar(data = na.omit(crown_hazard.summary), aes(x = time, y = pct.pl
   theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
 dev.off()
 
+TI.CI.FORECASTS$torch_hazard <- ifelse(TI.CI.FORECASTS$TI_km_hr_trunc <= high.crown.haz, "high fire hazard",
+                                       ifelse(TI.CI.FORECASTS$TI_km_hr_trunc > high.crown.haz & TI.CI.FORECASTS$TI_km_hr_trunc <= low.crown.haz, "moderate fire hazard", "low fire hazard"))
 
 
 ggplot(TI.CI.FORECASTS, aes(x = time, y = TI_km_hr_trunc, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
@@ -1922,12 +1939,22 @@ ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_wrap(~mo
   theme(legend.position = "none")
 
 
+torch_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, time) %>% mutate(total.plts = n()) %>% ungroup() %>%
+  group_by(torch_hazard, scenario, mort.scheme, time) %>% summarise(nplots = n(), 
+                                                                    pct.plts = (nplots/total.plts)*100)
 
-png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists.png")
-ggplot(TI.CI.FORECASTS, aes(x = CI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+
+torch_hazard.summary$torch_hazard <- factor(torch_hazard.summary$torch_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
+
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists_TI.png")
+ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+
   theme(legend.position = "none")+geom_vline(aes(xintercept = c(high.crown.haz)))+geom_vline(aes(xintercept = c(low.crown.haz)))
 dev.off()
 
+png(height = 6, width = 8, units = "in", res = 250, "outputs/torch_fire_hazard_pct_plts_4years.png")
+ggplot()+geom_bar(data = na.omit(torch_hazard.summary), aes(x = time, y = pct.plts, fill = torch_hazard), position="fill", stat="identity")+
+  facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "torch hazard")+
+  theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
+dev.off()
 
 ggplot(TI.CI.FORECASTS, aes(x = time, y = CI_km_hr_trunc, group = scenario, fill = scenario))+geom_boxplot()+facet_wrap(~mort.scheme, ncol = 4)+
   theme(legend.position = "none")+ylim(0,100)
