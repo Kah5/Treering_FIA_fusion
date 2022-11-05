@@ -68,6 +68,7 @@ TREE_remeas$LON <- PLOT$LON[match(TREE_remeas$PLT_CN, PLOT$CN)]
 TREE_remeas$ELEV <- PLOT$ELEV[match(TREE_remeas$PLT_CN, PLOT$CN)]
 TREE_remeas$MEASYEAR <- PLOT$MEASYEAR[match(TREE_remeas$PLT_CN, PLOT$CN)]
 TREE_remeas$PREV_MEASYEAR <- PLOT$MEASYEAR[match(TREE_remeas$PREV_PLT_CN, PLOT$CN)]
+TREE_remeas$TPA_UNADJ_prev <- TREE$TPA_UNADJ[match(TREE_remeas$PREV_TRE_CN, TREE$CN)]
 
 # Calculate census interval
 TREE_remeas$CENSUS_INTERVAL <- TREE_remeas$MEASYEAR - TREE_remeas$PREV_MEASYEAR
@@ -156,16 +157,19 @@ ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" & !
 dev.off()
 # calculate the proportion of dead trees in each sdi and dbh class?
 # this is binned across all the data so not exactly the mortality rate
-prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE) %>% summarise(`n()` = sum(TPA_UNADJ)) %>% 
-  ungroup() %>% group_by ( SDIbin, DIAbin) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/(`0` + `2`)) %>% 
-  mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead), 
-         mortality.rate = prop.dead/10) # assuming a 10 year interval...need to calculate with survey year
+prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE, CENSUS_INTERVAL) %>% summarise(`n()` = sum(TPA_UNADJ_prev, na.rm = TRUE)) %>% 
+  ungroup() %>% group_by ( SDIbin, DIAbin, CENSUS_INTERVAL) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/(`0` + `2`)) %>% 
+  mutate(prop.dead.int = ifelse(is.na(prop.dead), 0, prop.dead), 
+         mortality.rate.int = prop.dead/CENSUS_INTERVAL) %>% ungroup() %>% group_by(SDIbin, DIAbin)%>%
+  summarise(prop.dead = sum(prop.dead.int), 
+            mortality.rate = sum(mortality.rate.int, na.rm = TRUE))# assuming a 10 year interval...need to calculate with survey year
 
 
 hist(prop.dead$prop.dead)
 
+ggplot(TREE_remeas, aes(CENSUS_INTERVAL, TPA_UNADJ_prev))+geom_point()
 
-png(height = 4, width = 6, units = "in", res = 150, "scatter_mort_rate_by_dia_sdi_lines_remeas.png")
+png(height = 4, width = 6, units = "in", res = 150, "scatter_mort_rate_by_dia_sdi_lines_remeas_TPAfixed.png")
 ggplot(prop.dead %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y =mortality.rate, color = SDIbin, group = SDIbin))+
   geom_point()+geom_line()+theme_bw()+ylab("Mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())
 dev.off()

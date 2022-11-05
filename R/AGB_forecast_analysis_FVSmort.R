@@ -1764,8 +1764,8 @@ get_torch_crown_indices_FORECASTS <- function(plt){
                             load100hr = ifelse(plt.characteristics$dead*0.001 == 0|
                                                  is.na(plt.characteristics$dead),   pipo.fuels$fl_100hr_mg_p_ha_q25,((plt.characteristics$dead*0.001))*0.30),
                             loadLiveHerb = rep( pipo.fuels$fl_herb_mg_p_ha_mean, repno), 
-                            loadLiveWoody = rep( pipo.fuels$fl_shrub_mg_p_ha_mean, repno), 
-                            #loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, (plt.characteristics$woody.biomass*0.001)), # convert kg/acre to Mg/ha
+                            #loadLiveWoody = rep( pipo.fuels$fl_shrub_mg_p_ha_mean, repno), 
+                            loadLiveWoody = ifelse(is.na(plt.characteristics$woody.biomass*0.001),0, (plt.characteristics$woody.biomass*0.001)), # convert kg/acre to Mg/ha
                             savLitter = rep( exampSurfFuel$savLitter, repno),   
                             sav1hr = rep( exampSurfFuel$sav1hr, repno),   
                             sav10hr = rep( exampSurfFuel$sav10hr, repno),   
@@ -1780,9 +1780,10 @@ get_torch_crown_indices_FORECASTS <- function(plt){
                             source = rep( exampSurfFuel$source, repno))
 
   
-  pipoSurfFuel$load1hr <-ifelse(pipoSurfFuel$load1hr > pipo.fuels$fl_1hr_mg_p_ha_max, pipo.fuels$fl_1hr_mg_p_ha_max, pipoSurfFuel$load1hr)
-  pipoSurfFuel$load10hr <-ifelse(pipoSurfFuel$load10hr > pipo.fuels$fl_10hr_mg_p_ha_max, pipo.fuels$fl_10hr_mg_p_ha_max, pipoSurfFuel$load10hr)
-  pipoSurfFuel$load100hr <-ifelse(pipoSurfFuel$load100hr > pipo.fuels$fl_100hr_mg_p_ha_max, pipo.fuels$fl_100hr_mg_p_ha_max, pipoSurfFuel$load100hr)
+  pipoSurfFuel$load1hr <- ifelse(pipoSurfFuel$load1hr > pipo.fuels$fl_1hr_mg_p_ha_max, pipo.fuels$fl_1hr_mg_p_ha_max, pipoSurfFuel$load1hr)
+  pipoSurfFuel$load10hr <- ifelse(pipoSurfFuel$load10hr > pipo.fuels$fl_10hr_mg_p_ha_max, pipo.fuels$fl_10hr_mg_p_ha_max, pipoSurfFuel$load10hr)
+  pipoSurfFuel$load100hr <- ifelse(pipoSurfFuel$load100hr > pipo.fuels$fl_100hr_mg_p_ha_max, pipo.fuels$fl_100hr_mg_p_ha_max, pipoSurfFuel$load100hr)
+  pipoSurfFuel$loadLiveWoody <- ifelse(pipoSurfFuel$loadLiveWoody > pipo.fuels$fl_tree_mg_p_ha_max, pipo.fuels$fl_tree_mg_p_ha_max, pipoSurfFuel$loadLiveWoody)
   
   
   # assume very dry dead fuel loads:
@@ -1838,7 +1839,7 @@ get_torch_crown_indices_FORECASTS <- function(plt){
                            PLT_CN = plt, 
                            mort.scheme = plt.characteristics[i,]$mort.scheme, 
                            scenario = plt.characteristics[i,]$scenario, 
-                           time= plt.characteristics[i,]$time, 
+                           time = plt.characteristics[i,]$time, 
                            CBD = exampCrownFuel[i,"CBD"], 
                            CFL = exampCrownFuel[i,"CFL"], 
                            tph = plt.characteristics[i,]$tph,
@@ -1895,8 +1896,8 @@ plt <- unique(plotnos.DDonly.26)[i]
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 #TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_nodynamicwoody.rds")
-TI.CI.FORECASTS <- readRDS( "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_nodynamicwoody.rds")
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_dynamicwoody.rds")
+TI.CI.FORECASTS <- readRDS( "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_dynamicwoody.rds")
 
 summary(TI.CI.FORECASTS$load1hr)
 summary(TI.CI.FORECASTS$AGB.live)
@@ -1918,7 +1919,7 @@ crown_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, tim
 
 crown_hazard.summary$crown_hazard <- factor(crown_hazard.summary$crown_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
 
-png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_pct_plts_4years.png")
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_pct_plts_4years_woodydynamic.png")
 ggplot()+geom_bar(data = na.omit(crown_hazard.summary), aes(x = time, y = pct.plts, fill = crown_hazard), position="fill", stat="identity")+
   facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "crown hazard")+
   theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
@@ -1945,12 +1946,12 @@ torch_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, tim
 
 torch_hazard.summary$torch_hazard <- factor(torch_hazard.summary$torch_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
 
-png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists_TI.png")
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists_TI_woodydynamic.png")
 ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+
   theme(legend.position = "none")+geom_vline(aes(xintercept = c(high.crown.haz)))+geom_vline(aes(xintercept = c(low.crown.haz)))
 dev.off()
 
-png(height = 6, width = 8, units = "in", res = 250, "outputs/torch_fire_hazard_pct_plts_4years.png")
+png(height = 6, width = 8, units = "in", res = 250, "outputs/torch_fire_hazard_pct_plts_4years_woodydynamic.png")
 ggplot()+geom_bar(data = na.omit(torch_hazard.summary), aes(x = time, y = pct.plts, fill = torch_hazard), position="fill", stat="identity")+
   facet_grid(rows = vars(mort.scheme), cols = vars(scenario))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "torch hazard")+
   theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
