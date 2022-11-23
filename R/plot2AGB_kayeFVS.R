@@ -546,7 +546,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".Rdata")))
+       file = file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 

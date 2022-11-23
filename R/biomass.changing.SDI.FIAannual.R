@@ -519,7 +519,7 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
           if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
             #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
             #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-1 # if the three has a high probability of dying, reduce TPA by 1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
             
           }else{
             TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
@@ -580,8 +580,8 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
                 
                 DBH.live  <- DBH[live.trees,]
                 RI <- (1/(1+exp(p0 + p1*DBH.live)))*0.5
-                Y <- 1
-                RIP <- 1-(1-RI)^Y # when Y == 1, RI and RIP are equal
+                Y <- 10
+                RIP <- 1-(1-RI)^(1/Y) # changed from what FVS manual says to margarets eq when Y == 1, RI and RIP are equal
                 Mort.rate <- mean(colSums(RIP)) # total background mortality for the plot
                 
                 BA <- pi*(DBH.live/2)^2
@@ -687,12 +687,12 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
       
       
       # save the plot-level arrays:
-      saveRDS(dbh.pred, paste0("diam_forecastsFIAannual/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".2001.2018.RDS"))
-      saveRDS(dbh.dead, paste0("diam_forecastsFIAannual/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".2001.2018.RDS"))
-      saveRDS(TPAmort, paste0("diam_forecastsFIAannual/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".2001.2018.RDS"))
+      saveRDS(dbh.pred, paste0("diam_forecastsFIAannual/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(dbh.dead, paste0("diam_forecastsFIAannual/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(TPAmort, paste0("diam_forecastsFIAannual/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
       
-      saveRDS(sdi.subp, paste0("diam_forecastsFIAannual/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".SUBP.2001.2018.RDS"))
-      saveRDS(index.df, paste0("diam_forecastsFIAannual/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".2001.2018.RDS"))
+      saveRDS(sdi.subp, paste0("diam_forecastsFIAannual/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(index.df, paste0("diam_forecastsFIAannual/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
       # make a plot of all the DBH forecasts:
       
       dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))

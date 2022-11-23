@@ -454,7 +454,7 @@ pred.obs.mort.plot <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.75){
     # 
    # mort.scheme <- "DIDD"
     scenario <- "rcp26"
-    load(file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".",SDI.ratio.DD,".Rdata")))
+    load(file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".",SDI.ratio.DD,"mort.prob.Rdata")))
     
     #tpa.live[1,,1] # live TPA at 2001
     sim.nmort <- sum(tpa.dead[1,,19])
@@ -471,7 +471,7 @@ p.o.mort <- lapply(unique(unique.plts$PLT_CN)[1:417] , FUN = pred.obs.mort.plot)
 p.o.mort.df <- do.call(rbind, p.o.mort)
 p.o.mort.df
 
-png(height = 4, width = 4, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DDID_SDI0.75.png")
+png(height = 4, width = 4, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DDID_SDI0.75_prob.mort.png")
 ggplot(p.o.mort.df, aes( forecasted.nmort,  obs.mort))+geom_point()+
   geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dashed")+theme_bw()
 dev.off()
@@ -482,7 +482,7 @@ ggplot(p.o.mort.df, aes( obs.mort))+geom_histogram()+theme_bw()+xlim(0,1200)
 
 # compare diamter distributions of dead trees with diamete distributions of forecasted dead trees
 plot <- "5378995010690"
-get.diam.mort.plot <- function(plot){
+get.diam.mort.plot <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.75){
   
   
   cat(paste0("getting pred vs obs for ",as.character(plot)))
@@ -515,19 +515,20 @@ get.diam.mort.plot <- function(plot){
     # scale by TPAMORT_UNADJ to get trees per acre per year, 
     # may need to also cale by # inventory years
     # 
-    mort.scheme <- "DIDD"
+   # mort.scheme <- "DIDD"
     scenario <- "rcp26"
-    load(file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".Rdata")))
-    diam.live[2,,1]
+    load(file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".",SDI.ratio.DD,"mort.prob.Rdata")))
+    
+     diam.live[2,,1]
     tpa.dead[1,,19]
     tpa.live[1,,19]
     
     forecast.dead <- data.frame(treeid = 1:length(diam.live[2,,1]), 
                dead.class = "died in forecast", 
-               PREVDIA = diam.live[2,,1]/2.54,
+               PREVDIA = diam.live[2,,1],
                TPAMORT_UNADJ = tpa.dead[1,,19], 
                PREV_TPA_UNADJ = tpa.live[1,,1], 
-               PREVDBH = diam.live[2,,1]/2.54, 
+               PREVDBH = diam.live[2,,1], 
                type = "forecast", 
                plot = plot)
     
@@ -555,6 +556,6 @@ p.o.mort.diams.df <- do.call(rbind, p.o.mort.diams)
 
 head(p.o.mort.diams.df)
 
-png(height= 4, width = 4, res = 100, units = "in", "dead.tree.diams.forecasted.observed.png")
+png(height= 4, width = 4, res = 100, units = "in", "outputs/dead.tree.diams.forecasted.observed.DIDD_SDI0.75.mort.prob.png")
 ggplot(p.o.mort.diams.df, aes(x = PREVDBH, y = TPAMORT_UNADJ, color = dead.class))+geom_point()
 dev.off()
