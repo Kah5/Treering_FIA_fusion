@@ -1,4 +1,4 @@
-plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -515,7 +515,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
   
   cat("saving outputs")
-  cowplot::save_plot(paste0("biomass_plotsFIAannual/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
+  cowplot::save_plot(paste0("biomass_plotsFIAannual/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".",cc.scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
   
   
   #both.plot.all<- cowplot::plot_grid(b.plot.all, b.flux, ncol = 1, align = "hv")
@@ -546,7 +546,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".fixed.mort.rate.mort.prob.Rdata")))
+       file = file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 

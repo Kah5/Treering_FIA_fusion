@@ -1,4 +1,4 @@
-biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8){
+biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE){
   
   #TPA_lookup <- TREE %>% filter(PLT_CN %in% plot) %>% dplyr::select(TPA_UNADJ, TPAMORT_UNADJ, PLOT, SUBP, TREE, MEASYR, DESIGNCD)
   # -------- get the diameter estimates for all trees on the plot: ------------------------
@@ -519,7 +519,12 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
           if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
             #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
             #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
+            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
+            if(aggressiveCC == TRUE){
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(mort.prob*2)
+            }else{
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob
+            }
             
           }else{
             TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
@@ -685,14 +690,18 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
         }}
       
       
-      
+      if(aggressiveCC == TRUE){
+        cc.scenario <- "doubleCC"
+      }else{
+        cc.scenario <- "singleCC"
+      }
       # save the plot-level arrays:
-      saveRDS(dbh.pred, paste0("diam_forecastsFIAannual/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
-      saveRDS(dbh.dead, paste0("diam_forecastsFIAannual/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
-      saveRDS(TPAmort, paste0("diam_forecastsFIAannual/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(dbh.pred, paste0("diam_forecastsFIAannual/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(dbh.dead, paste0("diam_forecastsFIAannual/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(TPAmort, paste0("diam_forecastsFIAannual/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
       
-      saveRDS(sdi.subp, paste0("diam_forecastsFIAannual/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
-      saveRDS(index.df, paste0("diam_forecastsFIAannual/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,"mort.prob.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(sdi.subp, paste0("diam_forecastsFIAannual/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+      saveRDS(index.df, paste0("diam_forecastsFIAannual/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
       # make a plot of all the DBH forecasts:
       
       dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
@@ -855,7 +864,7 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
       # biomass estimation
       
       cat("start biomass estimates")
-      plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2018, scenario = scenario, p = p, p.inc = p.inc, SDI.ratio.DD = SDI.ratio.DD)
+      plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2018, scenario = scenario,cc.scenario = cc.scenario, p = p, p.inc = p.inc, SDI.ratio.DD = SDI.ratio.DD)
   }   
     }  
   
