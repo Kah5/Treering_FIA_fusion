@@ -445,7 +445,9 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
         
         
         #SDI.new <- sum(6.01*(((avg.dbh/2.54)/10)^1.6)) # calculate SDI
-        SDI.raw <-   mean(as.numeric(SDI.mat.PLT.subp.sel), na.rm = TRUE)*sd(as.numeric(SDI.mat.PLT.subp.sel), na.rm = TRUE)+SDIscaled
+        SDI.raw <-   mean(as.matrix(SDI.mat.PLT.subp[,3:20]), na.rm = TRUE)+(sd(as.matrix(SDI.mat.PLT.subp[,3:20]), na.rm = TRUE)*SDIscaled)
+        #SDI.raw <-   mean(as.numeric(SDI.PLT), na.rm = TRUE)*sd(as.numeric(SDI.mat.PLT.subp.sel), na.rm = TRUE)+SDIscaled
+        
         SDI.raw
       }
       # need to reindex the data to have a a timestep (t), subplot (s), and tree (i)
@@ -521,9 +523,9 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
             #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
             if(aggressiveCC == TRUE){
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(mort.prob*2)
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(0.2)#(mort.prob*2)
             }else{
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-0.1 #mort.prob
             }
             
           }else{
@@ -587,6 +589,7 @@ biomass.changingsdi.SDIscaled.FIA <- function(plot, density.dependent = TRUE, de
                 RI <- (1/(1+exp(p0 + p1*DBH.live)))*0.5
                 Y <- 10
                 RIP <- 1-(1-RI)^(1/Y) # changed from what FVS manual says to margarets eq when Y == 1, RI and RIP are equal
+                
                 Mort.rate <- mean(colSums(RIP)) # total background mortality for the plot
                 
                 BA <- pi*(DBH.live/2)^2
