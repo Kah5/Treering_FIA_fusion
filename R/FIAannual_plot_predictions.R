@@ -324,8 +324,8 @@ tau_dbh <- out[,c("tau_dbh")]#out[,grep(pattern = "tau",colnames(out))]
 # library(tidyverse)
 
 
-data("allom.components")
-allom.components
+#data("allom.components")
+#allom.components
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
 source("Allom_Ave.R")
@@ -423,21 +423,38 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SD
 
 plot <- "12280908010690"
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
-lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
+lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 
 plot <- unique(unique.plts$PLT_CN)[2]
 unique(unique.plts$PLT_CN) %in% "12289739010690"
 
 
 # double cc mortality runs:
+source("~/Treering_FIA_fusion/R/plot2AGB_kayeFVS.R")
+source("~/Treering_FIA_fusion/R/biomass.sensitivity.FIA.R")
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", aggressiveCC = TRUE, SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26",  aggressiveCC = TRUE, SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", aggressiveCC = TRUE,  SDI.ratio.DD = 0.7)})
 
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26",  aggressiveCC = TRUE, SDI.ratio.DD = 0.7)})
 biomass.changingsdi.SDIscaled.FIA (plot = unique(unique.plts$PLT_CN)[1], density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26",  aggressiveCC = TRUE, SDI.ratio.DD = 0.7)
+
+
+
+#---------------------------------------------------------------------------------
+# Sensitivity analysis with no SDI and climate changes
+#---------------------------------------------------------------------------------
+source("~/Treering_FIA_fusion/R/plot2AGB_kayeFVS.R")
+source("~/Treering_FIA_fusion/R/biomass.sensitivity.FIA.R")
+lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
+lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
+lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
+lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
+
+
+
 
 #---------------------------------------------------------------------------------
 # compare plot level mortality to the DIDD mortality in our forecasts
@@ -481,7 +498,7 @@ pred.obs.mort.plot <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, c
     if(cc.scenario == "doubleCC"){
     load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario,".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
       
     }
       #tpa.live[1,,1] # live TPA at 2001
@@ -508,7 +525,7 @@ p.o.mort.single.cc.df$cc.scheme <- "singleCC"
 
 DIDD.mort.p.o <- rbind(p.o.mort.single.cc.df, p.o.mort.double.cc.df)
 
-png(height = 4, width = 6, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DDID_SDI0.7_prob.mort.fixed.mort.rate.png")
+png(height = 4, width = 6, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DDID_SDI0.7_prob.mort.reduced.mort.rate.png")
 ggplot(DIDD.mort.p.o  , aes( forecasted.nmort,  obs.mort))+geom_point()+
   geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dashed")+theme_bw()+facet_wrap(~cc.scheme)
 dev.off()
@@ -532,7 +549,7 @@ p.o.mort.single.cc.DI.df$cc.scheme <- "singleCC"
 DIonly.mort.p.o <- rbind(p.o.mort.single.cc.DI.df, p.o.mort.double.cc.DI.df)
 
 
-png(height = 4, width = 6, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DIonly_SDI0.7_prob.mort.fixed.mort.rate.png")
+png(height = 4, width = 6, units = "in", res = 200, "outputs/forecasted_obs_annualPlot_mort_DIonly_SDI0.7_prob.mort.reduced.mort.rate.png")
 ggplot(DIonly.mort.p.o , aes( forecasted.nmort,  obs.mort))+geom_point()+
   geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dashed")+theme_bw()+facet_wrap(~cc.scheme)
 dev.off()
@@ -587,7 +604,7 @@ get.diam.mort.plot <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, c
     if(cc.scenario == "doubleCC"){
       load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
       
     }
     #  diam.live[2,,1]
@@ -639,15 +656,15 @@ p.o.mort.diams.single.cc.df <- do.call(rbind, p.o.mort.diams.single.cc )
 
 DIonly.diams.mort.p.o <- rbind(p.o.mort.diams.df, p.o.mort.diams.single.cc.df)
 
-png(height= 4, width = 4, res = 100, units = "in", "outputs/dead.tree.diams.forecasted.observed.DIonly_SDI0.7.fixed.mort.rate.mort.prob.png")
+png(height= 4, width = 4, res = 100, units = "in", "outputs/dead.tree.diams.forecasted.observed.DIonly_SDI0.7.reduced.mort.rate.mort.prob.png")
 ggplot(DIonly.diams.mort.p.o, aes(x = PREVDBH, y = TPAMORT_UNADJ, color = dead.class))+geom_point()+facet_wrap(~cc.scenario)
 dev.off()
 
-png(height= 8, width = 8, res = 100, units = "in", "outputs/dead.tree.histogram.forecasted.observed.DIonly_SDI0.7.fixed.mort.rate.mort.prob.png")
+png(height= 8, width = 8, res = 100, units = "in", "outputs/dead.tree.histogram.forecasted.observed.DIonly_SDI0.7.reduced.mort.rate.mort.prob.png")
 ggplot(DIonly.diams.mort.p.o, aes( y = TPAMORT_UNADJ, fill = dead.class))+geom_histogram()+facet_grid(cc.scenario~dead.class)
 dev.off()
 
-png(height= 4, width = 8, res = 100, units = "in", "outputs/dead.tree.diam.histogram.forecasted.observed.DIonly_SDI0.7.fixed.mort.rate.mort.prob.png")
+png(height= 4, width = 8, res = 100, units = "in", "outputs/dead.tree.diam.histogram.forecasted.observed.DIonly_SDI0.7.reduced.mort.rate.mort.prob.png")
 ggplot(DIonly.diams.mort.p.o, aes( y = PREVDBH, fill = dead.class))+geom_histogram()+facet_wrap(cc.scenario~dead.class)
 dev.off()
 
@@ -767,7 +784,7 @@ get_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, cc.
     if(cc.scenario == "doubleCC"){
       load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAannual/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
       
     }
   # objects
@@ -1010,8 +1027,15 @@ get_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, cc.
 
 ggplot(data = total.plot.obs, aes(year, mAGB))+geom_line()+
   geom_point(data = total.plot.obs, aes(year, DRYBIO_AG_kg_ha))
+# for nomort
+p.o.biomass.nomort.double <- lapply(unique(unique.plts$PLT_CN)[1:417] , FUN = function(x){get_biomass_ests(x, mort.scheme = "nomort", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
+p.o.biomass.nomort.double.df <- do.call(rbind, p.o.biomass.nomort.double)
 
 
+p.o.biomass.single.nomort.cc <- lapply(unique(unique.plts$PLT_CN)[1:417] , FUN = function(x){get_biomass_ests(x, mort.scheme = "nomort", SDI.ratio.DD = 0.7, cc.scenario = "singleCC")})
+p.o.biomass.single.nomort.cc.df <- do.call(rbind, p.o.biomass.single.nomort.cc )
+
+# for DIDD
 p.o.biomass.DIDD.double <- lapply(unique(unique.plts$PLT_CN)[1:417] , FUN = function(x){get_biomass_ests(x, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
 p.o.biomass.DIDD.double.df <- do.call(rbind, p.o.biomass.DIDD.double)
 
@@ -1081,13 +1105,14 @@ ggplot(data =p.o.biomass.DDonly.double.df, aes( DRYBIO_AG_kg_ha, mAGB))+geom_poi
 
 p.o.biomass.all <- rbind(p.o.biomass.DDonly.double.df, p.o.biomass.single.DDonly.cc.df, 
                          p.o.biomass.DIonly.double.df, p.o.biomass.single.DIonly.cc.df, 
-                         p.o.biomass.DIDD.double.df, p.o.biomass.single.DIDD.cc.df)
+                         p.o.biomass.DIDD.double.df, p.o.biomass.single.DIDD.cc.df,
+                         p.o.biomass.nomort.double.df, p.o.biomass.single.nomort.cc.df)
 
 
 RMSE <- p.o.biomass.all %>% mutate(sq_error = (mAGB - DRYBIO_AG_kg_ha)^2) %>% group_by( mort.scheme, rcp, cc.scenario)%>%
   summarise(RMSE = sqrt(mean(sq_error, na.rm = TRUE)))
   
-png(height = 6, width = 5, units = "in", res = 150, "outputs/FIAannual_pred_obs_biomass.mort.scheme.png")
+png(height = 8, width = 5, units = "in", res = 150, "outputs/FIAannual_pred_obs_biomass.mort.scheme.png")
 ggplot(data =p.o.biomass.all, aes( DRYBIO_AG_kg_ha, mAGB))+geom_point()+
   geom_errorbar(data =p.o.biomass.all, aes( DRYBIO_AG_kg_ha, ymin = lowA, ymax = upA))+
   geom_abline(aes(intercept = 0, slope = 1), col = "red", linetype = "dashed")+theme_bw()+theme(panel.grid = element_blank())+
@@ -1097,6 +1122,8 @@ dev.off()
 
 # generate table of stats and residuals
 #RMSE$rsq <- 
+nomort.double.rsq <- summary(lm(mAGB ~ DRYBIO_AG_kg_ha, data = p.o.biomass.nomort.double.df))$r.squared
+nomort.single.rsq <- summary(lm(mAGB ~ DRYBIO_AG_kg_ha, data = p.o.biomass.single.nomort.cc.df))$r.squared
 
 DI.double.rsq <- summary(lm(mAGB ~ DRYBIO_AG_kg_ha, data = p.o.biomass.DIonly.double.df))$r.squared
 DI.single.rsq <- summary(lm(mAGB ~ DRYBIO_AG_kg_ha, data = p.o.biomass.single.DIonly.cc.df))$r.squared
@@ -1112,6 +1139,7 @@ RMSE$rsq <- c(DD.double.rsq,
               DIDD.double.rsq , 
               DIDD.single.rsq, 
               DI.double.rsq, 
-              DI.single.rsq 
-              )
+              DI.single.rsq, 
+              nomort.double.rsq, 
+              nomort.single.rsq)
 write.csv(RMSE, "outputs/RMSE_FIAannual_cc.scenario_mort.scenario.csv")
