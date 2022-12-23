@@ -19,7 +19,7 @@ parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
 # Read in the rest of the FIA tree data
 #--------------------------------------------------------------------------------------------- 
 #fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
-fiadb <- readRDS("InWeUS_FIAdb.rds")
+fiadb <- readRDS("data/InWeUS_FIAdb.rds")
 PLOT <- fiadb$PLOT
 SUBPLOT <- fiadb$SUBPLOT
 STATECD <- fiadb$STATECD
@@ -131,7 +131,7 @@ spread.dbh.mat <- dbh.measyr.repeats.full %>%
 # combine with information on the MAP and MAT of these plots 
 
 # read in the climate data:
-all.clim.PLTCN <- read.csv( "pipo_FIA_all_tmax_ppt_v1.csv")
+all.clim.PLTCN <- read.csv( "data/pipo_FIA_all_tmax_ppt_v1.csv")
 clim.data <- all.clim.PLTCN %>% filter(CN %in% unique(cn.df$PLT_CN) & year %in% 2001:2018) %>% select(lon,lat, CN, year, ppt.sum, Tmean_AprMayJun, MAT, MAP)
 
 head(clim.data)
@@ -328,16 +328,16 @@ tau_dbh <- out[,c("tau_dbh")]#out[,grep(pattern = "tau",colnames(out))]
 #allom.components
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
-source("Allom_Ave.R")
-source("read.allom.data.R")
-source("query.allom.data.R")
-source("allom.BayesFit.R")
+source("R/Allom_Ave.R")
+source("R/read.allom.data.R")
+source("R/query.allom.data.R")
+source("R/allom.BayesFit.R")
 # Run AllomAve for each component in Kaye
 kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
-                     parm = "kaye_pipo.csv")
+                     parm = "data/kaye_pipo.csv")
 
 # had to read in the kaye_pipo csv...should just upload to the data
-kaye.parm <- read.csv("kaye_pipo.csv")
+kaye.parm <- read.csv("data/kaye_pipo.csv")
 
 # allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
 # allom.stembark = load.allom("Allom.PIPO.5.Rdata")
@@ -370,8 +370,8 @@ rcp <- "rcp26"
 
 
 set.seed(22)
-source("~/Treering_FIA_fusion/R/plot2AGB_kayeFVS.R")
-source("~/Treering_FIA_fusion/R/biomass.changing.SDI.FIAannual.R")
+source("R/plot2AGB_kayeFVS.R")
+source("R/biomass.changing.SDI.FIAannual.R")
 iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SDdbh, SDinc = 0, covariates) {
   
   
@@ -431,9 +431,8 @@ plot <- unique(unique.plts$PLT_CN)[2]
 unique(unique.plts$PLT_CN) %in% "12289739010690"
 
 
-# double cc mortality runs:
-source("~/Treering_FIA_fusion/R/plot2AGB_kayeFVS.R")
-source("~/Treering_FIA_fusion/R/biomass.sensitivity.FIA.R")
+
+
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", aggressiveCC = TRUE, SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26",  aggressiveCC = TRUE, SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", aggressiveCC = TRUE,  SDI.ratio.DD = 0.7)})
@@ -446,8 +445,12 @@ biomass.changingsdi.SDIscaled.FIA (plot = unique(unique.plts$PLT_CN)[1], density
 #---------------------------------------------------------------------------------
 # Sensitivity analysis with no SDI and climate changes
 #---------------------------------------------------------------------------------
-source("~/Treering_FIA_fusion/R/plot2AGB_kayeFVS.R")
-source("~/Treering_FIA_fusion/R/biomass.sensitivity.FIA.R")
+# double cc mortality runs:
+source("R/plot2AGB_kayeFVS.R")
+source("R/biomass.sensitivity.FIA.R")
+
+biomass.sensitivity.FIA (plot = unique(unique.plts$PLT_CN)[1], density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26",  aggressiveCC = FALSE, SDI.ratio.DD = 0.7)
+
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.sensitivity.FIA (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})

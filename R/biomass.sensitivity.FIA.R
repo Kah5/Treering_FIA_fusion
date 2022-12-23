@@ -138,7 +138,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     for(i in 1:ni){
       
-      TPAmort[i,,1] <- index.df[i, "TPA_UNADJ"]
+      TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
       
     }
     
@@ -452,32 +452,34 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
             zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
-            mort.prob <- mort.prob /2
+            
           }
-          
-          mort.code <- rbinom(1,1, prob = (mort.prob)) # to tone down, reduce mort.prob 
+          mort.prob.reduced <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
         }
         
-        if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
+        if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
+          
+          
           #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]*mort.prob)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]*mort.prob) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
           }
           
         }else{
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
         }
         
-        if(TPAmort[i,,t+1] <= 0){
+        if(mean(TPAmort[i,,t+1]) <= 0){
           TPAmort[i,,t+1] <- 0
           dbh.pred[i,,t+1] <- 0
         }
-        if(TPAmort[i,,t+1] > TPAmort[i,,t]){
+        if(mean(TPAmort[i,,t+1]) > mean(TPAmort[i,,t])){
           cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
           break
         }
@@ -640,13 +642,13 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
       cc.scenario <- "singleCC"
     }
     # save the plot-level arrays:
-    saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    
-    saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # make a plot of all the DBH forecasts:
+    # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # 
+    # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # # make a plot of all the DBH forecasts:
     
     dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
     colnames(dbh.quants) <- c("quantile","treeno","time", "diameter")
@@ -676,7 +678,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     tpa.means.index <- left_join(TPA.quants, index.df, by = "treeno")
     
     
-    ggplot()+geom_line(data = tpa.means.index, aes(x = time, y = TPA, group = treeno, color = as.character(treeno))) 
+    #ggplot()+geom_line(data = tpa.means.index, aes(x = time, y = TPA, group = treeno, color = as.character(treeno))) 
     
     # join with the diameter 
     dbh.means.TPA.index<- left_join(tpa.means.index[,c("treeno", "time", "TPA")], dbh.means.index, by = c("treeno", "time"))
@@ -687,7 +689,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     p <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) + 
       geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
       theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
-    p
+    #p
     #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.dbhs.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p)
     
     # plot dead trees to see how they are behaving:
@@ -837,11 +839,12 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     for(i in 1:ni){
       
-      TPAmort[i,,1] <- index.df[i, "TPA_UNADJ"]
+      TPAmort[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       
     }
     
     
+    # for each tree get the next statespace time step:
     for(t in 1:nt){ # for each year t in the # of trees
       
       #if(t == 1){
@@ -856,7 +859,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, alpha= alphas.tree.plot[[i]], SDdbh = 0, covariates =  data.frame(SDI = 0, 
+          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, alpha= alphas.tree.plot[[i]], SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
                                                                                                                                                                    ppt = covariates$ppt[,t], 
@@ -896,32 +899,34 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
             zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
-            mort.prob <- mort.prob /2
+            
           }
-          
-          mort.code <- rbinom(1,1, prob = (mort.prob)) # to tone down, reduce mort.prob 
+          mort.prob.reduced <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
         }
         
-        if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
+        if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
+          
+          
           #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]*mort.prob)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]*mort.prob) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
           }
           
         }else{
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
         }
         
-        if(TPAmort[i,,t+1] <= 0){
+        if(mean(TPAmort[i,,t+1]) <= 0){
           TPAmort[i,,t+1] <- 0
           dbh.pred[i,,t+1] <- 0
         }
-        if(TPAmort[i,,t+1] > TPAmort[i,,t]){
+        if(mean(TPAmort[i,,t+1]) > mean(TPAmort[i,,t])){
           cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
           break
         }
@@ -1062,13 +1067,13 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     
     # save the run with no SDI effect here:
-    saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noSDI/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    
-    saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noSDI/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(index.df, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # make a plot of all the DBH forecasts:
+    # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noSDI/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # 
+    # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noSDI/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(index.df, paste0("diam_forecastsFIAannual_noSDI/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # # make a plot of all the DBH forecasts:
     
     dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
     colnames(dbh.quants) <- c("quantile","treeno","time", "diameter")
@@ -1209,7 +1214,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     
     ####################################################
-    #run SSM with an time-varying climate effect of 0
+    #run SSM with an time-varying precipitation effect of 0
     ####################################################
     
     
@@ -1237,11 +1242,12 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     for(i in 1:ni){
       
-      TPAmort[i,,1] <- index.df[i, "TPA_UNADJ"]
+      TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
       
     }
     
     
+    # for each tree get the next statespace time step:
     for(t in 1:nt){ # for each year t in the # of trees
       
       #if(t == 1){
@@ -1259,8 +1265,8 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
           dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, alpha= alphas.tree.plot[[i]], SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
-                                                                                                                                                                   ppt = 0,#covariates$ppt[,t], 
-                                                                                                                                                                   tmax = 0)) #covariates$tmax[,t]))
+                                                                                                                                                                   ppt = 0, #covariates$ppt[,t], 
+                                                                                                                                                                   tmax = covariates$tmax[,t]))
           
         }
         increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
@@ -1296,32 +1302,34 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
             zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
-            mort.prob <- mort.prob /2
+            
           }
-          
-          mort.code <- rbinom(1,1, prob = (mort.prob)) # to tone down, reduce mort.prob 
+          mort.prob.reduced <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
         }
         
-        if(mort.code == 1 & is.na(dbh.dead[i,,t]) & dbh.pred[i,,t]>0){
+        if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
+          
+          
           #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]*mort.prob)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]*mort.prob) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
           }
           
         }else{
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
         }
         
-        if(TPAmort[i,,t+1] <= 0){
+        if(mean(TPAmort[i,,t+1]) <= 0){
           TPAmort[i,,t+1] <- 0
           dbh.pred[i,,t+1] <- 0
         }
-        if(TPAmort[i,,t+1] > TPAmort[i,,t]){
+        if(mean(TPAmort[i,,t+1]) > mean(TPAmort[i,,t])){
           cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
           break
         }
@@ -1462,13 +1470,13 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     
     # save the run with no SDI effect here:
-    saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noclimate/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    
-    saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noclimate/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
-    saveRDS(index.df, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # make a plot of all the DBH forecasts:
+    # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noclimate/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # 
+    # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noclimate/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(index.df, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # # make a plot of all the DBH forecasts:
     
     dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
     colnames(dbh.quants) <- c("quantile","treeno","time", "diameter")
@@ -1604,8 +1612,410 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
     
     # biomass estimation
     
-    cat("start biomass estimates no climate")
-    plot2AGB_noclimate(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2018, scenario = scenario,cc.scenario = cc.scenario, p = p, p.inc = p.inc, SDI.ratio.DD = SDI.ratio.DD)
+    cat("start biomass estimates no precipitation")
+    plot2AGB_noprecip(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2018, scenario = scenario,cc.scenario = cc.scenario, p = p, p.inc = p.inc, SDI.ratio.DD = SDI.ratio.DD)
+    
+    ####################################################
+    #run SSM with an time-varying precipitation effect of 0
+    ####################################################
+    
+    
+    # for each tree get the next statespace time step:
+    dbh.pred <- increment <- TPAmort<- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    # dbh.dead:
+    dbh.dead <- dbh.pred
+    
+    
+    
+    id.ni <- rep(1:ni, each = 1)
+    #id.time <- 1:17
+    for(i in 1:length(id.ni)){
+      
+      dbh.pred[id.ni[i],,1] <- all.dbh[,i]
+      
+    }
+    
+    # get the increments
+    for(i in 1:ni){
+      for(t in 2:4){
+        increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
+      }
+    }
+    
+    for(i in 1:ni){
+      
+      TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
+      
+    }
+    
+    
+    # for each tree get the next statespace time step:
+    for(t in 1:nt){ # for each year t in the # of trees
+      
+      #if(t == 1){
+      mort.code <- 0
+      # loop through all of the trees for year t
+      for (i in 1:ni){ # for each tree i in the n of trees
+        
+        SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
+        
+        if(mean(dbh.pred[i,,t]) == 0){ # if the tree was killed off dbh.pred will be zero, so assign as zero
+          dbh.pred[i,,t+1] <- dbh.pred[i,,t]
+          #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
+          
+        }else{
+          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, alpha= alphas.tree.plot[[i]], SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+                                                                                                                                                                   MAP = MAP,
+                                                                                                                                                                   MAT= MAT,
+                                                                                                                                                                   ppt = covariates$ppt[,t], 
+                                                                                                                                                                   tmax = 0)) #covariates$tmax[,t]))
+          
+        }
+        increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
+        
+        # if increment is < 0, assign as 0 & keep dbh.pred at previous value
+        
+        zeros <- increment[i,,t+1] <= 0 #| is.na(increment[i,,t=1])
+        
+        
+        if(TRUE %in% zeros){ # if there are zeros estimate in the increment,
+          # set increment == 0, and set the dbh to the previous years diameter
+          increment[i,zeros,t+1] <- 0   
+          dbh.pred[i,zeros,t+1] <- dbh.pred[i,zeros,t]
+          
+        }
+        
+        # if after 1st years of forecast the median increment <0 for 3 years in a row, kill off the tree:
+        if(t >= 2){
+          
+          # default is that mort.prob == 0 (i.e. no mortality)
+          
+          mort.prob <- 0
+          
+          
+          if(density.independent == TRUE){
+            
+            tindex <- ifelse(t >=6, t-5, 
+                             ifelse(t == 5, t-4, 
+                                    ifelse(t ==4, t-3, 
+                                           ifelse(t==3, t-2, 
+                                                  ifelse(t == 2, t-1, t)))))
+            
+            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
+            zero.df <- ifelse(zero.means == FALSE, 0, 1)
+            mort.prob <- mean(zero.df, na.rm =TRUE)
+            
+          }
+          mort.prob.reduced <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
+        }
+        
+        if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
+          
+          
+          #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
+          #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
+          #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
+          if(aggressiveCC == TRUE){
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+          }else{
+            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
+          }
+          
+        }else{
+          TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+        }
+        
+        if(mean(TPAmort[i,,t+1]) <= 0){
+          TPAmort[i,,t+1] <- 0
+          dbh.pred[i,,t+1] <- 0
+        }
+        if(mean(TPAmort[i,,t+1]) > mean(TPAmort[i,,t])){
+          cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
+          break
+        }
+      }
+      
+      # use the current SDI to determine density dependnt mortality at the stand scale, then distribute to trees:
+      # my attempt to reflect what FVS is doing
+      
+      
+      if(density.dependent == TRUE){
+        
+        for(s in sdi.subp[,1]){ 
+          # for each subplot s in the # of subplots
+          # need to index dbh.pred trees by by the subplot:
+          
+          trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
+          if(length(trees.subplot)<=1){
+            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          }else{
+            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          }
+          sdi.temp <- calc.sdi.subp(x = dbh.pred[trees.subplot,,t], j = unique(as.character(trees.in.plt$PLT_CN)), a = s, TPAcalc = TPAcalc)
+          SDI.raw <- rescale.sdi.raw(SDIscaled =  sdi.temp, j = unique(as.character(trees.in.plt$PLT_CN)), a = s)
+          
+          
+          
+          # if the stand is above 70% of SDI and mort probability is not already 1, increase mortality probability
+          # this should increase mortality liklihood across all the trees, but mostly larger trees
+          if( SDI.raw > (450/nrow(sdi.subp))*SDI.ratio.DD & length(trees.subplot) > 1){
+            
+            # loosly basing on FVS mortality:
+            # calculate an RI for each tree:
+            p0 <- 5.5877
+            p1 <- 0.005348
+            
+            
+            #rownames(dbh.pred[,,t]) <- 1:nrow(dbh.pred[,,t])
+            
+            DBH <- dbh.pred[trees.subplot,,t]/2.54
+            #combined[trees.subplot,]
+            rownames(DBH) <- 1:nrow(DBH)
+            
+            
+            live.trees <- rowSums(DBH) > 0
+            if(all(live.trees)==FALSE){
+              cat("all trees are dead")
+            }else{
+              
+              DBH.live  <- DBH[live.trees,]
+              RI <- (1/(1+exp(p0 + p1*DBH.live)))*0.5
+              Y <- 10
+              RIP <- 1-(1-RI)^(1/Y) # changed from what FVS manual says to margarets eq when Y == 1, RI and RIP are equal
+              
+              Mort.rate <- mean(colSums(RIP)) # total background mortality for the plot
+              
+              BA <- pi*(DBH.live/2)^2
+              PCT <- apply(BA, 2, percent_rank)
+              MR <- (0.84525-(0.01074*PCT)+(0.0000002*PCT^3))
+              
+              MWT <- 0.85 # for #PP, in UTAH FVS variant documents
+              MORT <- MR * MWT * 0.1
+              
+              #n.ded <- round(Mort.rate*nrow(DBH.live)) # number of trees to kill
+              #n.ded <-1
+              #MR <- ifelse(MR <0, 0, MR)
+              
+              avg.mort.prob <- rowMeans(MR)
+              avg.MORT <- rowMeans(MORT) # note to include uncertainty in the mortality estimates, use the distributions
+              
+              # need the avg.MORT to sum to the mort.rate
+              split.mort <- Mort.rate/length(live.trees)#avg.MORT
+              
+              mort.per.tree <- Mort.rate/avg.mort.prob
+              # need to index by both the subplot == s & by the live trees
+              # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
+              # Also need to use this TPA to calculate SDI as we move forward...
+              
+              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
+              
+              
+              if(TPAmort[trees.subplot[live.trees],,t+1] > TPAmort[trees.subplot[live.trees],,t]){
+                cat(paste0("TPA at time ", t+1, "is greater than TPA at time ", t, "for subplot", s, "density dependant"))
+                break
+              }
+              #dead.index <-  which(order(avg.mort.prob) %in% 1:n.ded) # gives the tree # (s) that should die
+              
+              #dd.treenos <- as.numeric(rownames(DBH.live)[dead.index])
+              
+              #rm(dead.index)
+              
+              # if(n.ded > 0 ){
+              #   
+              #  
+              #   dbh.dead[trees.subplot[dd.treenos],,(3+t):(3+nt)] <- dbh.pred[trees.subplot[dd.treenos],,3+t] # set dead diameter to the last live estimated diameter for the tree
+              #   
+              #   dbh.pred[trees.subplot[dd.treenos],,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
+              #   #dbh.dead[dd.treenos,,t:nt] <- dbh.pred[dd.treenos,,t:nt] # set dead diameter to the last live estimated diameter for the tree
+              # } 
+            }
+            #}
+            #}
+            # kill off trees using MR to estimate probability that they are killed? 
+            # prob.list <- apply(MR, 1,FUN = function(x){rbinom(1,1, prob = x)})
+            # 
+            # # how to get prob.list to only haev the number of ded trees
+            # 
+            # prob.vec <- as.vector(do.call(cbind, prob.list))
+            
+            
+            
+            # mortality probability is how close SDI of the plot is to the self-thinning law +
+            #the size of the tree relative tot the max tree size of the plot
+            # there are some issues with this but we can edit later
+            #rel.size <- (max(dbh.pred[,,t+1])-mean(dbh.pred[i,,t+1]))/max(dbh.pred[,,t+1])
+            
+            # change the max dbh to 75, since the max dbh at start time is 76.9
+            #rel.size <- ((75)-mean(dbh.pred[i,,t+1], na.rm =TRUE))/75
+            
+            # mort.prob <- (SDI.raw/(450/nrow(sdi.subp)))*0.60 + rel.size# mortali#/(450/nrow(sdi.subp))#+mort.prob
+          }
+        }  
+        
+        TPAmort[TPAmort[,1,t+1]<= 0, ,t+1] <- 0
+      }
+      # before moving onto the next year, calculate the SDI
+      # calculate SDI by the subplot
+      for(s in sdi.subp[,1]){ # for each subplot s in the # of subplots
+        # need to index dbh.pred trees by by the subplot:
+        trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
+        if(length(trees.subplot)<=1){
+          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+        }else{
+          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+        }
+        sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(x = dbh.pred[trees.subplot,,t+1], j = unique(as.character(trees.in.plt$PLT_CN)), a = s, TPAcalc = TPAcalc)
+      }
+    }
+    
+    
+    # save the run with no SDI effect here:
+    # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noclimate/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # 
+    # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noclimate/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(index.df, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # # make a plot of all the DBH forecasts:
+    
+    dbh.quants <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
+    colnames(dbh.quants) <- c("quantile","treeno","time", "diameter")
+    
+    
+    dbh.quants.spread <- dbh.quants %>% group_by(treeno, time) %>% spread(quantile, diameter)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    dbh.means.index <- left_join(dbh.quants.spread , index.df, by = "treeno")
+    
+    p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) + 
+      geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+      theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+    
+    # TPA mortality
+    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.quants) <- c("treeno","time", "TPA")
+    
+    
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.means.index <- left_join(TPA.quants, index.df, by = "treeno")
+    
+    
+    ggplot()+geom_line(data = tpa.means.index, aes(x = time, y = TPA, group = treeno, color = as.character(treeno))) 
+    
+    # join with the diameter 
+    dbh.means.TPA.index<- left_join(tpa.means.index[,c("treeno", "time", "TPA")], dbh.means.index, by = c("treeno", "time"))
+    dbh.means.TPA.index$med.scaled.DBH <- dbh.means.TPA.index$`50%`*dbh.means.TPA.index$TPA
+    dbh.means.TPA.index$hi.scaled.DBH <- dbh.means.TPA.index$`97.5%`*dbh.means.TPA.index$TPA
+    dbh.means.TPA.index$lo.scaled.DBH <- dbh.means.TPA.index$`2.5%`*dbh.means.TPA.index$TPA
+    
+    p <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) + 
+      geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+      theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+    #p
+    
+    # make a plot of all the increment forecasts:
+    
+    inc.quants <- reshape2::melt(apply(increment, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
+    colnames(inc.quants) <- c("quantile","treeno","time", "increment")
+    
+    
+    inc.quants.spread <- inc.quants %>% group_by(treeno, time) %>% spread(quantile, increment)
+    # inc.means <- reshape2::melt(apply(inc.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(inc.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    inc.means.index <- left_join(inc.quants.spread , index.df, by = "treeno")
+    
+    p.inc <- ggplot() + 
+      geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
+      geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
+      theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number") 
+    
+    #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
+    
+    #p.inc
+    
+    
+    combined <- index.df
+    #out.dbh <- as.data.frame(dbh.pred)
+    
+    #dbh.mat <- matrix(dbh.pred, nrow = dim(dbh.pred)[2], ncol = prod(dim(dbh.pred)[1],dim(dbh.pred)[3]), byrow = TRUE)
+    # dim(dbh.mat)
+    # summary((dbh.mat[,1:10 ]))
+    # out <- dbh.mat
+    # 
+    # plot(out[1,])
+    
+    # var 1 is tree, var2 is mcmc sample, and var 3 is time
+    test.m <- melt(dbh.pred, id.vars = dim(dbh.pred)[2])
+    test.m$id <- paste0("x[",test.m$Var1, ",", test.m$Var3,"]")
+    #test.m <- test.m%>% filter(Var3 %in% 4:102)
+    colid.ordered <- test.m$id
+    
+    test.m.time <- test.m %>% dplyr::select(-Var1, -Var3) %>% group_by(Var2) %>% spread(key = id, value = value)
+    out <- test.m.time %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(all_of(colid.ordered))
+    #out <- out[1:50,]
+    out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
+    
+    
+    
+    # get a TPA out:
+    tpa.m <- melt(TPAmort, id.vars = dim(TPAmort)[2])
+    #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
+    tpa.m$id <- paste0("x[",tpa.m$Var1, ",", tpa.m$Var3,"]")
+    
+    TPA.ordered <- tpa.m$id
+    
+    tpa.m.time <- tpa.m %>% dplyr::select(-Var1, -Var3, -Var3) %>% group_by(Var2) %>% spread(key = id, value = value)
+    out.tpa <- tpa.m.time %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(all_of(TPA.ordered))
+    #out <- out[1:50,]
+    tpa.mean <- apply(out.tpa, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
+    
+    
+    # calculate an out for the dead trees
+    
+    # need to redo how we are determingin dead vs living with FVS mortality...
+    # the TPA adjustment also needs to be applied at the tree scale....
+    # The dead trees will are the original TPA-current TPA multiplied by the out
+    # tpa.diff = (original tpa - current year tpa)*out for that year
+    tpa.diff.df <- tpa.m %>% group_by( Var1, Var2) %>% mutate(firstTPA = value[1]) %>%
+      ungroup()%>% group_by(Var1, Var2) %>% mutate(TPAdiff = firstTPA-value)
+    
+    summary(tpa.diff.df$TPAdiff)
+    
+    #ggplot(data = tpa.diff.df,aes(x = newVar3, y = TPAdiff, group =as.character(Var1) , color = as.character(Var1)))+geom_line()
+    
+    #tpa.diff.df
+    tpa.diff.time <-  tpa.diff.df %>% ungroup()%>% dplyr::select(-Var1, -Var3, -value) %>% group_by(Var2) %>% spread(key = id, value = TPAdiff)
+    out.tpa.diff <- tpa.diff.time %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(TPA.ordered)
+    #out <- out[1:50,]
+    tpa.diff.mean <- apply(out.tpa.diff, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
+    
+    # 
+    # out.dead <- out.mean*tpa.diff.mean
+    
+    
+    # dead.m <- melt(dbh.dead, id.vars = dim(dbh.dead)[2])
+    # dead.m$newVar3 <- rep(4:102, each = 100*ni)
+    # tpa.m$id <- paste0("x[",tpa.m$Var1, ",", tpa.m$newVar3,"]")
+    # 
+    # TPA.ordered <- tpa.m$id
+    # test.m.time.dead <- test.m %>% dplyr::select(-Var1, -Var3) %>% group_by(Var2) %>%  %>% spread(key = id, value = value)
+    # out.dead <- test.m.time.dead %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(colid.ordered)
+    # # #out <- out[1:50,]
+    # out.mean.dead <- apply(out.dead, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
+    # 
+    
+    
+    # biomass estimation
+    
+    cat("start biomass estimates no tmax")
+    plot2AGB_notmax(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2018, scenario = scenario,cc.scenario = cc.scenario, p = p, p.inc = p.inc, SDI.ratio.DD = SDI.ratio.DD)
     
     
     }   
