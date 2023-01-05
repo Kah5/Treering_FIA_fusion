@@ -560,7 +560,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
               TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
               
               
-              if(TPAmort[trees.subplot[live.trees],,t+1] > TPAmort[trees.subplot[live.trees],,t]){
+              if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
                 cat(paste0("TPA at time ", t+1, "is greater than TPA at time ", t, "for subplot", s, "density dependant"))
                 break
               }
@@ -1007,7 +1007,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
               TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
               
               
-              if(TPAmort[trees.subplot[live.trees],,t+1] > TPAmort[trees.subplot[live.trees],,t]){
+              if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
                 cat(paste0("TPA at time ", t+1, "is greater than TPA at time ", t, "for subplot", s, "density dependant"))
                 break
               }
@@ -1410,7 +1410,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
               TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
               
               
-              if(TPAmort[trees.subplot[live.trees],,t+1] > TPAmort[trees.subplot[live.trees],,t]){
+              if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
                 cat(paste0("TPA at time ", t+1, "is greater than TPA at time ", t, "for subplot", s, "density dependant"))
                 break
               }
@@ -1812,7 +1812,7 @@ biomass.sensitivity.FIA <- function(plot, density.dependent = TRUE, density.inde
               TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
               
               
-              if(TPAmort[trees.subplot[live.trees],,t+1] > TPAmort[trees.subplot[live.trees],,t]){
+              if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
                 cat(paste0("TPA at time ", t+1, "is greater than TPA at time ", t, "for subplot", s, "density dependant"))
                 break
               }
