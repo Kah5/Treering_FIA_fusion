@@ -7,6 +7,10 @@ library(firebehavioR)
 data(fuelModels, fuelMoisture)
 exampSurfFuel = fuelModels['TU1',]
 
+fuelModelTable <- fuelModels[c("TU1", "TL5", "TL9", "TL3"),]
+
+write.csv(fuelModelTable, "fuelModelTable.sensitivity.csv", row.names = FALSE)
+
 fuelMoisture['D1L1',]
 
 exampFuelMoisture = fuelMoisture['D1L1',]
@@ -42,7 +46,7 @@ exampEnviro = data.frame(
 )
 
 basal.areas <- seq(1, 60, 2)
-heights <- seq(2, 62, 4) # height in meters
+heights <- seq(2, 31, 4) # height in meters
 trees.per.hecatare  <- seq(1, 4000, 500)
 
 plt.characteristics <- expand.grid(ba = basal.areas, ht = heights, tph = trees.per.hecatare)
@@ -144,7 +148,7 @@ Fuel.models.sensitivity <- rbind(TL5.output, TL9.output, TU1.output)
 
 head(Fuel.models.sensitivity)
 
-Fuel.models.sensitivity$TI_km_hr <- (Fuel.models.sensitivity$TI*0.001)*60
+Fuel.models.sensitivity$TI_km_hr <- (Fuel.models.sensitivity$TI/1000)*60 # m/hr
 # plot of CFL vs CI
 
 ggplot(Fuel.models.sensitivity, aes(CFL, CI, color = fuelmodel))+geom_point()+facet_wrap(~fuelmodel)
@@ -183,12 +187,15 @@ Fuel.models.sensitivity %>% filter(fuelmodel %in% "TL5")
 mean(basal.areas) #29
 mean(heights) #30
 mean(trees.per.hecatare) # 2001
+unique(heights)
 
-tph.sensitivity.df <- Fuel.models.sensitivity %>% filter(basal.area == 29 & height == 30 ) 
+tph.sensitivity.df <- Fuel.models.sensitivity %>% filter(basal.area == 29 & height == 18 ) 
                             #group_by(fuelmodel) %>% summarise(CFL.sens = stats::splinefun(trees.per.hecatare, CFL, method = "monoH.FC"))
-ba.sensitivity.df <- Fuel.models.sensitivity %>% filter(trees.per.hecatare == 2001 & height == 30 ) #%>%
+ba.sensitivity.df <- Fuel.models.sensitivity %>% filter(trees.per.hecatare == 2001 & height == 18 ) #%>%
 
 ht.sensitivity.df <- Fuel.models.sensitivity %>% filter(trees.per.hecatare == 2001 & basal.area == 29 ) #%>%
+
+#ht.sensitivity.df <- Fuel.models.sensitivity %>% filter(trees.per.hecatare == 2001 & basal.area == 29 ) #%>%
 
 
 tph.sensitivity.m <- melt(tph.sensitivity.df, id.vars = c("basal.area", "height", "trees.per.hecatare", "plot", "fuelmodel"))
@@ -209,52 +216,170 @@ png(height = 6, width = 4, units = "in", res = 100, "outputs/ht.sensitivity.all.
 ggplot(ht.sensitivity.m, aes(height, value))+geom_point()+geom_line()+facet_grid(variable~fuelmodel, scales = "free")+theme_bw()+theme(panel.grid = element_blank())
 dev.off()
 
+unique(Fuel.models.sensitivity$CBD)
+unique(Fuel.models.sensitivity$CFL)
+unique(Fuel.models.sensitivity$CBH)
 
-ggplot(tph.sensitivity.df, aes(trees.per.hecatare, CBD))+geom_point()
-ggplot(tph.sensitivity.df, aes(trees.per.hecatare, ))
+summary(Fuel.models.sensitivity$CBD)
+summary(Fuel.models.sensitivity$CFL)
+summary(Fuel.models.sensitivity$CBH)
 
-stats::splinefun(ba.sensitivity.df$trees.per.hecatare, ba.sensitivity.df$CFL, method = "monoH.FC")
+#----------------------------------------------------------------------
+# do another sensitivity with CBD, CFL, and CBH
+#----------------------------------------------------------------------
+CBD <- seq(0.0013, 0.8606, by = 0.05)
+CBH <- seq(0.969, 14.815, by = 1)
+CFL <- seq(0.0275, 2.2903, by = 0.15)
+
+plt.CrownFuel <- expand.grid(CFL = CFL, FMC = 95, CBD = CBD, CBH = CBH)
+
+exampSurfFuel = fuelModels['TU1',]
+exampEnviro = data.frame(
+  slope = 10,
+  windspeed = 40,
+  direction = 0,
+  waf = 0.2
+)
+exampFuelMoisture = fuelMoisture['D1L1',]
+# run all the fuel models:
+
+exampFuelMoisture = sapply(exampFuelMoisture, rep, length(plt.CrownFuel$CBD))
+exampEnviro = sapply(exampEnviro, rep, length(plt.CrownFuel$CBD))
+
+# change surface fuel model:
+
+exampSurfFuel = sapply(exampSurfFuel, rep, length(plt.CrownFuel$CBD))
+
+TU1.sensitivity = rothermel(exampSurfFuel, exampFuelMoisture, plt.CrownFuel, exampEnviro)
+
+TU1.sensitivity$fireBehavior$`Flame Length [m]`
+
+TU1.output.crown <- data.frame(#basal.area = plt.characteristics$ba, 
+                         #height = plt.characteristics$ht, 
+                         #trees.per.hecatare = plt.characteristics$tph, 
+                         #plot = plt.characteristics$plot, 
+                         fuelmodel = "TU1", 
+                         CFL = plt.CrownFuel$CFL, 
+                         CBD = plt.CrownFuel$CBD, 
+                         FMC = plt.CrownFuel$FMC, 
+                         CBH = plt.CrownFuel$CBH, 
+                         flame.length = TU1.sensitivity$fireBehavior$`Flame Length [m]`, 
+                         TI = TU1.sensitivity$fireBehavior$`Torching Index [m/min]`, 
+                         CI = TU1.sensitivity$fireBehavior$`Crowning Index [km/hr]`)
 
 
-sa.splinefun <- function(quantiles.input, quantiles.output) {
-  return(stats::splinefun(quantiles.input, quantiles.output, method = "monoH.FC"))
-} # sa.splinefun
+# for TL5:
+exampSurfFuel = fuelModels['TL5',]
+exampEnviro = data.frame(
+  slope = 10,
+  windspeed = 40,
+  direction = 0,
+  waf = 0.2
+)
+exampFuelMoisture = fuelMoisture['D1L1',]
+# run all the fuel models:
 
-sa.splinefun(Fuel.models.sensitivity$basal.area, Fuel.models.sensitivity$CFL)
-sa.splines <- sapply(traits,
-                     function(trait) sa.splinefun(sa.samples[[trait]], sa.output[[trait]]))
+exampFuelMoisture = sapply(exampFuelMoisture, rep, length(plt.CrownFuel$CBD))
+exampEnviro = sapply(exampEnviro, rep, length(plt.CrownFuel$CBD))
 
-get.sensitivity <- function(trait.samples, sa.splinefun) {
-  sensitivity <- sa.splinefun(stats::median(trait.samples), 1)
-  return(sensitivity)
-} # get.sensitivity
+# change surface fuel model:
+
+exampSurfFuel = sapply(exampSurfFuel, rep, length(plt.CrownFuel$CBD))
+
+TL5.sensitivity = rothermel(exampSurfFuel, exampFuelMoisture, plt.CrownFuel, exampEnviro)
+
+TL5.sensitivity$fireBehavior$`Flame Length [m]`
+
+TL5.output.crown <- data.frame(#basal.area = plt.characteristics$ba, 
+  #height = plt.characteristics$ht, 
+  #trees.per.hecatare = plt.characteristics$tph, 
+  #plot = plt.characteristics$plot, 
+  fuelmodel = "TL5", 
+  CFL = plt.CrownFuel$CFL, 
+  CBD = plt.CrownFuel$CBD, 
+  FMC = plt.CrownFuel$FMC, 
+  CBH = plt.CrownFuel$CBH, 
+  flame.length = TL5.sensitivity$fireBehavior$`Flame Length [m]`, 
+  TI = TL5.sensitivity$fireBehavior$`Torching Index [m/min]`, 
+  CI = TL5.sensitivity$fireBehavior$`Crowning Index [km/hr]`)
 
 
-sensitivity.analysis <- function(trait.samples, sa.samples, sa.output, outdir) {
-  traits <- names(trait.samples)
-  sa.splines <- sapply(traits,
-                       function(trait) sa.splinefun(sa.samples[[trait]], sa.output[[trait]]))
-  
-  spline.estimates <- lapply(traits, 
-                             function(trait) spline.truncate(sa.splines[[trait]](trait.samples[[trait]])))
-  names(spline.estimates) <- traits
-  sensitivities <- sapply(traits, 
-                          function(trait) get.sensitivity(trait.samples[[trait]], sa.splines[[trait]]))
-  elasticities <- sapply(traits, 
-                         function(trait) get.elasticity(sensitivities[[trait]], 
-                                                        trait.samples[[trait]], 
-                                                        spline.estimates[[trait]]))
-  variances <- sapply(traits, function(trait) stats::var(spline.estimates[[trait]]))
-  partial.variances <- variances / sum(variances)
-  
-  coef.vars <- sapply(trait.samples, get.coef.var)
-  outlist <- list(sensitivity.output = list(sa.samples = sa.samples, 
-                                            sa.splines = sa.splines), 
-                  variance.decomposition.output = list(coef.vars = coef.vars,
-                                                       elasticities = elasticities, 
-                                                       sensitivities = sensitivities,
-                                                       variances = variances,
-                                                       partial.variances = partial.variances))
-  return(outlist)
-} # sensitivity.analysis
+# for TL9
+exampSurfFuel = fuelModels['TL9',]
+exampEnviro = data.frame(
+  slope = 10,
+  windspeed = 40,
+  direction = 0,
+  waf = 0.2
+)
+exampFuelMoisture = fuelMoisture['D1L1',]
+# run all the fuel models:
+
+exampFuelMoisture = sapply(exampFuelMoisture, rep, length(plt.CrownFuel$CBD))
+exampEnviro = sapply(exampEnviro, rep, length(plt.CrownFuel$CBD))
+
+# change surface fuel model:
+
+exampSurfFuel = sapply(exampSurfFuel, rep, length(plt.CrownFuel$CBD))
+
+TL9.sensitivity = rothermel(exampSurfFuel, exampFuelMoisture, plt.CrownFuel, exampEnviro)
+
+TL9.sensitivity$fireBehavior$`Flame Length [m]`
+
+TL9.output.crown <- data.frame(#basal.area = plt.characteristics$ba, 
+  #height = plt.characteristics$ht, 
+  #trees.per.hecatare = plt.characteristics$tph, 
+  #plot = plt.characteristics$plot, 
+  fuelmodel = "TL9", 
+  CFL = plt.CrownFuel$CFL, 
+  CBD = plt.CrownFuel$CBD, 
+  FMC = plt.CrownFuel$FMC, 
+  CBH = plt.CrownFuel$CBH, 
+  flame.length = TL9.sensitivity$fireBehavior$`Flame Length [m]`, 
+  TI = TL9.sensitivity$fireBehavior$`Torching Index [m/min]`, 
+  CI = TL9.sensitivity$fireBehavior$`Crowning Index [km/hr]`)
+
+
+canopy.models.sensitivity <- rbind(TL5.output.crown, TL9.output.crown, TU1.output.crown)
+
+
+canopy.models.sensitivity$TI_km_hr <- (canopy.models.sensitivity$TI/1000)*60 # m/hr
+canopy.models.sensitivity$CBH <- as.character(canopy.models.sensitivity$CBH)
+canopy.models.sensitivity$CFL <- as.character(canopy.models.sensitivity$CFL)
+canopy.models.sensitivity$CBD <- as.character(canopy.models.sensitivity$CBD)
+
+# for some reason this filtering is not working but it should
+# make the sensitivity analysis plots:
+CBD.sensitivity.df <- canopy.models.sensitivity %>% filter(CBH %in% 6.969) %>% filter( CFL == 1.0775 ) 
+#group_by(canopymodel) %>% summarise(CFL.sens = stats::splinefun(trees.per.hecatare, CFL, method = "monoH.FC"))
+CBH.sensitivity.df <- canopy.models.sensitivity %>% filter(CFL == 1.0775 & CBD == 0.3513  ) #%>%
+
+CFL.sensitivity.df <- canopy.models.sensitivity %>% filter(CBH == 6.969 & CBD == 0.3513 ) #%>%
+
+
+#ht.sensitivity.df <- canopy.models.sensitivity %>% filter(trees.per.hecatare == 2001 & basal.area == 29 ) #%>%
+
+
+CBD.sensitivity.m <- melt(CBD.sensitivity.df, id.vars = c("CBD", "CBH", "CFL",  "fuelmodel"))
+head(tph.sensitivity.df )
+CBH.sensitivity.m <- melt(CBH.sensitivity.df, id.vars = c("CBD", "CBH", "CFL",   "fuelmodel"))
+CFL.sensitivity.m <- melt(CFL.sensitivity.df, id.vars = c("CBD", "CBH", "CFL",   "fuelmodel"))
+
+
+# make the plots:
+CBH.sensitivity.m$CBH <- as.numeric(CBH.sensitivity.m$CBH)
+CFL.sensitivity.m$CFL <- as.numeric(CFL.sensitivity.m$CFL)
+CBD.sensitivity.m$CBD <- as.numeric(CBD.sensitivity.m$CBD)
+
+png(height = 6, width = 4, units = "in", res = 100, "outputs/CBD.sensitivity.all.png")
+ggplot(CBD.sensitivity.m, aes(CBD, value))+geom_point()+geom_line()+facet_grid(variable~fuelmodel, scales = "free")+theme_bw()+theme(panel.grid = element_blank())
+dev.off()
+
+png(height = 6, width = 4, units = "in", res = 100, "outputs/CFL.sensitivity.all.png")
+ggplot(CFL.sensitivity.m, aes(CFL, value))+geom_point()+geom_line()+facet_grid(variable~fuelmodel, scales = "free")+theme_bw()+theme(panel.grid = element_blank())
+dev.off()
+
+png(height = 6, width = 4, units = "in", res = 100, "outputs/CBH.sensitivity.all.png")
+ggplot(CBH.sensitivity.m, aes(CBH, value))+geom_point()+geom_line()+facet_grid(variable~fuelmodel, scales = "free")+theme_bw()+theme(panel.grid = element_blank())
+dev.off()
 
