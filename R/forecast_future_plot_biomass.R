@@ -1,4 +1,9 @@
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(tidyverse)
 # code to just apply the posterior estimates of the model to the additional trees on these plots (and walk forward)
+# some functions:
 parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
   w <- sub(pre, "", w)
   w <- sub("[", "", w, fixed = TRUE)
@@ -10,6 +15,11 @@ parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
   colnames(w) <- c("row", "col")
   return(as.data.frame(w))
 } #
+
+#--------------------------------------------------------------------------------------------- 
+# Read in the site-tree/tree core data (from the jags model)
+#--------------------------------------------------------------------------------------------- 
+jags.data <- readRDS("data/regional_pipo_jags_formatted_data.RDS") # see format_PIPO_TR_climate_data.R for the formatting script
 
 #--------------------------------------------------------------------------------------------- 
 # Read in the rest of the FIA tree data
@@ -47,9 +57,9 @@ length(TREEinPLOTS$CN)
 
 additional.trees <- TREEinPLOTS %>% group_by(SPCD) %>% summarise(number = n())
 
-png(height = 3, width = 10, units = "in", res = 150, "data/output/barplot_additional_trees.png")
-ggplot(additional.trees, aes(x = as.character(SPCD), y = number))+geom_bar(stat = "identity")
-dev.off()
+# png(height = 3, width = 10, units = "in", res = 150, "data/output/barplot_additional_trees.png")
+# ggplot(additional.trees, aes(x = as.character(SPCD), y = number))+geom_bar(stat = "identity")
+# dev.off()
 # most are PIPO, but second most are gambel oak QUGA, then PSME
 
 
@@ -133,7 +143,7 @@ TMAX <- get_ordered_climate("TMAX")
 # -------------------------------------------------------------------------------
 # read in the SDI time plot level data:
 #--------------------------------------------------------------------------------
-tv.sdi <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v5.RDS"))
+tv.sdi <- readRDS("data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v5.RDS")
 
 # get the tv.sdi estimates from just the x.mat plots and subplots?
 # reshape tv.sdi:
@@ -465,7 +475,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   inc.med <- apply(inc, 2, function(x){quantile(x, c( 0.5), na.rm = TRUE)})
   
   colnames(forecast) <- paste0("x[", m,",", 1:36,"]")
-  cat(m)
+  cat(paste("\n", m))
   
   saveRDS(forecast, paste0("xvals_additional_trees/Xvals_tree_",m,".RDS"))
   # forecast.med
@@ -483,17 +493,18 @@ system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
 sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
 x.mat2 <- do.call(cbind, sims.x.forecast)
 
-saveRDS(x.mat2, paste0("data/output/Xval_noncored.",output.base.name,".RDS"))
+saveRDS(x.mat2, paste0("data/Xval_noncored.",output.base.name,".RDS"))
 
-x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
+#x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
+x.mat2 <- readRDS(paste0("data/Xval_noncored.",output.base.name,".RDS"))
 #--------------------------------------------------------------------------------------------- 
-# forecast from posterior estimates to get X values for 2001-2018, changing SDI values along the way
+# forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
 
 # get the estimated x values for each tree/plot (need to calculate SDI and make forecasts from 2001-2018)
 out.cored <- as.matrix(readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/increment_ifelse_constraint-2022-07-20-15-30-47.9/Xvals_Regional_incifelse_T0.RDS")))
-
-x.ci      <- apply(out.cored  , 2, quantile, c(0.025, 0.5, 0.975))
+#out.cored <- as.matrix(x.mat2)
+x.ci      <- apply(out.cored  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
 #    <- as.matrix(Xests) ### LOADS MCMC OUTPUT INTO OBJECT "OUT"
 x.cols   <- which(substr(colnames(out.cored), 1, 1) == "x") # grab the state variable columns
 # 
@@ -551,27 +562,27 @@ plots <- unique(x.mat$plotid)
 plot <- plots[1]
 
 
-library(dplyr)
+
 # select trees in the plot:
-cored.in.plt <- cores_cov.data %>% filter (PLOT %in% plot)
-cored.in.plt$treeid
-# get id of trees with out cores:
-trees.in.plt <- Tree2Tree_cov.data %>% filter (PLOT %in% plot)
-trees.in.plt$treeid
-
-
-
-# get the treeids for cored and noncored datasets
-x <- cored.in.plt$treeid
-y <- trees.in.plt$treeid
-
-#select the covvariate data for the cored and uncored trees:
+# cored.in.plt <- cores_cov.data %>% filter (PLOT %in% plot)
+# cored.in.plt$treeid
+# # get id of trees with out cores:
+# trees.in.plt <- Tree2Tree_cov.data %>% filter (PLOT %in% plot)
+# trees.in.plt$treeid
+# 
+# 
+# 
+# # get the treeids for cored and noncored datasets
+# x <- cored.in.plt$treeid
+# y <- trees.in.plt$treeid
+# 
+# #select the covvariate data for the cored and uncored trees:
 
 #select the outdata for the cored and uncored trees:
 sel.noncored <- which(ci.names.noncored $row %in% y)
 out <- out.noncored[,sel.noncored]
 
-combined <- jags.data.t2t$data$z[y,]
+#combined <- jags.data.t2t$data$z[y,]
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 plot<- cov.data.regional$PLT_CN[1]
@@ -580,43 +591,48 @@ plot<- cov.data.regional$PLT_CN[1]
 all.noncored <- x.mat # x.mat from dbh.spread above
 all.noncored$treeid <- 1:length(x.mat$PLT_CN)
 plots <- unique(x.mat$PLT_CN)#[1]
+
+
 #--------------------------------------------------------------------------------------------- 
-# forecast from posterior estimates to get X values
+# forecast from posterior estimates to get X values for the future 
 #--------------------------------------------------------------------------------------------- 
 
 
 # now make a function where you calculate plot level biomass
-devtools::install_github("PecanProject/pecan",subdir="base/logger")
-devtools::install_github("PecanProject/pecan",subdir="modules/allometry")
+# devtools::install_github("PecanProject/pecan",subdir="base/logger")
+# devtools::install_github("PecanProject/pecan",subdir="modules/allometry")
+# 
+# 
+# library(PEcAn.allometry)
+#library(devtools)
 
 
-library(PEcAn.allometry)
-library(devtools)
-library(reshape2)
-library(ggplot2)
-library(tidyverse)
-
-
-data("allom.components")
-allom.components
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
-
+source("R/Allom_Ave.R")
+source("R/read.allom.data.R")
+source("R/query.allom.data.R")
+source("R/allom.BayesFit.R")
 # Run AllomAve for each component in Kaye
 kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
-                     parm = "kaye_pipo.csv")
+                     parm = "data/kaye_pipo.csv")
 
 # had to read in the kaye_pipo csv...should just upload to the data
-kaye.parm <- read.csv("kaye_pipo.csv")
+kaye.parm <- read.csv("data/kaye_pipo.csv")
 
-allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
-allom.stembark = load.allom("Allom.PIPO.5.Rdata")
-allom.branchlive = load.allom("Allom.PIPO.8.Rdata")
-allom.branchdead = load.allom("Allom.PIPO.12.Rdata")
-allom.foliage = load.allom("Allom.PIPO.18.Rdata")
+# allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
+# allom.stembark = load.allom("Allom.PIPO.5.Rdata")
+# allom.branchlive = load.allom("Allom.PIPO.8.Rdata")
+# allom.branchdead = load.allom("Allom.PIPO.12.Rdata")
+# allom.foliage = load.allom("Allom.PIPO.18.Rdata")
+
+allom.stemwood = load("Allom.PIPO.4.Rdata")
+allom.stembark = load("Allom.PIPO.5.Rdata")
+allom.branchlive = load("Allom.PIPO.8.Rdata")
+allom.branchdead = load("Allom.PIPO.12.Rdata")
+allom.foliage = load("Allom.PIPO.18.Rdata")
+
 dbh = 1:50 # vector of DBH values to predict over
-
-source("plot2AGB_kaye.R")
 #source("data/output/validation.time.dbh.changingsdi.zero.SDIscaled.R")
 #validation.time.dbh.changingsdi.zeroinc.SDIscaled( plot = unique(plots)[6])
 #lapply(unique(plots)[1:2], validation.time.dbh.changingsdi.zeroinc.SDIscaled)
@@ -647,8 +663,8 @@ clim.data <- time_data
 x <- plot
 
 library(data.table)
-full.clim.dt <- as.data.table(full.clim)     # data.table
-microbenchmark(DT[age > 5],times=10)
+# full.clim.dt <- as.data.table(full.clim)     # data.table
+# microbenchmark(DT[age > 5],times=10)
 full.clim$ppt.scale <- NA
 full.clim$tmax.scale <- NA
 x <- plot
@@ -657,8 +673,7 @@ future.clim.subset.26 <- full.clim %>% filter(rcp %in% "rcp26")
 future.clim.subset.45 <- full.clim %>% filter(rcp %in% "rcp45")
 future.clim.subset.60 <- full.clim %>% filter(rcp %in% "rcp60")
 future.clim.subset.85 <- full.clim %>% filter(rcp %in% "rcp85")
-
-future.clim.subset <- future.clim.subset.26 
+#future.clim.subset <- future.clim.subset.26 
 # we will use this function to set up the future climate
 scale.fut.clim.by.plt <- function(x, future.clim.subset){
   cat(x)
@@ -700,15 +715,25 @@ plot <- "2904285010690"
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
 
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2961996010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26"))
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26"))
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26"))
-system.time(biomass.changingsdi.zeroinc.SDIscaled.future( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26"))
+# run the function that makes all of the forecasts
+system.time(biomass.sensitivity.periodic( plot = '2482552010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 
 # run all the plots for this scenario and 
 # started at 4:40 pm....
-lapply(unique(plots)[600:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
+lapply(unique(plots)[84:100],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+
+unique(plots)[1:100] %in% 2461254010690
 #stopped with plot "2587295010690" (plot 288)
+# 2461254010690"ates no tmaxcalculating biomass: percent complete complete
+# extracting future climate for the plot2461254010690Error in `filter()`:
+# ! Problem while computing `..1 = PLT_CN == x`.
+# Caused by error:
+# ! vector memory exhausted (limit reached?)
+# Run `rlang::last_error()` to see where th
+
 plot <- "3215491010690"
 unique(plots) %in% 3215491010690
 # Error in `$<-.data.frame`(`*tmp*`, "TPA_UNADJ", value = c(6.01805, 6.01805 : 
@@ -774,7 +799,11 @@ lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIsca
 
 
 plot <- "2449012010690"
-# some basic summaries of the 10 plots I ran:
+
+
+
+
+#-----------------------------Plotting Forecasts--------------------------------
 # need a function to read in the biomass and NPP data for all plots for the given rcp scenario & mortality scheme:
 # note that only rcp85 were saved because I didnt add an rcp label to the data saving process..need to fix
 

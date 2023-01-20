@@ -1411,7 +1411,7 @@ TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TL5_5lagdead_43DIDDplots.rds")
 
 # run for singleCC and fuel model TL9
-for(i in 1:length(unique(plots)[1:417])){
+for(i in 1:length(unique(plots)[1:43])){
   TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(plt = unique(plots)[i], fuelmodel = "TL9")
 }
 

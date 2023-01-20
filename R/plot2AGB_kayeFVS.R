@@ -1,4 +1,4 @@
-plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic") {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -56,7 +56,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >5){
+  if(length(combined) >6){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -512,7 +512,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   
   
   
-  both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
+  #both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
   
   cat("saving outputs")
   #cowplot::save_plot(paste0("biomass_plotsFIAannual/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".",cc.scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
@@ -546,7 +546,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+       file = file.path(paste0("biomass_dataFIA",plt.design ,"/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 
@@ -555,7 +555,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
 }
 
 
-plot2AGB_noSDI <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB_noSDI <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic") {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -613,7 +613,7 @@ plot2AGB_noSDI <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.sta
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >5){
+  if(length(combined) >6){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -1103,7 +1103,7 @@ plot2AGB_noSDI <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.sta
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual_noSDI/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+       file = file.path(paste0("biomass_dataFIA",plt.design,"_noSDI/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 
@@ -1112,7 +1112,7 @@ plot2AGB_noSDI <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.sta
 }
 
 
-plot2AGB_noprecip <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB_noprecip <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic") {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -1170,7 +1170,7 @@ plot2AGB_noprecip <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >5){
+  if(length(combined) >6){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -1668,7 +1668,7 @@ plot2AGB_noprecip <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.
   # biomass_beal2 = biomass_beal2, biomass_thoc2 = biomass_thoc2))
 }
 
-plot2AGB_notmax <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB_notmax <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic") {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -1726,7 +1726,7 @@ plot2AGB_notmax <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.st
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >5){
+  if(length(combined) >6){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -2216,7 +2216,7 @@ plot2AGB_notmax <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.st
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual_notmax/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+       file = file.path(paste0("biomass_dataFIA",plt.design,"_notmax/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 
@@ -2225,7 +2225,7 @@ plot2AGB_notmax <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.st
 }
 
 
-plot2AGB_full <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD) {
+plot2AGB_full <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD,plt.design = "periodic") {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -2283,7 +2283,7 @@ plot2AGB_full <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stat
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >5){
+  if(length(combined) >6){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -2773,7 +2773,7 @@ plot2AGB_full <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stat
        tpa.live,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0("biomass_dataFIAannual_full/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+       file = file.path(paste0("biomass_dataFIA",plt.design,"_full/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
   
   
   return(total.plot )#, 
