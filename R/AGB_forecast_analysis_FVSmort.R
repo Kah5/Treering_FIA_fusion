@@ -1513,6 +1513,11 @@ TI.CI.summary <- TI.CI.FORECASTS %>% group_by(mort.scheme, scenario, fuelmodel, 
                                                                                                       CI.mean = mean(CI, na.rm = TRUE), 
                                                                                                       CI.97.5 =quantile(CI, 0.975, na.rm = TRUE), 
                                                                                                       CI.02.5 = quantile(CI, 0.025, na.rm = TRUE))
+# CI gradually increases but TI and flamelength decrease even though load100hr increases
+ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = load100hr))
+ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = TI_km_hr))
+ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = CI))
+ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = flame_length_m))
 
 #------------------------------------------------------------------------------------
 # For DoubleCC:  get torching and crowning indices from the diameter distributions
