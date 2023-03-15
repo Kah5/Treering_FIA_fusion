@@ -217,56 +217,66 @@ SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,
 # this model models increment, not diameter...
 # I didnt save the Xvals for this model, but just using it to get the code setup
 
-library(rjags)
+
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/Regional_mu_testing_mvn-2022-05-19-20-07-51.6/IGFRegional_mvnmu_revCorr_xfixed.rds"))
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_lognormal_dist-2022-07-14-01-12-30.5/IGFRegional_inc_T0onlynoadapt.rds")) # plot random effect
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 
-output.base.name <- "Regional_incifelse_T0"
-out <- as.matrix(jags.comb)
-summary(out)
-betas <- out[,grep(pattern = "beta",colnames(out))]
-# just get the fixed effects:
 
-betas.df <- data.frame(betas)
-betas.random <- betas.df[, grep(patter = "betaX_PLOT", colnames(betas))]
-names.fixed <- names(betas.df)[!(names(betas.df) %in% colnames(betas.random))] # get the names of fixed effects
-betas.fixed <- betas.df[,names.fixed]
+# READ IN STAN OUTPUT SUMMARY
+#STAN.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
+#model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/model_simple_run/small_ssm_stan_sigma_dbh_normal_0.15_0.8_0_1constraint_parameter_summary.csv")
+model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_parameter_summary.csv")
 
-betas.fixed.m <- reshape2::melt(betas.fixed)
-model.params <- betas.fixed.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5), 
-                                                                   ci.lo = quantile(value, 0.025), 
-                                                                   ci.hi = quantile(value, 0.975))
-colnames(model.params)[1]<- c("Parameter")
+output.base.name <- "Regional_stan_model"
+# out <- as.matrix(jags.comb)
+# summary(out)
+# betas <- out[,grep(pattern = "beta",colnames(out))]
+# # just get the fixed effects:
+# 
+# betas.df <- data.frame(betas)
+# betas.random <- betas.df[, grep(patter = "betaX_PLOT", colnames(betas))]
+# names.fixed <- names(betas.df)[!(names(betas.df) %in% colnames(betas.random))] # get the names of fixed effects
+# betas.fixed <- betas.df[,names.fixed]
+# 
+# betas.fixed.m <- reshape2::melt(betas.fixed)
+# model.params <- betas.fixed.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5), 
+#                                                                    ci.lo = quantile(value, 0.025), 
+#                                                                    ci.hi = quantile(value, 0.975))
+# colnames(model.params)[1]<- c("Parameter")
+# 
+# 
+# dotplot.fixed <- ggplot(model.params, aes(x= Parameter, y = median ))+geom_point()+geom_hline(aes(yintercept = 0), color = "lightgrey", linetype = "dashed")+
+#   geom_errorbar(aes(x = Parameter, ymin = ci.lo, ymax = ci.hi), width = 0.01)+theme_bw(base_size = 12)+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())+ylab("Coefficient  Value")
+# 
+# alphas <- out[,grep(pattern = "alpha",colnames(out))]
+# alpha.m <- reshape2::melt(alphas)
+# 
+# alpha.summary <- alpha.m %>% group_by(Var2) %>% summarise(mean = mean(value, na.rm = TRUE), 
+#                                                           ci.lo = quantile(value, 0.025, na.rm =TRUE), 
+#                                                           ci.hi = quantile(value, 0.975, na.rm =TRUE))
+year.randoms <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_year_RE_summary.csv")
+
+mus <- model.params %>% filter(L1 %in% c("mu","sigma_TREE"))
+betas <- model.params
+# get year and tree random effects from STAN model
 
 
-dotplot.fixed <- ggplot(model.params, aes(x= Parameter, y = median ))+geom_point()+geom_hline(aes(yintercept = 0), color = "lightgrey", linetype = "dashed")+
-  geom_errorbar(aes(x = Parameter, ymin = ci.lo, ymax = ci.hi), width = 0.01)+theme_bw(base_size = 12)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())+ylab("Coefficient  Value")
-
-alphas <- out[,grep(pattern = "alpha",colnames(out))]
-alpha.m <- reshape2::melt(alphas)
-
-alpha.summary <- alpha.m %>% group_by(Var2) %>% summarise(mean = mean(value, na.rm = TRUE), 
-                                                          ci.lo = quantile(value, 0.025, na.rm =TRUE), 
-                                                          ci.hi = quantile(value, 0.975, na.rm =TRUE))
-
-mus <- out[,c("mu","tau_TREE")]
-
-iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SDdbh, SDinc = 0, covariates) {
+iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEARid,  SDdbh, SDinc = 0, covariates) {
   
   
   
   # pseudocode for now
-  tree.growth <- alpha + # sampled from tree level alpha randome effect
+  tree.growth <- betas.all$alpha + beta_YEARid +# sampled from tree level alpha randome effect
     # normal fixed effects
     betas.all$bMAP*covariates$MAP + 
     betas.all$bMAT*covariates$MAT +
     
     # size and SDI fixed
     betas.all$bSDI*covariates$SDI + 
-    betas.all$bX*(x-30) + 
+    betas.all$bX*(x) + 
     
     # climate fixed effects
     betas.all$bppt*covariates$ppt + 
@@ -274,13 +284,13 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SD
     
     # MAP interactions
     betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
-    betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
+    #betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
     
     betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
     betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
     
     # MAT interactions
-    betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
+    #betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
     betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
     
     betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
@@ -292,10 +302,19 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SD
     # SDI interactions
     betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
     betas.all$bSDI_ppt*covariates$SDI*covariates$ppt  
+    
+    # X interactions
+    betas.all$bX_MAP*covariates$MAP + 
+    betas.all$bX_MAT*covariates$MAT*x + 
+    betas.all$bX_Precip*covariates$ppt*x + 
+    betas.all$bX_Tmax*covariates$tmax*x + 
+    betas.all$bX_SDI*covariates$SDI*x 
   
-  tree.growth <-  ifelse(tree.growth < 0, 0, tree.growth)
+  tree.growth <-  ifelse(tree.growth < 0, 0, tree.growth) # we shouldn't need this but keeping in
   
   # Stochastic process model
+  #incpred <- tree.growth
+  
   xpred <- rnorm(length(tree.growth), (tree.growth + x), SDinc) 
   
   
@@ -311,16 +330,16 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   treeids <- cov.data.regional %>% filter(plotid %in% x.mat[m,]$plotid) %>% dplyr::select(treeid)
   #if(length(treeids$treeid)>1){
   
-  alphatreeids <- vector()
-  for(i in 1:length(treeids$treeid)){
-    alphatreeids[i]<- paste0("alpha_TREE[", treeids[i,], "]")
-    
-  }
-  
+  # alphatreeids <- vector()
+  # for(i in 1:length(treeids$treeid)){
+  #   alphatreeids[i]<- paste0("alpha_TREE[", treeids[i,], "]")
+  #   
+  # }
+  # 
   # sample 
   #alphatreeid <- paste0("alpha_TREE[", x.mat[m,]$plotid, "]")
   
-  model.covs <- substring(colnames(betas), 5)
+  #model.covs <- substring(colnames(betas), 5)
   
   
   #---------------------------------------------------------------------------
@@ -330,10 +349,10 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   #alpha = rep(quantile(alphas[, alphaplotid],0.5), 3299)
   
   # write a function to get the MCMC samples
-  
+
   get_mcmc_samples <- function(x, betas, nsamps){
     
-    rnorm(nsamps, mean = mean(betas[,x]), sd = sd(betas[,x]))
+    rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>% select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>% select(sd)))
   }
   
   #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = nsamps)
@@ -341,45 +360,52 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
   # sample from the population mean (mu) for the trees that dont have RE
   
-  alpha <- get_mcmc_samples("mu", betas = mus, nsamps = nsamps)
+  alpha <- get_mcmc_samples(x = "mu", betas = mus, nsamps = nsamps)
   
-  if(length(alphatreeids)>1){
-    
-    treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
-    treealphas <- do.call(cbind, treealphas)
-    colnames(treealphas)<- alphatreeids
-  }else{
-    treealphas <- get_mcmc_samples(betas = alphas, nsamps = nsamps)
-  }
-  
+  # if(length(alphatreeids)>1){
+  #   
+  #   treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
+  #   treealphas <- do.call(cbind, treealphas)
+  #   colnames(treealphas)<- alphatreeids
+  # }else{
+  #   treealphas <- get_mcmc_samples(betas = alphas, nsamps = nsamps)
+  # }
+  # 
   
   bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nsamps)
   bMAT <- get_mcmc_samples("betaMAT", betas = betas, nsamps = nsamps)
   bMAP_MAT <- get_mcmc_samples("betaMAP_MAT", betas = betas, nsamps = nsamps)
   
-  bSDI <- get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = nsamps)
-  bSDI_ppt <- get_mcmc_samples("betawateryrscaled_SDIscaled", betas = betas, nsamps = nsamps)
-  bSDI_tmax <- get_mcmc_samples("betatmaxAprMayJunscaled_SDIscaled", betas = betas, nsamps = nsamps)
+  bSDI <- get_mcmc_samples("betaSDI", betas = betas, nsamps = nsamps)
+  bSDI_ppt <- get_mcmc_samples("betaPrecip_SDI", betas = betas, nsamps = nsamps)
+  bSDI_tmax <- get_mcmc_samples("betaTmax_SDI", betas = betas, nsamps = nsamps)
   
   
   
   #MAP interactions:
-  bMAP_ppt <- get_mcmc_samples("betaMAP_wateryrscaled", betas = betas, nsamps = nsamps)
-  bMAP_tmax <- get_mcmc_samples("betaMAP_tmaxAprMayJunscaled", betas = betas, nsamps = nsamps)
-  bMAP_SDI <- get_mcmc_samples("betaMAP_SDIscaled", betas = betas, nsamps = nsamps)
+  bMAP_ppt <- get_mcmc_samples("betaPrecip_MAP", betas = betas, nsamps = nsamps)
+  bMAP_tmax <- get_mcmc_samples("betaTmax_MAP", betas = betas, nsamps = nsamps)
+  #bMAP_SDI <- get_mcmc_samples("betaSDI_MAP", betas = betas, nsamps = nsamps)
   
   #MAT interactions:
-  bMAT_ppt <- get_mcmc_samples("betaMAT_wateryrscaled", betas = betas, nsamps = nsamps)
-  bMAT_tmax <- get_mcmc_samples("betaMAT_tmaxAprMayJunscaled", betas = betas, nsamps = nsamps)
-  bMAT_SDI <- get_mcmc_samples("betaMAT_SDIscaled", betas = betas, nsamps = nsamps)
+  bMAT_ppt <- get_mcmc_samples("betaPrecip_MAT", betas = betas, nsamps = nsamps)
+  bMAT_tmax <- get_mcmc_samples("betaTmax_MAT", betas = betas, nsamps = nsamps)
+  #bMAT_SDI <- get_mcmc_samples("betaSDI_MAT", betas = betas, nsamps = nsamps)
   
   
   bX <-  get_mcmc_samples("betaX", betas = betas, nsamps = nsamps)
   
   
-  bppt <- get_mcmc_samples("betawateryrscaled", betas = betas, nsamps = nsamps)
-  btmax <- get_mcmc_samples("betatmaxAprMayJunscaled", betas = betas, nsamps = nsamps)
-  btmax_ppt <- get_mcmc_samples("betatmaxAprMayJunscaled_wateryrscaled", betas = betas, nsamps = nsamps)
+  bppt <- get_mcmc_samples("betaPrecip", betas = betas, nsamps = nsamps)
+  btmax <- get_mcmc_samples("betaTmax", betas = betas, nsamps = nsamps)
+  btmax_ppt <- get_mcmc_samples("betaPrecip_Tmax", betas = betas, nsamps = nsamps)
+  
+  # X interactions:
+  bX_ppt <- get_mcmc_samples("betaX_Precip", betas = betas, nsamps = nsamps)
+  bX_tmax <- get_mcmc_samples("betaX_Tmax", betas = betas, nsamps = nsamps)
+  bX_MAP<- get_mcmc_samples("betaX_MAP", betas = betas, nsamps = nsamps)
+  bX_MAT <- get_mcmc_samples("betaX_MAT", betas = betas, nsamps = nsamps)
+  bX_SDI <- get_mcmc_samples("betaX_SDI", betas = betas, nsamps = nsamps)
   
   
   betas.all <- data.frame(  alpha ,
@@ -393,16 +419,22 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
                             #MAP interactions:
                             bMAP_ppt,
                             bMAP_tmax,
-                            bMAP_SDI,
+                            #bMAP_SDI,
                             #MAT interactions:
                             bMAT_ppt,
                             bMAT_tmax,
-                            bMAT_SDI,
+                            #bMAT_SDI,
                             
                             bX,
                             bppt,
                             btmax,
-                            btmax_ppt)
+                            btmax_ppt, 
+                            
+                            bX_MAP, 
+                            bX_MAT, 
+                            bX_tmax, 
+                            bX_ppt, 
+                            bX_SDI)
   
   
   
@@ -440,9 +472,13 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   forecast <- matrix(data = NA, nrow = nMCMC, ncol = time_steps)
   inc <- matrix(data = NA, nrow = nMCMC, ncol = time_steps)
   
-  # generate alphas from the tree alphas in the same plot as the tree
-  # this will be slightly different for each tree adding uncertaint
-  treealphas.samp <- sample(as.vector(treealphas), size = nsamps )
+  # generate samples from the yearly random effects
+  
+  betayrVEC <- matrix(NA, ncol = time_steps, nrow = nMCMC)
+  
+  for(t in 1:time_steps){
+    betayrVEC[,t] <- get_mcmc_samples(paste0("beta_YEAR[", t, "]"), betas = year.randoms, nsamps = nsamps)
+  }
   
   for(t in 1:time_steps){
     if(t < which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if t is less than the measureyr assign NA (fo now)
@@ -451,7 +487,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
       inc[,t] <- dbh.pred
     }else{
       if(t == which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if the time step is the measuryr use the measureed DBH
-        dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, alpha = treealphas.samp,  SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
@@ -460,7 +496,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
         inc[,t]<- forecast[,t]-x.mat[m,1]
         
       }else{
-        dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all, alpha = treealphas.samp, SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all,beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
@@ -477,7 +513,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   colnames(forecast) <- paste0("x[", m,",", 1:36,"]")
   cat(paste("\n", m))
   
-  saveRDS(forecast, paste0("xvals_additional_trees/Xvals_tree_",m,".RDS"))
+  saveRDS(forecast, paste0("xvals_additional_trees_stan/Xvals_tree_",m,".RDS"))
   # forecast.med
   forecast
   
@@ -485,7 +521,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 
 
 # Need to rerun this!
-#simulate.xvals.from.model.oos(m = 9077)
+simulate.xvals.from.model.oos(m = 9077)
 # see how long this will take:
 system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
 
@@ -493,7 +529,7 @@ system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
 sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
 x.mat2 <- do.call(cbind, sims.x.forecast)
 
-saveRDS(x.mat2, paste0("data/Xval_noncored.",output.base.name,".RDS"))
+saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
 x.mat2 <- readRDS(paste0("data/Xval_noncored.",output.base.name,".RDS"))
