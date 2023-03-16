@@ -264,7 +264,7 @@ betas <- model.params
 # get year and tree random effects from STAN model
 
 
-iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEARid,  SDdbh, SDinc = 0, covariates) {
+iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEARid,  SDdbh = 0, SDinc = 0, covariates) {
   
   
   
@@ -315,7 +315,7 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEAR
   # Stochastic process model
   #incpred <- tree.growth
   
-  xpred <- rnorm(length(tree.growth), (tree.growth + x), SDinc) 
+  xpred <- rnorm(length(tree.growth), (tree.growth + x), SDdbh) 
   
   
   xpred
@@ -520,11 +520,11 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 }
 
 
-# Need to rerun this!
-simulate.xvals.from.model.oos(m = 9077)
+
+
 # see how long this will take:
 system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
-
+#3.8 user time multiplied by ~1500 =95 mintues 
 
 sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
 x.mat2 <- do.call(cbind, sims.x.forecast)
@@ -532,13 +532,14 @@ x.mat2 <- do.call(cbind, sims.x.forecast)
 saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
-x.mat2 <- readRDS(paste0("data/Xval_noncored.",output.base.name,".RDS"))
 #--------------------------------------------------------------------------------------------- 
 # forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
 
 # get the estimated x values for each tree/plot (need to calculate SDI and make forecasts from 2001-2018)
-out.cored <- as.matrix(readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/increment_ifelse_constraint-2022-07-20-15-30-47.9/Xvals_Regional_incifelse_T0.RDS")))
+#out.cored <- as.matrix(readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/increment_ifelse_constraint-2022-07-20-15-30-47.9/Xvals_Regional_incifelse_T0.RDS")))
+out.cored <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/xcored_estimated_full.ssm.working.model.rds")
+#head(out.cored)
 #out.cored <- as.matrix(x.mat2)
 x.ci      <- apply(out.cored  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
 #    <- as.matrix(Xests) ### LOADS MCMC OUTPUT INTO OBJECT "OUT"
@@ -565,60 +566,21 @@ ci.noncored      <- apply(x.mat2[, x.cols.noncored], 2, quantile, c(0.025, 0.5, 
 # #use mikes funciton to rename the x columns so that they indicate which tree and year it is referring to: x[tree, time]
 ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
 
-# # read in cored data
-# Xests <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/IGF_xvals_SDI_SI.norand.X.nadapt.5000.rds"))
-# str(Xests) # structure is a list of 3 MCMC chains, 
-# 
 
-# join the estimated with the forecasts
 
 #------------------------- match up with the plot information:
 
-# the noncored trees:
-
-#jags.new <- readRDS("diam_data/jags.new.SDI.SICOND.norandX.tau.inc.106.rds")
-
-cov.data.regional$treeid <- 1:length(cov.data.regional$PLOTSTATE)
-
-
-#jags.data.t2t$cov.data$PLOT %in% jags.new$cov.data$PLOT
-
-# want a dataframe that has a column for t2t_treeid
-# Tree2Tree_cov.data <- jags.data.t2t$cov.data
-# cores_cov.data <- jags.new$cov.data
-# 
-# head(cores_cov.data)
-
-
-
-# add up all the biomass in a single plot
+# make sure we have tree ids for the noncored trees:
 
 
 plots <- unique(x.mat$plotid)
-plot <- plots[1]
 
-
-
-# select trees in the plot:
-# cored.in.plt <- cores_cov.data %>% filter (PLOT %in% plot)
-# cored.in.plt$treeid
-# # get id of trees with out cores:
-# trees.in.plt <- Tree2Tree_cov.data %>% filter (PLOT %in% plot)
-# trees.in.plt$treeid
-# 
-# 
-# 
-# # get the treeids for cored and noncored datasets
-# x <- cored.in.plt$treeid
-# y <- trees.in.plt$treeid
-# 
 # #select the covvariate data for the cored and uncored trees:
 
 #select the outdata for the cored and uncored trees:
 sel.noncored <- which(ci.names.noncored $row %in% y)
 out <- out.noncored[,sel.noncored]
 
-#combined <- jags.data.t2t$data$z[y,]
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 plot<- cov.data.regional$PLT_CN[1]
@@ -642,7 +604,7 @@ plots <- unique(x.mat$PLT_CN)#[1]
 # library(PEcAn.allometry)
 #library(devtools)
 
-
+# note that these functions are from the PEcAn.allometry package, but I saved them locally because pecan library stopped playing nice here
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
 source("R/Allom_Ave.R")
