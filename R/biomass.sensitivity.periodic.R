@@ -1286,7 +1286,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates for no SDI")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAannual_noSDI", parse.type = "noSDI")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI")
     
     
     ####################################################

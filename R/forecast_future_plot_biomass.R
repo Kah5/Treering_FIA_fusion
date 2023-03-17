@@ -712,7 +712,7 @@ set.seed(22)
 plot <- "2904285010690"
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
-
+source("R/biomass.sensitivity.periodic.R")
 # run the function that makes all of the forecasts
 system.time(biomass.sensitivity.periodic( plot = '2482552010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
@@ -720,11 +720,13 @@ system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.depende
 system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 
 # run all the plots for this scenario and 
-# started at 4:40 pm....
-lapply(unique(plots)[84:100],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started at 12:12 pm....
+lapply(unique(plots)[1:100],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[101:200],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[201:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+#stopped with plot "2587295010690" (plot 250)
+unique(plots) %in% 2567520010690
 
-unique(plots)[1:100] %in% 2461254010690
-#stopped with plot "2587295010690" (plot 288)
 # 2461254010690"ates no tmaxcalculating biomass: percent complete complete
 # extracting future climate for the plot2461254010690Error in `filter()`:
 # ! Problem while computing `..1 = PLT_CN == x`.
@@ -1260,7 +1262,7 @@ get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
                            low.foliage = low.foliage[2:length(low.stemwood)])  
   total.plot
 }
-get_biomass_ests(plot = "2447353010690", mort.scheme = "DDonly",scenario = "rcp85")
+get_biomass_ests(plot = "2447353010690", mort.scheme = "DIDD",scenario = "rcp85")
 
 
 
