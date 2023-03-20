@@ -65,6 +65,11 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   # combined all diameter estimates
   all.dbh <- cbind(out.cored.plt, out.noncored.plt)
   
+  all.dbh.ids <- separate(reshape2::melt(colnames(all.dbh)), col =value, into = c("x[", "tree", "year", "]"))
+  all.dbh.ids$col.id <- 1:length(all.dbh.ids$tree)
+  yr.2001.ids <- as.vector(unlist(all.dbh.ids %>% filter(year == 36) %>% select(col.id)))
+  
+  all.dbh <- all.dbh[,yr.2001.ids]
   # get plot subplot and cored status for each tree:
   trees.in.plt.subp$type <- "noncored"
   cored.in.plt.subp$type <- "cored"
@@ -72,7 +77,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   index.df$CN <- index.df$treeid
   # make a big array with all the DBH estimates:
   
-  ni <- ncol(all.dbh)/4 # number of individuals per plot (divide by 4 because its the #years in the data)
+  ni <- ncol(all.dbh)#/4 # number of individuals per plot (divide by 4 because its the #years in the data)
   
     
     nsamps <- length(all.dbh[,1])
