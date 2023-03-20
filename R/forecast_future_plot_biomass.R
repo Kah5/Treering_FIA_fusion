@@ -727,6 +727,7 @@ lapply(unique(plots)[201:675],FUN = function(x){biomass.sensitivity.periodic(plo
 #stopped with plot "2587295010690" (plot 250)
 unique(plots) %in% 2567520010690
 
+plot <- 2567520010690
 # 2461254010690"ates no tmaxcalculating biomass: percent complete complete
 # extracting future climate for the plot2461254010690Error in `filter()`:
 # ! Problem while computing `..1 = PLT_CN == x`.
