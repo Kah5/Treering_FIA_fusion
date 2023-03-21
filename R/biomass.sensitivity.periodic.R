@@ -53,14 +53,17 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   out.cored.plt <-  out.cored[(length(out.cored[,1])-nsamps + 1):length(out.cored[,1]),i.cored] 
   
   # some of the noncored tress have NA for the first year (before measurement)
-  NA.ids <- names(which(is.na(out.noncored.plt[1,])==TRUE))
-  tree.yearNA.ids <- separate(reshape2::melt(NA.ids), col =value, into = c("x[", "tree", "year", "]"))
-  tree.yearNA.ids$year <- as.numeric(tree.yearNA.ids$year)
-  
-  #paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year+1, "]")
-  out.noncored.plt[ ,paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year, "]")] <-    out.noncored.plt[ ,paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year+1, "]")]
-  
-  
+  if(sum(is.na(out.cored.plt[1,])) > 0){ # if there are any NA values, fill in 
+    
+    NA.ids <- names(which(is.na(out.noncored.plt[1,])==TRUE))
+    
+    tree.yearNA.ids <- separate(reshape2::melt(NA.ids), col =value, into = c("x[", "tree", "year", "]"))
+    tree.yearNA.ids$year <- as.numeric(tree.yearNA.ids$year)
+    
+    #paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year+1, "]")
+    out.noncored.plt[ ,paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year, "]")] <-    out.noncored.plt[ ,paste0("x[",tree.yearNA.ids$tree, ",", tree.yearNA.ids$year+1, "]")]
+    
+  }
   # also need to reorder the columns
   # combined all diameter estimates
   all.dbh <- cbind(out.cored.plt, out.noncored.plt)

@@ -714,7 +714,7 @@ plot <- "2904285010690"
 unique(plots)
 source("R/biomass.sensitivity.periodic.R")
 # run the function that makes all of the forecasts
-system.time(biomass.sensitivity.periodic( plot = '2482552010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
