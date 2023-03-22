@@ -530,7 +530,7 @@ sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.
 x.mat2 <- do.call(cbind, sims.x.forecast)
 
 saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
-
+x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
 #--------------------------------------------------------------------------------------------- 
 # forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
