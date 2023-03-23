@@ -724,6 +724,8 @@ system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.depend
 # started at 12:12 pm....
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+
+
 lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
 unique(plots) %in% 2567520010690

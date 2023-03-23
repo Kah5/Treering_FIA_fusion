@@ -1,13 +1,13 @@
 library(viridis)
 #Parse apart the SDI and climate change effects sensitivity effects on AGB
-parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC" ){
+parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, scenario, cc.scenario = "doubleCC" ){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
   
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
    cat("less than 2 trees on the first plot")
   }else{
-    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
+    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
      cat("no existing future climate data") 
     }else{
     # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
@@ -38,14 +38,13 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, c
     # may need to also cale by # inventory years
     # 
     # mort.scheme <- "DIDD"
-    scenario <- "rcp26"
     
       if(cc.scenario == "doubleCC"){
     
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-      #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     
@@ -283,9 +282,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, c
     
     cat("reading in no SDI results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -521,9 +520,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, c
     
     cat("reading in no CC results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -776,14 +775,18 @@ SDI.ratio.DD = 0.8
 cc.scenario = "singleCC"
 
 unique(plots) %in% 2584218010690
-DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, cc.scenario = "singleCC" )})
+DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, scenario = "rcp26", cc.scenario = "singleCC" )})
+DIDD.rcp85..parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, scenario = "rcp85", cc.scenario = "singleCC" )})
+
 #DDonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "DDonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
 #DIonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
 #nomort.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "nomort",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
 
 
 DIDD.parse.df <- do.call(rbind, DIDD.parse.list)
+DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85..parse.list)
 
+head(DIDD.rcp85.parse.df)
 # DIonly.parse.df <- do.call(rbind, DIonly.parse.list)
 # DDonly.parse.df <- do.call(rbind, DDonly.parse.list)
 # nomort.parse.df <- do.call(rbind, nomort.parse.list)
