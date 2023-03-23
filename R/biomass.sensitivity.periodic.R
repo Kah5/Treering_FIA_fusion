@@ -364,16 +364,16 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         ens.samps.df <- samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
         #             tmax.mean = mean(tmax, na.rm = TRUE))
         
-        #ppt.fut <- ens.means %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
-        #tmax.fut <- ens.means %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
+        #ppt.fut <- ens.samps.df %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
+        #tmax.fut <- ens.samps.df %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
         
         ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
         
         tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
-        hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.means$model))), 
-                                    tmax = rep(as.numeric(tmax.hist) , length(unique(ens.means$model))), 
-                                    model = rep(1:length(unique(ens.means$model)), each = length(as.numeric(ppt.hist))), 
-                                    year = rep(2001:2018, length(unique(ens.means$model))))
+        hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
+                                    tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
+                                    model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
+                                    year = rep(2001:2018, length(unique(ens.samps.df$model))))
         
         full.df <- rbind(hist.samps.df, ens.samps.df %>% filter(!year %in% 2018))
         full.df.nodups <- full.df[!duplicated(full.df),]
@@ -502,7 +502,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nMCMC), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
                                                                                                                                                                    ppt = covariates$ppt[,t], 
@@ -951,7 +951,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nMCMC), SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
                                                                                                                                                                    ppt = covariates$ppt[,t], 
@@ -1315,10 +1315,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
     
     tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
-    hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.means$model))), 
-                                tmax = rep(as.numeric(tmax.hist) , length(unique(ens.means$model))), 
-                                model = rep(1:length(unique(ens.means$model)), each = length(as.numeric(ppt.hist))), 
-                                year = rep(2001:2018, length(unique(ens.means$model))))
+    hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
+                                tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
+                                model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
+                                year = rep(2001:2018, length(unique(ens.samps.df$model))))
     
     full.df <- rbind(hist.samps.df, detrend.samps.df %>% filter(!year %in% 2018))
     full.df.nodups <- full.df[!duplicated(full.df),]
@@ -1400,7 +1400,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nMCMC), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
                                                                                                                                                                    ppt = 0, #covariates$ppt[,t], 

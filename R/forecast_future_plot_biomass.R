@@ -712,17 +712,18 @@ set.seed(22)
 plot <- "2904285010690"
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
+source("R/plot2AGB_kayeFVS.R")
 source("R/biomass.sensitivity.periodic.R")
 # run the function that makes all of the forecasts
-system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 
 # run all the plots for this scenario and 
 # started at 12:12 pm....
-lapply(unique(plots)[1:100],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[101:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
 unique(plots) %in% 2567520010690
