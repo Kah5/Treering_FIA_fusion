@@ -1,13 +1,13 @@
 library(viridis)
 #Parse apart the SDI and climate change effects sensitivity effects on AGB
-parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, scenario, cc.scenario = "doubleCC" ){
+parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, rcp, cc.scenario = "doubleCC" ){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
   
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
    cat("less than 2 trees on the first plot")
   }else{
-    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
+    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
      cat("no existing future climate data") 
     }else{
     # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
@@ -41,10 +41,10 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
       if(cc.scenario == "doubleCC"){
     
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-      #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     
@@ -215,7 +215,7 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
     total.plot <- data.frame(plot = plot, 
                              mort.scheme = mort.scheme, 
-                             rcp = scenario,
+                             rcp = rcp,
                              cc.scenario = cc.scenario,
                              parse = "full",
                              year = yrvec[2:length(low.stemwood)], 
@@ -282,9 +282,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
     cat("reading in no SDI results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".noSDI.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -454,7 +454,7 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
     total.plot.nosdi <- data.frame(plot = plot, 
                                    mort.scheme = mort.scheme, 
-                                   rcp = scenario,
+                                   rcp = rcp,
                                    cc.scenario = cc.scenario,
                                    parse = "no SDI",
                                    year = yrvec[2:length(low.stemwood)], 
@@ -520,9 +520,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
     cat("reading in no CC results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -692,7 +692,7 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.7, s
     
     total.plot.noprecip <- data.frame(plot = plot, 
                                       mort.scheme = mort.scheme, 
-                                      rcp = scenario,
+                                      rcp = rcp,
                                       cc.scenario = cc.scenario,
                                       parse = "no climate change",
                                       year = yrvec[2:length(low.stemwood)], 
@@ -775,8 +775,8 @@ SDI.ratio.DD = 0.8
 cc.scenario = "singleCC"
 
 unique(plots) %in% 2584218010690
-DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, scenario = "rcp26", cc.scenario = "singleCC" )})
-DIDD.rcp85..parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, scenario = "rcp85", cc.scenario = "singleCC" )})
+DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
+DIDD.rcp85..parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
 
 #DDonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "DDonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
 #DIonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
@@ -790,7 +790,7 @@ parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp85.parse.df)
 
 
 # subtract the scenarios from the full scenario
-AGB.parse.dCC <- parse.all.mort %>% select(plot, scenario, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
+AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
   spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
                                  #tmaxdiff = full - `no tmax`, 
                                  SDIdiff = full - `no SDI`, 
@@ -798,7 +798,7 @@ AGB.parse.dCC <- parse.all.mort %>% select(plot, scenario, mort.scheme, year, pa
                                  #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
                                  SDIdiff.pct = ((full - `no SDI`)/full)*100)
 
-AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(scenario, mort.scheme, year) %>% 
+AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(rcp, mort.scheme, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -815,7 +815,7 @@ AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(scenario, mort
 
 ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median, color = mort.scheme))+geom_line()+
   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(~mort.scheme)
+  facet_wrap(~rcp)
 
 # ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = tmaxdiff.median, color = mort.scheme))+geom_line()+
 #   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = tmaxdiff.median - tmaxdiff.sd, ymax = tmaxdiff.median + tmaxdiff.sd,  fill = mort.scheme))+
@@ -830,13 +830,14 @@ ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median,
 
 #---------------------------- merge with SDI ----------------------------------
 SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
-SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 400, "> 400", 
-                                   ifelse(SDI.plt.unscaled$SDI < 400 & SDI.plt.unscaled$SDI >= 250, "250 - 400",
-                                          ifelse(SDI.plt.unscaled$SDI < 250 & SDI.plt.unscaled$SDI >= 150, "150 - 250", ">150")))
+SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203", 
+                                   ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 133, "133 - 203",
+                                          ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 85, "85 - 133", "<85")))
 colnames(AGB.parse.dCC)[1] <- "PLT_CN"
+SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
 AGB.parse.dCC.SDI <- left_join(AGB.parse.dCC, SDI.plt.unscaled)
 
-AGB.parse.dCC.summary.SDI  <- AGB.parse.dCC.SDI %>% ungroup() %>% group_by(scenario,mort.scheme, SDI.bin, year) %>% 
+AGB.parse.dCC.summary.SDI  <- AGB.parse.dCC.SDI %>% ungroup() %>% group_by(rcp, mort.scheme, SDI.bin, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -857,22 +858,22 @@ AGB.parse.dCC.summary.SDI  <- AGB.parse.dCC.SDI %>% ungroup() %>% group_by(scena
             SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
 
 
-AGB.parse.dCC.summary.SDI$SDI.bin <- factor(AGB.parse.dCC.summary.SDI$SDI.bin, levels = c(">150", "150 - 250", "250 - 400", "> 400"))
+AGB.parse.dCC.summary.SDI$SDI.bin <- factor(AGB.parse.dCC.summary.SDI$SDI.bin, levels = c("<85", "85 - 133", "133 - 203", "> 203"))
 
 ggplot(data = AGB.parse.dCC.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))
 
 png(height = 6, width = 7, units = "in", res = 100, "outputs/SDI.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
 ggplot(data = na.omit(AGB.parse.dCC.summary.SDI), aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
 dev.off()
 
 png(height = 6, width = 7, units = "in", res = 100, "outputs/climate_changes.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
 ggplot(data = AGB.parse.dCC.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
 dev.off()
 
 # png(height = 6, width = 7, units = "in", res = 100, "outputs/tmax.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
@@ -882,7 +883,7 @@ dev.off()
 # dev.off()
 
 # summaries for the single CC runs
-AGB.parse <- parse.all.mort %>% select(plot,scenario, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
+AGB.parse <- parse.all.mort %>% select(plot,rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
   spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
                                  #tmaxdiff = full - `no tmax`, 
                                  SDIdiff = full - `no SDI`, 
@@ -890,7 +891,7 @@ AGB.parse <- parse.all.mort %>% select(plot,scenario, mort.scheme, year, parse, 
                                  #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
                                  SDIdiff.pct = ((full - `no SDI`)/full)*100)
 
-AGB.parse.summary <- AGB.parse %>% ungroup() %>% group_by(scenario,mort.scheme, year) %>% 
+AGB.parse.summary <- AGB.parse %>% ungroup() %>% group_by(rcp,mort.scheme, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             #tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -909,7 +910,7 @@ AGB.parse.summary <- AGB.parse %>% ungroup() %>% group_by(scenario,mort.scheme, 
 
 ggplot(data = AGB.parse.summary, aes(x = year, y = climatechangediff.median, color = mort.scheme))+geom_line()+
   geom_ribbon(data = AGB.parse.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_wrap(~mort.scheme)
+  facet_wrap(~rcp)
 
 
 # ggplot(data = AGB.parse.summary, aes(x = year, y = tmaxdiff.median, color = mort.scheme))+geom_line()+
@@ -918,7 +919,7 @@ ggplot(data = AGB.parse.summary, aes(x = year, y = climatechangediff.median, col
 
 ggplot(data = AGB.parse.summary, aes(x = year, y = SDIdiff.median, color = mort.scheme))+geom_line()+
   geom_ribbon(data = AGB.parse.summary, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_wrap(~mort.scheme)
+  facet_wrap(~rcp)
 
 
 #---------------------------- merge with SDI ----------------------------------
@@ -927,9 +928,10 @@ SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 400, "> 400",
                                    ifelse(SDI.plt.unscaled$SDI < 400 & SDI.plt.unscaled$SDI >= 250, "250 - 400",
                                           ifelse(SDI.plt.unscaled$SDI < 250 & SDI.plt.unscaled$SDI >= 150, "150 - 250", ">150")))
 colnames(AGB.parse)[1] <- "PLT_CN"
+SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
 AGB.parse.SDI <- left_join(AGB.parse, SDI.plt.unscaled)
 
-AGB.parse.summary.SDI  <- AGB.parse.SDI %>% ungroup() %>% group_by(scenario,mort.scheme, SDI.bin, year) %>% 
+AGB.parse.summary.SDI  <- AGB.parse.SDI %>% ungroup() %>% group_by(rcp,mort.scheme, SDI.bin, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -952,35 +954,35 @@ AGB.parse.summary.SDI$SDI.bin <- factor(AGB.parse.summary.SDI$SDI.bin, levels = 
 
 ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))
 
 
 png(height = 6, width = 7, units = "in", res = 100, "outputs/SDI.parse.AGB.FIAperiodic.singleCC.bySDI.png")
 ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+ theme_bw()
 dev.off()
 
 png(height = 6, width = 7, units = "in", res = 100, "outputs/no_climate_change.parse.AGB.FIAperiodic.singleCC.bySDI.png")
 ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(scenario), cols = vars(SDI.bin))
+  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+ theme_bw()
 dev.off()
 
 
 
 SDI.parse <- ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
                     geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-                    facet_grid(rows =var(scenario), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+                    facet_grid(rows =vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
                     ylab("Difference between no SDI \n and full projections")
 
 
 CC.parse <- ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
                     geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-                    facet_grid(rows =var(scenario)cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+                    facet_grid(rows =vars(rcp),cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
                     ylab("Difference between no climate \n change and full projections")
 
-png(height = 8, width = 8, units = "in", res = 200, "outputs/no_cc_no_SDI_absolute_difference_plots.png")
+png(height = 10, width = 8, units = "in", res = 200, "outputs/no_cc_no_SDI_absolute_difference_plots.png")
 cowplot::plot_grid(SDI.parse, CC.parse, align = "hv", ncol = 1)
 dev.off()
 
@@ -996,10 +998,11 @@ cov.data.unique$MAT.bin <- ifelse(cov.data.unique$MAT >= 0.569027, "> 0.569027",
                                   ifelse(cov.data.unique$MAT < 0.569027 & cov.data.unique$MAT >= -0.006959, "0.569027 - -0.006959",
                                          ifelse(cov.data.unique$MAT < -0.006959 & cov.data.unique$MAT >= -0.579155, "-0.006959 - -0.579155", "<-0.579155")))
 
+cov.data.unique$PLT_CN <- as.character(cov.data.unique$PLT_CN)
 AGB.parse.dCC.MAP.MAT <- left_join(AGB.parse.dCC.SDI, cov.data.unique)
 
 # get the summary for MAP:
-AGB.parse.summary.MAP  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(scenario, mort.scheme, MAP.bin, year) %>% 
+AGB.parse.summary.MAP  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, MAP.bin, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -1023,18 +1026,18 @@ AGB.parse.summary.MAP$MAP.bin <- factor(AGB.parse.summary.MAP$MAP.bin, levels = 
 
 ggplot(data = AGB.parse.summary.MAP, aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.MAP, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no SDI \n and full projections")
 
 
 ggplot(data = AGB.parse.summary.MAP, aes(x = year, y = climatechangediff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.MAP, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no climate \n change and full projections")
 
 
 # get the summary for MAT:
-AGB.parse.summary.MAT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(scenario, mort.scheme, MAT.bin, year) %>% 
+AGB.parse.summary.MAT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, MAT.bin, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -1057,13 +1060,13 @@ AGB.parse.summary.MAT$MAT.bin <- factor(AGB.parse.summary.MAT$MAT.bin, levels = 
 
 ggplot(data = AGB.parse.summary.MAT, aes(x = year, y = SDIdiff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.MAT, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no SDI \n and full projections")
 
 
 ggplot(data = AGB.parse.summary.MAT, aes(x = year, y = climatechangediff.median))+geom_line()+
   geom_ribbon(data = AGB.parse.summary.MAT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no climate \n change and full projections")
 
 
@@ -1074,7 +1077,7 @@ ggplot(data = AGB.parse.summary.MAT, aes(x = year, y = climatechangediff.median)
 #---------------------------------------------------------------------------
 
 # get the summary for MAT:
-AGB.parse.summary.PLT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(scenario, mort.scheme, PLT_CN,SDI.bin, year) %>% 
+AGB.parse.summary.PLT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, PLT_CN,SDI.bin, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
@@ -1097,20 +1100,20 @@ AGB.parse.summary.PLT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(scena
 
 ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = SDIdiff.median, group = PLT_CN))+geom_line()+
  # geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no SDI \n and full projections")
 
 
 ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN))+geom_line()+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario),cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
+  facet_grid(rows =vars(rcp),cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
   ylab("Difference between no climate \n change and full projections")
 
 
 ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN))+geom_line(color = "darkgrey")+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
   theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")
+  ylab("Difference between no climate \n change and full projections")+facet_wrap(~rcp)
 
 
 #----------------------------------------------------------------------------
@@ -1119,28 +1122,28 @@ ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = climatechangediff.median,
 cov.AGB.parse.PLT <- left_join(AGB.parse.summary.PLT, cov.data.unique)
 cov.AGB.parse.PLT <- left_join(PLOT, cov.AGB.parse.PLT )
 
-
+cov.AGB.parse.PLT
 # plot up trajectories by STDAGE
-ggplot(data = cov.AGB.parse.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
+ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =var(scenario),cols = vars(STATECD))+theme_bw()+theme(panel.grid = element_blank())+
+  facet_grid(rows=vars(rcp),cols = vars(STATECD))+theme_bw()+theme(panel.grid = element_blank())+
   ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
 
 
 
-ggplot(data = cov.AGB.parse.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
+ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank())+
+  theme_bw()+theme(panel.grid = element_blank())+facet_grid(rows=vars(rcp))+
   ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
 
 
 
-# by SI, 
+# by ELEV, 
 
-ggplot(data = cov.AGB.parse.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN, color = SI))+geom_line()+
+ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = ELEV))+geom_line()+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")
+  theme_bw()+theme(panel.grid = element_blank())+facet_grid(cols=vars(rcp))+
+  ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
 
 
 # by state
@@ -1153,12 +1156,12 @@ ggplot(data = cov.AGB.parse.PLT, aes(x = year, y = climatechangediff.median, gro
 ggplot(data = parse.all.mort,  aes(x = year, y = mAGB, group = plot))+geom_line()+
   #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
   theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("full projections by plot")+facet_wrap(~parse)
+  ylab("full projections by plot")+facet_grid(cols= vars(parse), rows = vars(rcp))
 
 
 # get whether biomass is increasing, decreasing, or staying the same over time. 
 
-biomass.trajectory.means <- parse.all.mort %>% select(plot, parse, mAGB, year)%>% group_by(plot, parse) %>% filter(year %in% c(2002, 2098))%>%
+biomass.trajectory.means <- parse.all.mort %>% select(plot, parse,rcp, mAGB, year)%>% group_by(plot,rcp, parse) %>% filter(year %in% c(2002, 2098))%>%
   spread(year, value = mAGB) %>% mutate(difference.century = `2098`-`2002`)
 # biomass decreasing over time on the whole
 sum(biomass.trajectory.means$difference.century)
@@ -1166,31 +1169,48 @@ hist(biomass.trajectory.means$difference.century)
 
 # join up with plot tables to map out:
 colnames(biomass.trajectory.means)[1] <- "CN" 
-#biomass.trajectory.means$CN <- as.character(biomass.trajectory.means$CN)
+PLOT$CN <- as.character(PLOT$CN)
+
 biomass.plot.trajectory <- left_join(biomass.trajectory.means, PLOT)
 
 ggplot(biomass.plot.trajectory, aes(x = LON, y = LAT, color = difference.century))+geom_point()+
   theme_bw()+theme(panel.grid = element_blank())+
-  facet_wrap(~parse)+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+  facet_grid(rows = vars(rcp),cols = vars(parse))+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
   
 ggplot(biomass.plot.trajectory, aes(x = ELEV, y = difference.century))+geom_point()+
   theme_bw()+theme(panel.grid = element_blank())+
-  facet_wrap(~parse)#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
+  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
 
 ggplot(biomass.plot.trajectory, aes(x = LON, y = difference.century))+geom_point()+
   theme_bw()+theme(panel.grid = element_blank())+
-  facet_wrap(~parse)#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
+  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
 
 ggplot(biomass.plot.trajectory, aes(x = LAT, y = difference.century))+geom_point()+
   theme_bw()+theme(panel.grid = element_blank())+
-  facet_wrap(~parse)#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
+  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
 
-# biomass.plot.trajectory.cond <- left_join(biomass.plot.trajectory, COND)
-# ggplot(biomass.plot.trajectory.cond, aes(x = SICOND, y = difference.century))+geom_point()+
-#   theme_bw()+theme(panel.grid = element_blank())+
-#   facet_wrap(~parse)#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+COND$CN <- as.character(COND$PLT_CN)
+biomass.plot.trajectory.cond <- left_join(biomass.plot.trajectory, COND)
+ggplot(biomass.plot.trajectory.cond, aes(x = SICOND, y = difference.century))+geom_point()+
+  theme_bw()+theme(panel.grid = element_blank())+
+  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
+  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
+
 
 #----------------------------------------------------------------------------
 # MAP out in space
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+# Plots for % differences between parses
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+# Plots for differences and % differences in dead mAGB vs reduced mAGB due to reduced growth
 #----------------------------------------------------------------------------
 
