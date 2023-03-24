@@ -724,12 +724,17 @@ system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.depend
 # started at 12:12 pm....
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+#6.0 stopped at: plot "2483452010690"
+# 4.5 stopped at plot: "2483452010690"
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+plot <- "2483452010690"
+scenario = "rcp45"
 
 lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
-unique(plots) %in% 2567520010690
-
+unique(plots) %in% "2483452010690"
+# plot 180
 plot <- 2567520010690
 # 2461254010690"ates no tmaxcalculating biomass: percent complete complete
 # extracting future climate for the plot2461254010690Error in `filter()`:

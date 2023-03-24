@@ -13,8 +13,11 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plot)
   trees.in.plt$TPA_UNADJ <- TREE[which(TREE$CN %in% trees.in.plt$CN),]$TPA_UNADJ
   
+  #
   
-  #if(!length(trees.in.plt$PLOT) == 0){
+  if(length(trees.in.plt$PLOT) == 0){
+    cat("no other trees on plot")
+  }else{
   #cored.treeid <- cored.in.plt$treeid
   
   x <- cored.in.plt$treeid
@@ -1745,4 +1748,4 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   }   
 }  
 }
-
+}
