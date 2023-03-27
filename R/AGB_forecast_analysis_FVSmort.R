@@ -10,7 +10,7 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
   
   cat(paste0("getting pred vs obs for ", as.character(plot)))
   
-  if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
+  if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
     cat("no forecast")
   }else{
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
@@ -19,7 +19,7 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
   }else{
 
     cat (paste("reading in forecasts from plot ", plot))
-    load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+    load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
        # objects
     # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
     # AGB.foliage, NPP.foliage, 
@@ -331,7 +331,7 @@ ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>%
 AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB, group = mort.scheme, color = mort.scheme))+theme_bw()+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)+ylim(0,1.7e7)
 NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for all  plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)+ylim(-6e5,2e5)
 
-png(height = 7, width = 10, units = "in", res = 150, "outputs/exampleallrunplotsFIAperiodic.total.biomass.singleCC.png")
+png(height = 7, width = 10, units = "in", res = 150, "outputs/allplotsFIAperiodic.total.biomass.singleCC.png")
 cowplot::plot_grid(AGB.line, NPP.line, ncol = 1, align = "hv")
 dev.off()
 
@@ -632,8 +632,12 @@ plotC.totals.prop %>% group_by(plot, mort.scheme, scenario, time) %>% select(-to
 # -------------------------------------------------------------------------------
 #  make plots of big tree vs small tree mortality
 # -------------------------------------------------------------------------------
-get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD = 0.7,nocc = FALSE, cc.scenario){
+get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD = 0.8,nocc = FALSE, cc.scenario){
   cat(paste0("reading in plot "), plot)
+  
+  if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
+    cat("no forecast")
+  }else{
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
     cat("less than 2 trees on the first plot")
@@ -669,9 +673,9 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
     
     
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot,".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }#load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
     # objects
@@ -735,6 +739,7 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
     
     diams
   }
+  }
 }
 
 
@@ -744,21 +749,25 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
 
 # read in and get the tree level estimates
 # RCP 2.6
-btst.DIAMS.DIDD.26 <- lapply(unique(plots)[1:43], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+btst.DIAMS.DIDD.26 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 btst.DIAMS.DIDD.26.df <- do.call(rbind, btst.DIAMS.DIDD.26)
 
-# btst.DIAMS.nomort.26<- lapply(unique(plots)[1:417], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", cc.scenario = "singleCC")})
-# btst.DIAMS.nomort.26.df <- do.call(rbind, btst.DIAMS.nomort.26)
-# # 
-# btst.DIAMS.DDonly.26<- lapply(unique(plots)[1:417], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", cc.scenario = "singleCC")})
-# btst.DIAMS.DDonly.26.df <- do.call(rbind, btst.DIAMS.DDonly.26)
-# # 
-# btst.DIAMS.DIonly.26<- lapply(unique(plots)[1:417], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", cc.scenario = "singleCC")})
-# btst.DIAMS.DIonly.26.df <- do.call(rbind, btst.DIAMS.DIonly.26)
-# # 
-rcp26.DIAMS <- btst.DIAMS.DIDD.26.df
-#rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.nomort.26.df)
-saveRDS(rcp26.DIAMS, "periodicFIA.btst.DIAMS.RDS")
+# RCP 4.5
+btst.DIAMS.DIDD.45 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+btst.DIAMS.DIDD.45.df <- do.call(rbind, btst.DIAMS.DIDD.45)
+
+# RCP 6.0
+btst.DIAMS.DIDD.60 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+btst.DIAMS.DIDD.60.df <- do.call(rbind, btst.DIAMS.DIDD.60)
+
+# RCP 8.5
+btst.DIAMS.DIDD.85 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+btst.DIAMS.DIDD.85.df <- do.call(rbind, btst.DIAMS.DIDD.85)
+
+
+#rcp26.DIAMS <- btst.DIAMS.DIDD.26.df
+rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DIDD.45.df, btst.DIAMS.DIDD.60.df, btst.DIAMS.DIDD.85.df)
+saveRDS(rcp26.DIAMS, "periodicFIA.btst.DIAMS.allrcps.RDS")
 
 # # checking to see if the mort trees are being labeled properly:
 # ggplot(btst.DIAMS.DIDD.85.df %>% filter(plot %in% unique(plotnos)[2]), aes(x = time, y = DBH, group = tree, color = df))+geom_point()
@@ -777,7 +786,7 @@ allplots.treeDIAM  <- btst.DIAMS.DIDD.26.df
 #nocc.allplots.treeeDIAM <- rbind(btst.DIAMS.nomort.nocc.df, btst.DIAMS.DIonly.nocc.df, btst.DIAMS.DDonly.nocc.df, btst.DIAMS.DIDD.nocc.df)
 #saveRDS(nocc.allplots.treeeDIAM, "outputs/allplots.treeDiam.forecast.nocc.RDS")
 
-saveRDS(allplots.treeDIAM, "outputs/allplots.treeDiam.forecast.periodicFIA.RDS")
+saveRDS(rcp26.DIAMS , "outputs/allplots.treeDiam.forecast.periodicFIA.full.RDS")
 
 
 
@@ -1076,8 +1085,8 @@ dev.off()
 # get torching and crowning indices from the diameter distributions
 #------------------------------------------------------------------------------------
 # get the aboveground woody biomass component:
-all10plot.nocc <- readRDS("all.AGB.fiaperiodic_singleCC_0.8_1.20.23tempfile.RDS")
-all.woody.agb.26 <- all10plot.nocc %>% group_by(plot, mort.scheme, rcp) %>% arrange(plot, mort.scheme, rcp, year) %>% 
+all10plot <- readRDS("all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
+all.woody.agb.26 <- all10plot %>% group_by(plot, mort.scheme, rcp) %>% arrange(plot, mort.scheme, rcp, year) %>% 
   #group_by(plot, mort.scheme, rcp, year) %>% 
   #mutate(lag.value = lag(mAGB.dead)) #%>% 
   mutate(dead.lagged = dplyr::lag(mAGB.dead, n = 5,  order_by=year))%>% group_by(plot, mort.scheme, rcp, year)%>% #select(mAGB.stemwood, mAGB.stembark, mAGB.branchdead, mAGB.branchlive) %>%
@@ -1107,9 +1116,10 @@ glm.ht.dia$coefficients
 
 rm(fiadb)
 # get the diameter distributions of each plot
-forecast.plt  <- readRDS("outputs/allplots.treeDiam.forecast.periodicFIA.RDS")
+forecast.plt  <- readRDS("outputs/allplots.treeDiam.forecast.periodicFIA.full.RDS")
 #forecast.plt <- allplots.treeDIAM
 rm(allplots.treeDIAM)
+rm(rcp26.DIAMS)
 rm(SUBPLOT)
 rm(TREE_remeas)
 rm(NPP.line)
@@ -1130,7 +1140,7 @@ plt.characteristics.all <- forecast.plt %>% filter(df %in% "live")%>% #filter(ti
                                                              tph = sum(TPH, na.rm = TRUE))
 plt.characteristics.all$ba <- ifelse(plt.characteristics.all$ba >= quantile(plt.characteristics.all$ba, 0.975),quantile(plt.characteristics.all$ba, 0.975), plt.characteristics.all$ba)
 
-all.woody.agb.26 <- all.woody.agb.26 #%>%  filter(time %in% c(1, 24, 49,74,97))
+#all.woody.agb.26 <- all.woody.agb.26 #%>%  filter(time %in% c(1, 24, 49,74,97))
 all.woody.agb.26$woody.biomass <- ifelse(all.woody.agb.26$woody.biomass >= quantile(all.woody.agb.26$woody.biomass, c(0.999)), quantile(all.woody.agb.26$woody.biomass, c(0.999)), all.woody.agb.26$woody.biomass)
 all.woody.agb.26$dead <- ifelse(all.woody.agb.26$dead >= quantile(all.woody.agb.26$dead, c(0.999)), quantile(all.woody.agb.26$dead, c(0.999)), all.woody.agb.26$dead)
 
