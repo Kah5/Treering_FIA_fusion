@@ -10,47 +10,17 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
   
   cat(paste0("getting pred vs obs for ", as.character(plot)))
   
+  if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
+    cat("no forecast")
+  }else{
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
     cat("less than 2 trees on the first plot")
   }else{
-    # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
-    # newTREE$PREVDIA
-    # STATUSCD_change <- newTREE %>% group_by(STATUSCD,  PREV_STATUS_CD) %>% 
-    #   mutate(dead.class = ifelse(STATUSCD == 1 & PREV_STATUS_CD == 1, "live", 
-    #                              ifelse(STATUSCD == 2 & PREV_STATUS_CD == 1, "died in inventory", 
-    #                                     ifelse(STATUSCD == 2 & PREV_STATUS_CD == 2, "died before first survey",
-    #                                            ifelse(STATUSCD == 1 & is.na(PREV_STATUS_CD) == "TRUE","ingrowth", 
-    #                                                   ifelse(STATUSCD == 3 & PREV_STATUS_CD == 1,"cut/removed in inventory", 
-    #                                                          ifelse(STATUSCD == 3 & PREV_STATUS_CD == 3, "cut/removed before first survey", "ingrowth")))))))
-    # newTREE$INV_Period <- newTREE$MEASYR - newTREE$PREV_MEASYR
-    # INVperiod <- mean(newTREE$INV_Period, na.rm =TRUE)
-    # STATUSCD_change$PREVDIA*2.54
-    # 
-    # 
-    # 
-    # STATUSCD_change$DRYBIO_AG
-    # oldTREE$DRYBIO_AG
-    
-    # dead.diams <- STATUSCD_change %>% ungroup() %>% filter(dead.class == "died in inventory" ) %>% 
-    #   dplyr::select(CN, dead.class, PREVDIA, TPAMORT_UNADJ, TPA_UNADJ, PREV_TPA_UNADJ, AGENTCD) %>% mutate(PREVDBH = PREVDIA*2.54)
-    # #rem.summary <- STATUSCD_change  %>% ungroup() %>% filter(dead.class == "cut/removed in inventory" ) %>% summarise(rem_peryr_perha = sum(TPAREMV_UNADJ, na.rm =TRUE))
-    
-    
-    
-    # scale by TPAMORT_UNADJ to get trees per acre per year, 
-    # may need to also cale by # inventory years
-    # 
+
     cat (paste("reading in forecasts from plot ", plot))
-    
-    
-    if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
-    }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
-      
-    }#load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
-    # objects
+    load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+       # objects
     # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
     # AGB.foliage, NPP.foliage, 
     # AGB.stembark, NPP.stembark,
@@ -271,11 +241,12 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
     
     
     total.plot
+      }
   }
 }
 
-
-plot = unique(plots)[1]
+get_biomass_ests(plot = 3169377010690, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD= 0.8, cc.scenario = "singleCC")
+plot = 3169377010690
 
 # -------------------------------------------------------------------------------
 # read in forecasts for all scenarios and mortality conditions
@@ -285,21 +256,27 @@ plot = unique(plots)[1]
 # normort.AGB <- lapply(unique(plots)[1:10], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 # DIonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 # DDonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
-DIDD.AGB <- lapply(unique(plots)[1:43], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+DIDD.AGB <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+DIDD.AGB.45 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+DIDD.AGB.60 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
+DIDD.AGB.85 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 
 
 # normort.AGB.df <- do.call(rbind, normort.AGB)
 # DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
 # DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
 DIDD.AGB.df <- do.call(rbind, DIDD.AGB)
+DIDD.AGB.45.df <- do.call(rbind, DIDD.AGB.45)
+DIDD.AGB.60.df <- do.call(rbind, DIDD.AGB.60)
+DIDD.AGB.85.df <- do.call(rbind, DIDD.AGB.85)
 
 
 
 # -------------------------------------------------------------------------------
 # combine all forecasts
 # -------------------------------------------------------------------------------
-#all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df) #, 
-all10plots <- DIDD.AGB.df#, 
+all10plots <- rbind(DIDD.AGB.df, DIDD.AGB.45.df, DIDD.AGB.60.df, DIDD.AGB.85.df) #, 
+#all10plots <- DIDD.AGB.df#, 
 
 #normort.AGB.60.df, DIonly.AGB.60.df, DDonly.AGB.60.df, DIDD.AGB.60.df, 
 #normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
@@ -307,7 +284,7 @@ all10plots <- DIDD.AGB.df#,
 #nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
 #all.AGB.26.nomort <- rbind(nocc.nomort.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df, nocc.DIonly.AGB.df)
 
-saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_0.8_1.20.23tempfile.RDS")
+saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
 
 # -------------------------------------------------------------------------------
 # read in forecasts for all scenarios and mortality conditions (double cc)
@@ -402,9 +379,9 @@ get_tree_levelC_ests_FVS <- function(plot, mort.scheme, scenario, nocc = FALSE, 
     
     
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }#load("biomass_
     # objects
@@ -692,9 +669,9 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
     
     
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".fixed.mort.rate.mort.prob.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".fixed.mort.rate.mort.prob.Rdata")))
+      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".rcp26.", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }#load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
     # objects

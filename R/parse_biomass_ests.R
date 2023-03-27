@@ -776,7 +776,9 @@ cc.scenario = "singleCC"
 
 unique(plots) %in% 2584218010690
 DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
-DIDD.rcp85..parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
+DIDD.rcp85.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
+DIDD.rcp45.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC" )})
+DIDD.rcp60.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC" )})
 
 #DDonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "DDonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
 #DIonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
@@ -784,9 +786,11 @@ DIDD.rcp85..parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_bi
 
 
 DIDD.parse.df <- do.call(rbind, DIDD.parse.list)
-DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85..parse.list)
+DIDD.rcp45.parse.df <- do.call(rbind, DIDD.rcp45.parse.list)
+DIDD.rcp60.parse.df <- do.call(rbind, DIDD.rcp60.parse.list)
+DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85.parse.list)
 
-parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp85.parse.df)
+parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,DIDD.rcp85.parse.df)
 
 
 # subtract the scenarios from the full scenario
