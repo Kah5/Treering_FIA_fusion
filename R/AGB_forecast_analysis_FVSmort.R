@@ -3,7 +3,7 @@ library(reshape2)
 library(tidyverse)
 library(rgdal)
 library(firebehavioR)
-
+plots <- unique(x.mat$PLT_CN)
 # reading in the available forecasts (1-184 I believe)
 
 get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scenario){
@@ -241,7 +241,7 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
     
     
     total.plot
-      }
+   }
   }
 }
 
@@ -642,42 +642,17 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
   if(nrow(oldTREE) <=1){
     cat("less than 2 trees on the first plot")
   }else{
-    # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
-    # newTREE$PREVDIA
-    # STATUSCD_change <- newTREE %>% group_by(STATUSCD,  PREV_STATUS_CD) %>% 
-    #   mutate(dead.class = ifelse(STATUSCD == 1 & PREV_STATUS_CD == 1, "live", 
-    #                              ifelse(STATUSCD == 2 & PREV_STATUS_CD == 1, "died in inventory", 
-    #                                     ifelse(STATUSCD == 2 & PREV_STATUS_CD == 2, "died before first survey",
-    #                                            ifelse(STATUSCD == 1 & is.na(PREV_STATUS_CD) == "TRUE","ingrowth", 
-    #                                                   ifelse(STATUSCD == 3 & PREV_STATUS_CD == 1,"cut/removed in inventory", 
-    #                                                          ifelse(STATUSCD == 3 & PREV_STATUS_CD == 3, "cut/removed before first survey", "ingrowth")))))))
-    # newTREE$INV_Period <- newTREE$MEASYR - newTREE$PREV_MEASYR
-    # INVperiod <- mean(newTREE$INV_Period, na.rm =TRUE)
-    # STATUSCD_change$PREVDIA*2.54
-    # 
-    # 
-    # 
-    # STATUSCD_change$DRYBIO_AG
-    # oldTREE$DRYBIO_AG
     
-    # dead.diams <- STATUSCD_change %>% ungroup() %>% filter(dead.class == "died in inventory" ) %>% 
-    #   dplyr::select(CN, dead.class, PREVDIA, TPAMORT_UNADJ, TPA_UNADJ, PREV_TPA_UNADJ, AGENTCD) %>% mutate(PREVDBH = PREVDIA*2.54)
-    # #rem.summary <- STATUSCD_change  %>% ungroup() %>% filter(dead.class == "cut/removed in inventory" ) %>% summarise(rem_peryr_perha = sum(TPAREMV_UNADJ, na.rm =TRUE))
-    
-    
-    
-    # scale by TPAMORT_UNADJ to get trees per acre per year, 
-    # may need to also cale by # inventory years
     # 
     cat (paste("reading in forecasts from plot ", plot))
     
     
-    if(cc.scenario == "doubleCC"){
+    #if(cc.scenario == "doubleCC"){
       load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-    }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot,".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-      
-    }#load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
+    # }else{
+    #   load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot,".",scenario,".", SDI.ratio.DD, ".",  cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+    #   
+    # }#load("biomass_data_FVSmort/plot2AGB_DIDD.2449653010690.rcp26.Rdata")
     # objects
     # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
     # AGB.foliage, NPP.foliage, 
@@ -742,28 +717,42 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
   }
 }
 
-
+plot <- 2511127010690
 # -------------------------------------------------------------------------------
 # for single CC
 # -------------------------------------------------------------------------------
-
+unique(plots) %in% 2511127010690
 # read in and get the tree level estimates
 # RCP 2.6
 btst.DIAMS.DIDD.26 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 btst.DIAMS.DIDD.26.df <- do.call(rbind, btst.DIAMS.DIDD.26)
+saveRDS(btst.DIAMS.DIDD.26.df, "btst.DIAMS.DIDD.26.df.tempfile.RDS")
+rm(btst.DIAMS.DIDD.26.df)
 
+# these keep failing...may need to separately join these?
 # RCP 4.5
 btst.DIAMS.DIDD.45 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 btst.DIAMS.DIDD.45.df <- do.call(rbind, btst.DIAMS.DIDD.45)
+saveRDS(btst.DIAMS.DIDD.45.df, "btst.DIAMS.DIDD.45.df.tempfile.RDS")
+rm(btst.DIAMS.DIDD.45.df)
+
 
 # RCP 6.0
 btst.DIAMS.DIDD.60 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 btst.DIAMS.DIDD.60.df <- do.call(rbind, btst.DIAMS.DIDD.60)
+saveRDS(btst.DIAMS.DIDD.60.df, "btst.DIAMS.DIDD.60.df.tempfile.RDS")
+rm(btst.DIAMS.DIDD.60.df)
 
 # RCP 8.5
 btst.DIAMS.DIDD.85 <- lapply(unique(plots)[1:650], FUN = function(x){get_tree_diam_live_dead_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85",SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
 btst.DIAMS.DIDD.85.df <- do.call(rbind, btst.DIAMS.DIDD.85)
+saveRDS(btst.DIAMS.DIDD.85.df, "btst.DIAMS.DIDD.85.df.tempfile.RDS")
+rm(btst.DIAMS.DIDD.85.df)
 
+btst.DIAMS.DIDD.26.df <- readRDS("btst.DIAMS.DIDD.26.df.tempfile.RDS")
+btst.DIAMS.DIDD.45.df <- readRDS("btst.DIAMS.DIDD.45.df.tempfile.RDS")
+btst.DIAMS.DIDD.60.df <- readRDS("btst.DIAMS.DIDD.60.df.tempfile.RDS")
+btst.DIAMS.DIDD.85.df <- readRDS("btst.DIAMS.DIDD.85.df.tempfile.RDS")
 
 #rcp26.DIAMS <- btst.DIAMS.DIDD.26.df
 rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df, btst.DIAMS.DIDD.45.df, btst.DIAMS.DIDD.60.df, btst.DIAMS.DIDD.85.df)
@@ -777,7 +766,7 @@ saveRDS(rcp26.DIAMS, "periodicFIA.btst.DIAMS.allrcps.RDS")
 # ggplot(filtered.test, aes(x = time, y = DBH, group = tree, color = df))+geom_point()
 # 
 # # combine all the tree-level datasets together:
-allplots.treeDIAM  <- btst.DIAMS.DIDD.26.df
+#allplots.treeDIAM  <- btst.DIAMS.DIDD.26.df
 #allplots.treeDIAM <- rbind(btst.DIAMS.nomort.26.df, btst.DIAMS.DIonly.26.df, btst.DIAMS.DDonly.26.df, btst.DIAMS.DIDD.26.df )#,
 #btst.DIAMS.nomort.45.df, btst.DIAMS.DIonly.45.df, btst.DIAMS.DDonly.45.df, btst.DIAMS.DIDD.45.df,
 #btst.DIAMS.nomort.60.df, btst.DIAMS.DIonly.60.df, btst.DIAMS.DDonly.60.df, btst.DIAMS.DIDD.60.df,
@@ -1372,9 +1361,10 @@ ggplot(a3, aes(load100hr, CI_km_hr_trunc, color = scenario))+geom_point()+facet_
 # i switched to a for loop to see where the lapply function broke down...we got a warning about a nonnumeric SI
 
 TI.CI.list <- list()
+unique(forecast.plt$plot)
 
 # run for singleCC and fuel model TU5
-for(i in 1:length(unique(plots)[1:43])){
+for(i in 1:length(unique(forecast.plt$plot))){
   TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(plt = unique(plots)[i], fuelmodel = "TU5")
 }
 

@@ -20,12 +20,12 @@ parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
 # Read in the site-tree/tree core data (from the jags model)
 #--------------------------------------------------------------------------------------------- 
 jags.data <- readRDS("data/regional_pipo_jags_formatted_data.RDS") # see format_PIPO_TR_climate_data.R for the formatting script
-
+cov.data.regional <- jags.data$cov.data.regional
 #--------------------------------------------------------------------------------------------- 
 # Read in the rest of the FIA tree data
 #--------------------------------------------------------------------------------------------- 
-fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
-
+#fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
+fiadb <- readRDS("data/InWeUS_FIAdb.rds")
 PLOT <- fiadb$PLOT
 SUBPLOT <- fiadb$SUBPLOT
 STATECD <- fiadb$STATECD
@@ -112,6 +112,9 @@ unique.plts <- unique(cov.data.regional[,c("PLT_CN","plotid", "PLOTSTATE", "MAP"
 x.mat <- merge(unique.plts, spread.dbh.mat, by.x = c("PLT_CN"))
 m <- 1
 # get time series data:
+# read in the larger region climate data:
+#pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v5.csv")
+
 # will need to match the core_CN from the plot
 pipo.climate.pltcn <- merge(pipo.clim, cov.data.regional[,c("CORE_CN", "PLT_CN", "STATECD", "COUNTYCD", "plotid", "PLOTSTATE")],by.x = "name", by.y = "CORE_CN")
 
