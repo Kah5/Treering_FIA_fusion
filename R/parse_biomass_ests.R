@@ -792,7 +792,7 @@ DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85.parse.list)
 
 parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,DIDD.rcp85.parse.df)
 
-
+saveRDS(parse.all.mort, "outputs/parse.all.mort.RDS")
 # subtract the scenarios from the full scenario for the mean AGB:
 AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
   spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
@@ -833,6 +833,7 @@ ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median,
 get_component_diffs <- function(component, parse.all.mort){
   
   parse.difference.df  <- parse.all.mort %>% group_by(mort.scheme, parse, rcp, year) %>% 
+    summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>%
     summarise(across(c(mAGB:low.foliage), sum)) %>% # sum across all the plots
     select(rcp, mort.scheme, year, parse, UQ(sym(component))) %>% 
     group_by( mort.scheme, year, parse) %>%
@@ -848,13 +849,36 @@ get_component_diffs <- function(component, parse.all.mort){
   
 }
 
-# for the total AGB
-get_component_diffs("upA", parse.all.mort)
-get_component_diffs("lowA", parse.all.mort)
+# for the total C
+upA.parse <- get_component_diffs("upA", parse.all.mort)
+lowA.parse <- get_component_diffs("lowA", parse.all.mort)
 
+upA.parse.m <- reshape2::melt(upA.parse, id.vars = c("rcp", "mort.scheme", "year"))
+lowA.parse.m <- reshape2::melt(lowA.parse, id.vars = c("rcp", "mort.scheme", "year"))
+colnames(upA.parse.m)[5] <- "upA"
+colnames(lowA.parse.m)[5] <- "lowA"
+
+CI.A.parse <- left_join(upA.parse.m, lowA.parse.m)
+parse.differences <- CI.A.parse %>% filter(variable %in% c("climatechangediff", "SDIdiff"))
+
+parse.differences$year <- as.numeric(parse.differences$year)
+
+parse.differences
+
+# ggplot()+geom_line(data = parse.differences , aes(x = year, y = lowA,  color = variable))+facet_wrap(~rcp)
+# ggplot()+geom_line(data = parse.differences , aes(x = year, y = upA,  color = variable))+facet_wrap(~rcp)
+
+# why wont this plot?
+ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax = upA, fill = variable))+facet_wrap(~rcp)
+
+
+# notes: based on this I don't think we should be removing the SDI effect entirely---
+# SDI + climate change scenario?
+# is this because SDI x MAT or SDI x MAP interactions? can we remove just the time varying effect of SDI?
 # for NPP
 get_component_diffs("up", parse.all.mort)
 get_component_diffs("low", parse.all.mort)
+
 
 
 
