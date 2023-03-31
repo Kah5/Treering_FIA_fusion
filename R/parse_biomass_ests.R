@@ -793,7 +793,7 @@ DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85.parse.list)
 parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,DIDD.rcp85.parse.df)
 
 
-# subtract the scenarios from the full scenario
+# subtract the scenarios from the full scenario for the mean AGB:
 AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
   spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
                                  #tmaxdiff = full - `no tmax`, 
@@ -828,6 +828,34 @@ ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median,
 # ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = SDIdiff.median, color = mort.scheme))+geom_line()+
 #   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
 #   facet_wrap(~mort.scheme)
+
+#------------------------get differences for the CI-----------------------------------
+get_component_diffs <- function(component, parse.all.mort){
+  
+  parse.difference.df  <- parse.all.mort %>% group_by(mort.scheme, parse, rcp, year) %>% 
+    summarise(across(c(mAGB:low.foliage), sum)) %>% # sum across all the plots
+    select(rcp, mort.scheme, year, parse, UQ(sym(component))) %>% 
+    group_by( mort.scheme, year, parse) %>%
+    spread(parse, UQ(sym(component))) %>% 
+    
+    mutate(climatechangediff = full - `no climate change`, 
+                                  #tmaxdiff = full - `no tmax`, 
+                                  SDIdiff = full - `no SDI`, 
+                                  climatechangediff.pct = ((full - `no climate change`)/full)*100, 
+                                  #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
+                                  SDIdiff.pct = ((full - `no SDI`)/full)*100)
+  parse.difference.df 
+  
+}
+
+# for the total AGB
+get_component_diffs("upA", parse.all.mort)
+get_component_diffs("lowA", parse.all.mort)
+
+# for NPP
+get_component_diffs("up", parse.all.mort)
+get_component_diffs("low", parse.all.mort)
+
 
 
 
