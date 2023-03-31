@@ -1067,6 +1067,138 @@ ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAb
   facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 dev.off()
+#------------------------------------------------------------------------------------
+# Make a pretty figure of total biomass by different components across all the stands in the region
+#------------------------------------------------------------------------------------
+all10plot <- readRDS("all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
+
+# get the low and high values and sum across plots?
+all.woody.sums <- all10plot %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise(across(c(mAGB:low.foliage), sum)) # sum up all plots for each column simply for each year and rcp, and mort.scheme
+
+# convert to Teragrams and Carbon
+# convert to Mg/ha to Tg/ha: 1 Tg = 1000000 Mg
+all.woody.sums.TgC <-  all.woody.sums %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) 
+
+all.woody.sums.MgC <-  all.woody.sums %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)})) # convert to Teragrams and Carbon
+
+# okay lets plot all.woody.sums.TgC:
+
+ggplot(all.woody.sums.TgC, aes(x = year, y =mAGB))+geom_line()+facet_wrap(~rcp)
+
+ggplot()+geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood), fill = "blue")+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive), fill = "red")+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA, ymax = upA))+
+  facet_wrap(~rcp)
+
+b.plot.all <- ggplot()+
+  #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
+  
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
+  #geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
+  
+  theme_bw()+
+  ylab(paste("Plot", plot, "stem  \n biomass (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  scale_fill_manual(name = 'Biomass Component', 
+                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))+facet_wrap(~rcp)
+
+
+b.flux.all <- ggplot()+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
+  geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
+  
+  theme_bw()+ylim(-0.2, 0.2)+
+  ylab(paste("Plot", plot, " stem  \n biomass increment (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  scale_fill_manual(name = 'Biomass Component', 
+                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))+facet_wrap(~rcp)
+
+
+#colnames(all.woody.sums.TgC)
+# stem.branch = add stemwood + live branch
+# branch.wood.bark = stembranch + stembark
+# all.live = branch.wood.bark + foliage
+# dead.live.branch = all.live + dead branch
+
+all.woody.summed.TgC <- all.woody.sums.TgC %>% group_by(mort.scheme, rcp, year) %>% 
+  mutate(upA.stem.branch = upA.stemwood + upA.branchlive, 
+         lowA.stem.branch = upA.stemwood, 
+         
+         upA.branch.wood.bark = upA.stem.branch + upA.stembark, 
+         lowA.branch.wood.bark = upA.stem.branch, 
+         
+         upA.all.live = upA.branch.wood.bark + upA.foliage, 
+         lowA.all.live = upA.branch.wood.bark, 
+         
+         upA.deadbranch.live = upA.all.live+ upA.branchdead, 
+         lowA.deadbranch.live = upA.all.live) %>% 
+       
+         # do the same for the nPP:
+  # I think that we may need to switch to mins here
+         mutate(
+         up.stem.branch = up.stemwood + up.branchlive, 
+         low.stem.branch = up.stemwood, 
+         
+         up.branch.wood.bark = up.stem.branch + up.stembark , 
+         low.branch.wood.bark = up.stem.branch, 
+         
+         up.all.live = up.branch.wood.bark + up.foliage, 
+         low.all.live = up.branch.wood.bark, 
+         
+         up.deadbranch.live = up.all.live+ up.branchdead, 
+         low.deadbranch.live = up.all.live, 
+         ) 
+
+# pretty figure for the regional forecasts:
+regional.C.trends <- ggplot()+
+  #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
+  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.stem.branch, ymax = upA.stem.branch, fill = "live branch"))+
+  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.branch.wood.bark, ymax = upA.branch.wood.bark, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.all.live, ymax = upA.all.live, fill = "foliage"))+
+  
+  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadbranch.live, ymax = upA.deadbranch.live, fill = "dead branch"))+
+  #geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
+  
+  theme_bw(base_size = 14)+
+  ylab(paste("Regional Forest Carbon Density \n (Tg Carbon/hectare)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  scale_fill_manual(name = 'Biomass Component', 
+                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))+
+  facet_wrap(~rcp, ncol = 4)
+
+# plot NPP:
+regional.NPP <- ggplot()+
+  #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
+  geom_ribbon(data = all.woody.summed.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stemwood*-1, ymax = up.stemwood*-1, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stem.branch*-1, ymax = up.stem.branch*-1, fill = "live branch"))+
+  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.branch.wood.bark*-1, ymax = up.branch.wood.bark*-1, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.all.live*-1, ymax = up.all.live*-1, fill = "foliage"))+
+  
+  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.deadbranch.live*-1, ymax = up.deadbranch.live*-1, fill = "dead branch"))+
+  #geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
+ 
+  theme_bw(base_size = 14)+xlim(2004, 2099)+
+  ylab(paste("Regional Carbon Density Flux \n (Tg Carbon/hectare/year)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  scale_fill_manual( name = "Component",
+                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))+
+  facet_wrap(~rcp, ncol = 4) #+  geom_abline(aes(intercept = 0, slope = 0), color = "salmon", linetype = "dashed")
+
+
+Carbon.legend <- cowplot::get_legend(regional.NPP)
+
+png(height = 7, width = 12, units = "in", res = 300, "outputs/Carbon_density_regional_NPP_total_fullperiodic.png")
+cowplot::plot_grid(cowplot::plot_grid(regional.C.trends+theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
+                   regional.NPP+theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
+                   ncol = 1, align = "hv"), Carbon.legend, ncol = 2, rel_widths = c(0.85, 0.1))
+dev.off()
 
 
 # We cant compare to the number of dead for these same plots over this time period because there is not linkage of periodic and periodic                                                                                                                                                                                      mort_rate_ecoregion_2020 =  prop_dead_ecoregion_2020/10)
@@ -1371,40 +1503,40 @@ for(i in 1:length(unique(forecast.plt$plot))){
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 #TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TU5_5lagdead_43DIDDplots.rds")
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TU5_5lagdead_allDIDDplots.rds")
 
 # run for singleCC and TL5 or 9 
 
 TI.CI.list <- list()
 
 # run for singleCC and fuel model TL5
-for(i in 1:length(unique(plots)[1:43])){
+for(i in 1:length(unique(forecast.plt$plot))){
   TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(plt = unique(plots)[i], fuelmodel = "TL5")
 }
 
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 #TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TL5_5lagdead_43DIDDplots.rds")
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TL5_5lagdead_allDIDDplots.rds")
 
 # run for singleCC and fuel model TL9
-for(i in 1:length(unique(plots)[1:43])){
-  TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(plt = unique(plots)[i], fuelmodel = "TL9")
+for(i in 1:length(unique(forecast.plt$plot))){
+  TI.CI.list[[i]] <- get_torch_crown_indices_FORECASTS(plt = unique(plots)[i], fuelmodel = "A10")
 }
 
 TI.CI.FORECASTS <- do.call(rbind, TI.CI.list)
 #TI.CI.FORECASTS$TI_km_hr <- (TI.CI.FORECASTS$TI/1000)*60 # convert from m/min to km/hr
 
-saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_TL9_5lagdead_43DIDDplots.rds")
+saveRDS(TI.CI.FORECASTS, "TI.CI.snapshots.FIAperiodic_A10_5lagdead_allDIDDplots.rds")
 
 
 #TI.CI.FORECASTS <- readRDS( "TI.CI.snapshots_with_estimated_dead_litter_fixed_ba_dynamicwoody.rds")
 
-TL5.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_TL5_5lagdead_43DIDDplots.rds")
-TL9.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_TL9_5lagdead_43DIDDplots.rds")
-TU5.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_TU5_5lagdead_43DIDDplots.rds")
+TL5.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_TL5_5lagdead_allDIDDplots.rds")
+A10.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_A10_5lagdead_allDIDDplots.rds")
+TU5.TI.CI <- readRDS("TI.CI.snapshots.FIAperiodic_TU5_5lagdead_allDIDDplots.rds")
 
-TI.CI.FORECASTS <- rbind(TL5.TI.CI, TL9.TI.CI, TU5.TI.CI)
+TI.CI.FORECASTS <- rbind(TL5.TI.CI, A10.TI.CI, TU5.TI.CI)
 
 
 # define high low hazards--using how its defined here: https://www.fs.usda.gov/rm/pubs/rmrs_p029/rmrs_p029_039_048.pdf
@@ -1423,9 +1555,9 @@ crown_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, fue
 
 crown_hazard.summary$crown_hazard <- factor(crown_hazard.summary$crown_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
 
-png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_pct_pltsFIAperiodic_singleCC_5lagdead.png")
+png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_pct_pltsFIAperiodic_singleCC_5lagdead_all.png")
 ggplot()+geom_bar(data = na.omit(crown_hazard.summary), aes(x = time, y = pct.plts, fill = crown_hazard), position="fill", stat="identity")+
-  facet_grid(rows = vars(mort.scheme), cols = vars(fuelmodel))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "crown hazard")+
+  facet_grid(rows = vars(scenario), cols = vars(fuelmodel))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "crown hazard")+
   theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
 dev.off()
 
@@ -1433,14 +1565,14 @@ TI.CI.FORECASTS$torch_hazard <- ifelse(TI.CI.FORECASTS$TI_km_hr_trunc <= high.cr
                                        ifelse(TI.CI.FORECASTS$TI_km_hr_trunc > high.crown.haz & TI.CI.FORECASTS$TI_km_hr_trunc <= low.crown.haz, "moderate fire hazard", "low fire hazard"))
 
 
-ggplot(TI.CI.FORECASTS, aes(x = time, y = TI_km_hr_trunc, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = TI_km_hr_trunc, color = PLT_CN))+geom_line()+facet_wrap(~scenario)+
   theme(legend.position = "none")
 
-ggplot(TI.CI.FORECASTS, aes(x = time, y = CI, color = PLT_CN))+geom_line()+facet_wrap(~mort.scheme)+
+ggplot(TI.CI.FORECASTS, aes(x = time, y = CI, color = PLT_CN))+geom_line()+facet_wrap(~scenario)+
   theme(legend.position = "none")
 
 # note that TI is in m/min and CI is in km/hr
-ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_wrap(~mort.scheme)+
+ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_wrap(~scenario)+
   theme(legend.position = "none")
 
 
@@ -1451,7 +1583,7 @@ torch_hazard.summary <- TI.CI.FORECASTS %>% group_by( scenario, mort.scheme, fue
 torch_hazard.summary$torch_hazard <- factor(torch_hazard.summary$torch_hazard, levels = c("low fire hazard", "moderate fire hazard", "high fire hazard"))
 
 png(height = 6, width = 8, units = "in", res = 250, "outputs/crown_fire_hazard_hists_TI_periodicByFuelModel_5lagdead.png")
-ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(fuelmodel))+
+ggplot(TI.CI.FORECASTS, aes(x = TI_km_hr_trunc))+geom_histogram()+facet_grid(rows = vars(scenario), cols = vars(fuelmodel))+
   theme(legend.position = "none")+geom_vline(aes(xintercept = c(high.crown.haz)))+geom_vline(aes(xintercept = c(low.crown.haz)))
 dev.off()
 
@@ -1467,9 +1599,10 @@ dev.off()
 
 
 png(height = 6, width = 8, units = "in", res = 250, "outputs/torch_fire_hazard_pct_plts_periodicByFuelModel_5lagdead.png")
-ggplot()+geom_bar(data = na.omit(torch_hazard.summary), aes(x = time, y = pct.plts, fill = torch_hazard), position="fill", stat="identity")+
-  facet_grid(rows = vars(mort.scheme), cols = vars(fuelmodel))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "torch hazard")+
-  theme_bw(base_size = 12) + ylab("% of plots in each hazard category")
+ggplot()+geom_bar(data = na.omit(torch_hazard.summary), aes(x = time, y = pct.plts, fill = torch_hazard), position="fill", stat="identity", width = 1)+
+  facet_grid(rows = vars(scenario), cols = vars(fuelmodel))+scale_fill_manual(values = c("low fire hazard" = "#2c7bb6", "moderate fire hazard" = "#fdae61" , "high fire hazard" = "#d7191c"), name = "torch hazard")+
+  theme_bw(base_size = 12) + ylab("% of plots in each hazard category")#+ 
+  
 dev.off()
 
 ggplot(TI.CI.FORECASTS, aes(x = time, y = CI_km_hr_trunc, group = fuelmodel, fill = fuelmodel))+geom_boxplot()+facet_wrap(~mort.scheme, ncol = 4)+
@@ -1495,6 +1628,9 @@ ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = load100hr))
 ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = TI_km_hr))
 ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = CI))
 ggplot()+geom_point(data = TI.CI.FORECASTS, aes(x = time, y = flame_length_m))
+
+
+
 
 #------------------------------------------------------------------------------------
 # For DoubleCC:  get torching and crowning indices from the diameter distributions
