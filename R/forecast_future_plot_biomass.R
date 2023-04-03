@@ -224,13 +224,13 @@ SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/Regional_mu_testing_mvn-2022-05-19-20-07-51.6/IGFRegional_mvnmu_revCorr_xfixed.rds"))
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_lognormal_dist-2022-07-14-01-12-30.5/IGFRegional_inc_T0onlynoadapt.rds")) # plot random effect
 #jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
-jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
+#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 
 
 # READ IN STAN OUTPUT SUMMARY
 #STAN.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
 #model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/model_simple_run/small_ssm_stan_sigma_dbh_normal_0.15_0.8_0_1constraint_parameter_summary.csv")
-model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_parameter_summary.csv")
+model.params <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_parameter_summary.csv")
 
 output.base.name <- "Regional_stan_model"
 # out <- as.matrix(jags.comb)
