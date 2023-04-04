@@ -930,8 +930,8 @@ parse.Carbon.totals <- ggplot()+geom_ribbon(data = AGB.parse.totals %>% filter(!
 #1b9e77
 #d95f02
 #7570b3
-parse.Carbon.flux.totals <- ggplot()+geom_ribbon(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, ymin = low, ymax = up, fill = parse), alpha = 0.5)+
-  geom_line(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mNPP, color = parse))+
+parse.Carbon.flux.totals <- ggplot()+geom_ribbon(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, ymin = low*-1, ymax = up*-1, fill = parse), alpha = 0.5)+
+  geom_line(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mNPP*-1, color = parse))+
   
   facet_wrap(~rcp, ncol = 4)+theme_bw(base_size = 14) + ylab( "Carbon Density Flux \n (Tg C/ha)")+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",

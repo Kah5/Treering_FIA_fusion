@@ -307,7 +307,7 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEAR
     betas.all$bSDI_ppt*covariates$SDI*covariates$ppt  
     
     # X interactions
-    betas.all$bX_MAP*covariates$MAP + 
+    betas.all$bX_MAP*covariates$MAP*x + 
     betas.all$bX_MAT*covariates$MAT*x + 
     betas.all$bX_Precip*covariates$ppt*x + 
     betas.all$bX_Tmax*covariates$tmax*x + 
@@ -653,7 +653,8 @@ rcp <- "rcp26"
 # read in future climate, which has been mean corrected and downscaled:
 #-----------------------------------------------------------------------
 
-full.clim <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/future_climate_extraction-2022-08-12-23-22-14.1/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
+#full.clim <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/future_climate_extraction-2022-08-12-23-22-14.1/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
+full.clim <- readRDS(here("data/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
 
 #-----------------------------------------------------------------------
 # need to scale future climate data on the same scale as the past climate
@@ -733,6 +734,15 @@ lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plo
 lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 plot <- "2483452010690"
 scenario = "rcp45"
+
+
+# run these for No SDI mortality now:
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+#6.0 stopped at: plot "2483452010690"
+# 4.5 stopped at plot: "2483452010690"
+lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 
 #lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
