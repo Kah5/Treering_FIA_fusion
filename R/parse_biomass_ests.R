@@ -950,6 +950,36 @@ cowplot::plot_grid(cowplot::plot_grid(parse.Carbon.totals+theme(legend.position 
 dev.off()
 
 
+# plot dead carbon totals by parse scenarios:
+
+parse.deadCarbon.totals <- ggplot()+geom_ribbon(data = AGB.parse.totals %>% filter(!year %in% 2001:2002), aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = parse), alpha = 0.5)+
+  geom_line(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mAGB.dead, color = parse))+
+  
+  facet_wrap(~rcp, ncol = 4)+ ylab( "Dead Carbon Density \n (Tg C/ha)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  scale_fill_manual( name = "Scenario",
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))
+
+
+png(height = 3.5, width = 12, units = "in", res = 300, "outputs/Dead_Carbon_density_regional_total_parse_periodic.png")
+parse.deadCarbon.totals
+dev.off()
+
+parse.dead.Carbon.flux.totals <- ggplot()+#geom_ribbon(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, ymin = low.dead, ymax = up.dead, fill = parse), alpha = 0.5)+
+  geom_line(data = AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mNPP.dead, color = parse))+
+  
+  facet_wrap(~rcp, ncol = 4)+theme_bw(base_size = 14) + ylab( "Carbon Density Flux \n (Tg C/ha)")+theme(panel.grid = element_blank())+
+  #scale_fill_manual( name = "Scenario",
+   
+  #                  values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))
+
+
+
+
+
 # separate out by high and low SDI
 SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
 SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203", 
