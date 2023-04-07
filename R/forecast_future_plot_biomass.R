@@ -737,12 +737,13 @@ scenario = "rcp45"
 
 
 # run these for No SDI mortality now:
+# started at 14:08 on 3/4/23
+# ended sometime around 8 or9:00 am 3/5/23
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started around 9:08 am on 3/5/23
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-#6.0 stopped at: plot "2483452010690"
-# 4.5 stopped at plot: "2483452010690"
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 
 #lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
