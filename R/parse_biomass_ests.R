@@ -1020,16 +1020,110 @@ SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203",
                                           ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 85, "85 - 133", "<85")))
 colnames(parse.all.mort)[1] <- "PLT_CN"
 SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
-AGB.parse.all.mort.SDI <- left_join(parse.all.mort, SDI.plt.unscaled)
 
+
+# rename the AGB.parse.totals and filter
+parse.all.mort$parse.new <- ifelse(parse.all.mort$parse %in% c("no SDI") & parse.all.mort$mort.scheme %in% "DIonly", "no SDI growth & mortality", 
+                                     ifelse(parse.all.mort$parse %in% c("no SDI") & parse.all.mort$mort.scheme %in% "DIDD", "no SDI growth", parse.all.mort$parse))
+
+parse.all.mort$parse.type <- ifelse(parse.all.mort$mort.scheme %in% "DIonly" & parse.all.mort$parse.new %in% "no SDI growth & mortality", "in", 
+                                      ifelse(parse.all.mort$mort.scheme %in% "DIDD", "in", "out"))
+
+
+new.parse.all.mort <- parse.all.mort %>% filter(parse.type %in% "in")  
+
+
+AGB.parse.all.mort.SDI <- left_join(new.parse.all.mort, SDI.plt.unscaled)
+
+# plot the totals across space:
+plot.by.plot.totals  <- AGB.parse.all.mort.SDI %>% 
+  group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI.bin, SDI) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
+  mutate(AGB.median = sum(mAGB.stemwood:mAGB.foliage, na.rm = TRUE)) 
+
+plot.by.plot.parse <- plot.by.plot.totals %>% ungroup() %>% 
+  group_by(PLT_CN, LAT, LON, parse.new, rcp, year) %>%
+  spread(parse.new, AGB.median) %>% 
+  mutate(climatechangediff = full - `no climate change`, 
+         #tmaxdiff = full - `no tmax`, 
+         SDIdiff = full - `no SDI growth`, 
+         SDImortdiff = full - `no SDI growth & mortality`, 
+         climatechangediff.pct = ((full - `no climate change`)/full)*100, 
+         #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
+         SDIdiff.pct = ((full - `no SDI growth`)/full)*100, 
+         SDImortdiff.pct = ((full - `no SDI growth & mortality`)/full)*100)
+
+
+
+# plot up the median contributions for set time points across the map
+# merge with lat and lon values:
+plot.by.plot.totals$LAT <- PLOT[match(plot.by.plot.totals$PLT_CN, PLOT$CN),]$LAT
+plot.by.plot.totals$LON <- PLOT[match(plot.by.plot.totals$PLT_CN, PLOT$CN),]$LON
+
+
+ggplot(data = plot.by.plot.totals %>% filter(year %in% c(2050)), aes(x = LON, y = LAT, color = mAGB))+
+  geom_point()+
+  facet_grid(cols = vars(rcp), rows = vars(parse.new)) 
+
+ggplot(data = plot.by.plot.totals %>% filter(year %in% c(2050)), aes(x = SDI, y = mAGB))+
+  geom_point()+
+  facet_grid(cols = vars(rcp), rows = vars(parse.new)) 
+
+
+# We want biomass differences by plots for total AGB:
+plot.by.plot.parse.median <- AGB.parse.all.mort.SDI %>% 
+  group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI.bin, SDI) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
+  mutate(AGB.median = sum(mAGB.stemwood:mAGB.foliage, na.rm = TRUE))%>% 
+  select(rcp, PLT_CN, mort.scheme, year, parse.new, SDI.bin, SDI, AGB.median) %>% ungroup()%>%
+  group_by(PLT_CN, rcp, year, parse.new, SDI, SDI.bin) %>%
+  spread(parse.new, AGB.median) %>% 
+  mutate(climatechangediff = full - `no climate change`, 
+         #tmaxdiff = full - `no tmax`, 
+         SDIdiff = full - `no SDI growth`, 
+         SDImortdiff = full - `no SDI growth & mortality`, 
+         climatechangediff.pct = ((full - `no climate change`)/full)*100, 
+         #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
+         SDIdiff.pct = ((full - `no SDI growth`)/full)*100, 
+         SDImortdiff.pct = ((full - `no SDI growth & mortality`)/full)*100)
+
+
+ggplot(data = plot.by.plot.parse.median, aes(x = year, y = climatechangediff, group = PLT_CN))+geom_point()+
+  facet_wrap(~rcp) 
+
+# plot up the median contributions against SDI for set time points
+ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = climatechangediff, color = year))+
+  geom_point()+
+  facet_wrap(~rcp) 
+
+ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = `no SDI growth & mortality`, color = year))+
+  geom_point()+
+  facet_wrap(~rcp) 
+
+ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = `no SDI growth`, color = year))+
+  geom_point()+
+  facet_grid(cols = vars(rcp), rows = vars(year)) 
+
+# plot up the median contributions for set time points across the map
+# merge with lat and lon values:
+plot.by.plot.parse.median$LAT <- PLOT[match(plot.by.plot.parse.median$PLT_CN, PLOT$CN),]$LAT
+plot.by.plot.parse.median$LON <- PLOT[match(plot.by.plot.parse.median$PLT_CN, PLOT$CN),]$LON
+
+ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = LON, y = LAT, color = `no SDI growth`))+
+  geom_point()+
+  facet_grid(cols = vars(rcp), rows = vars(year)) 
+
+
+
+#get component plto not working anymore because of UQ() and sym() language...
 get_component_plot_sdi_diffs <- function(component, AGB.parse.all.mort.SDI){
   
-  parse.difference.df  <- AGB.parse.all.mort.SDI %>% group_by(PLT_CN, mort.scheme, parse, rcp, year, SDI,SDI.bin) %>% 
+  parse.difference.df  <- AGB.parse.all.mort.SDI %>% group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI,SDI.bin) %>% 
     summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
     ungroup() %>% # sum across all the PLT_CNs
-    select(rcp, PLT_CN, mort.scheme, year, parse, SDI.bin, SDI, UQ(sym(component))) %>% 
-    group_by(PLT_CN, rcp, mort.scheme, year, parse, SDI, SDI.bin) %>%
-    spread(parse, UQ(sym(component))) %>% 
+    select(rcp, PLT_CN, mort.scheme, year, parse.new, SDI.bin, SDI, !!rlang::sym(component)) %>% 
+    group_by(PLT_CN, rcp, mort.scheme, year, parse.new, SDI, SDI.bin) %>%
+    spread(parse.new, !!rlang::sym(component)) %>% 
     
     mutate(climatechangediff = full - `no climate change`, 
            #tmaxdiff = full - `no tmax`, 
@@ -1039,7 +1133,7 @@ get_component_plot_sdi_diffs <- function(component, AGB.parse.all.mort.SDI){
            SDIdiff.pct = ((full - `no SDI`)/full)*100) %>%
     ungroup() %>% select(rcp, mort.scheme, year, SDI.bin, SDI, climatechangediff, SDIdiff) %>% 
     group_by(rcp, mort.scheme, year, SDI.bin) %>%
-    summarise(across(c(climatechangediff :SDIdiff), sum)) 
+    summarise(across(c(climatechangediff:SDIdiff), sum)) 
   parse.difference.df 
   
 }
