@@ -268,7 +268,9 @@ refit.0 <- stan(model_code = mod.0.stan ,
 # calculate loo:
 
 
-# alot of this code below is base on the LFO tutorial 
+# alot of this code below is base on the LFO tutorial from the loo package:
+# https://mc-stan.org/loo/articles/loo2-lfo.html
+
 refit_ssm_df <- as.data.frame(refit.0) # takes awhile to convert to df
 covariates = c(
   "betaX","betaTmax", "betaPrecip", "betaMAP","betaMAT", "betaSDI", 
@@ -290,7 +292,6 @@ beta_years <- dplyr::select(refit_ssm_df, "beta_YEAR[1]":paste0("beta_YEAR[", mo
 
 
 # loop over trees to get an increment_mu, with random effects:
-# set up an array to do this on
 increment_mu <- array(NA, dim = c(mod.data$Nrow, length(alpha_trees[, 1]),ncol = mod.data$Ncol))
 for(i in 1:mod.data$Nrow){
   
@@ -312,7 +313,7 @@ oos.index <- y.m.nona.yrs$Var2 > 1984
 # now remove all the predictions for increment where y.m is ==NA
 increment_mu_spread.nona <- increment_mu_spread[!is.na(y.m$value), ]
 
-# calculate log liklihood here:
+# calculate log liklihood of all the each time/individual predicted increment here:
 ll <- matrix(0, length(sigma), length(y.m.nona))
 
 for(i in 1:length(sigma)){
@@ -321,55 +322,73 @@ for(i in 1:length(sigma)){
 
 refitll <- as.matrix(ll)
 
-approx_elpds_1sap[L + 1] <- log_mean_exp(refitll[, oos.index])
 
-
-i_refit <- L
+# helper function here 
 sum_log_ratios <- function(loglik, ids = NULL) {
   if (!is.null(ids)) loglik <- loglik[, ids, drop = FALSE]
   rowSums(loglik)
 }
-# i <- L+1
-# logratio <- sum_log_ratios(refitll, ids = (i_refit + 1):i)
-# psis_obj <- suppressWarnings(psis(logratio))
-# k <- pareto_k_values(psis_obj)
-# ks <- c(ks, k)
-# 
+
 # approx_elpds_1sap[L + 1] <- log_mean_exp(loglik[, oos])
+
+
+# iterate over i > L to calculate the 1 step ahead 
+#logratio & pareto k using the one-step ahead log liklihood
+# note that we can't do this exactly for each tree because not all the tree records
+# go up to 1997, so we will need to adjust by tree
+
 N = ncol(data$y)
 approx_elpds_1sap <- rep(NA, N)
-# iterate over i > L
+i_refit <- L
 i_refit <- L
 refits <- L
 ks <- NULL
-for (i in (L + 1):(N - 1)) {
-  past <- 1:i
-  oos <- i + 1
-  oos.index <- y.m.nona.yrs$Var2 > 1965+i
-  #oos.index <- 
-  #df_past <- df[past, , drop = FALSE]
-  #df_oos <- df[c(past, oos), , drop = FALSE]
+
+for(i in 1:mod.data$Nrow){
   
-  #loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
-  logratio <- sum_log_ratios(loglik = refitll[, oos.index] ) #, ids = (i_refit + 1):i)
-  psis_obj <- suppressWarnings(psis(logratio))
-  k <- psis_obj$diagnostics$pareto_k
-  ks <- c(ks, k)
-  
-  # removing this here because refitting the model for each step ahead would be prohibitive in stan
-  # if (k > k_thres) {
-  #   # refit the model based on the first i observations
-  #   i_refit <- i
-  #   refits <- c(refits, i)
-  #   fit_past <- update(fit_past, newdata = df_past, recompile = FALSE)
-  #   loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
-  #   approx_elpds_1sap[i + 1] <- log_mean_exp(loglik[, oos])
-  # } else {
-  lw <- weights(psis_obj, normalize = TRUE)[, 1]
-  approx_elpds_1sap[i + 1] <- log_sum_exp(lw + refitll[, oos.index])
-  #}
+  for (t in (L + 1):(N - 1)) {
+    past <- 1:t
+    oos <- t + 1
+    # select the one step ahead observation/prediction to use as an index for refitll
+    oos.index <- y.m.nona.yrs$Var2 == (1965+t) & y.m.nona.yrs$Var1 == i 
+    oos.index2 <- y.m.nona.yrs$Var2 == (1965+oos) & y.m.nona.yrs$Var1 == i 
+    #df_past <- df[past, , drop = FALSE]
+    #df_oos <- df[c(past, oos), , drop = FALSE]
+    refit.ll.mat <- data.frame(one = refitll[oos.index], two = refitll[oos.index2])
+    refit.ll.mat <- cbind(refitll[oos.index], refitll[oos.index2])
+    #loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
+    
+    logratio <- sum_log_ratios(loglik = refit.ll.mat)  #, ids = (i_refit + 1):t)
+    psis_obj <- suppressWarnings(psis(logratio)) # all of these are very bad--check calculations
+    k <- psis_obj$diagnostics$pareto_k
+    ks <- c(ks, k)
+    
+    # removing this here because refitting the model for each step ahead would be prohibitive with this model in stan
+    # if (k > k_thres) {
+    #   # refit the model based on the first i observations
+    #   i_refit <- i
+    #   refits <- c(refits, i)
+    #   fit_past <- update(fit_past, newdata = df_past, recompile = FALSE)
+    #   loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
+    #   approx_elpds_1sap[i + 1] <- log_mean_exp(loglik[, oos])
+    # } else {
+    lw <- weights(psis_obj, normalize = TRUE)[, 1]
+    approx_elpds_1sap[t + 1] <- log_sum_exp(lw + refitll[, oos.index])
+  }
 } 
 
 saveRDS(approx_elpds_1sap, here("looresults/", paste0("model_0_LFOelpds_1sap.Rdata")))
+approx_elpds_1sap
 
+approx_elpd_1sap <- sum(approx_elpds_1sap[1:32], na.rm = TRUE)
 
+# plot_ks <- function(ks, ids, thres = 0.6) {
+#   dat_ks <- data.frame(ks = ks, ids = ids)
+#   ggplot(dat_ks, aes(x = ids, y = ks)) + 
+#     geom_point(aes(color = ks > thres), shape = 3, show.legend = FALSE) + 
+#     geom_hline(yintercept = thres, linetype = 2, color = "red2") + 
+#     scale_color_manual(values = c("cornflowerblue", "darkblue")) + 
+#     labs(x = "Data point", y = "Pareto k") + 
+#     ylim(-0.5, 1.5)
+# }
+# approx_elpds_1sap
