@@ -338,57 +338,59 @@ sum_log_ratios <- function(loglik, ids = NULL) {
 # go up to 1997, so we will need to adjust by tree
 
 N = ncol(data$y)
-approx_elpds_1sap <- rep(NA, N)
+approx_elpds_1sap <- rep(NA, ncol = 1:36, nrow = 1)
 i_refit <- L
 i_refit <- L
 refits <- L
 ks <- NULL
+list.elpds_1sap <- list()
 
 for(i in 1:mod.data$Nrow){
-  
-  for (t in (L + 1):(N - 1)) {
-    past <- 1:t
-    oos <- t + 1
-    # select the one step ahead observation/prediction to use as an index for refitll
-    oos.index <- y.m.nona.yrs$Var2 == (1965+t) & y.m.nona.yrs$Var1 == i 
-    oos.index2 <- y.m.nona.yrs$Var2 == (1965+oos) & y.m.nona.yrs$Var1 == i 
-    #df_past <- df[past, , drop = FALSE]
-    #df_oos <- df[c(past, oos), , drop = FALSE]
-    refit.ll.mat <- data.frame(one = refitll[oos.index], two = refitll[oos.index2])
-    refit.ll.mat <- cbind(refitll[oos.index], refitll[oos.index2])
-    #loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
-    
-    logratio <- sum_log_ratios(loglik = refit.ll.mat)  #, ids = (i_refit + 1):t)
-    psis_obj <- suppressWarnings(psis(logratio)) # all of these are very bad--check calculations
-    k <- psis_obj$diagnostics$pareto_k
-    ks <- c(ks, k)
-    
-    # removing this here because refitting the model for each step ahead would be prohibitive with this model in stan
-    # if (k > k_thres) {
-    #   # refit the model based on the first i observations
-    #   i_refit <- i
-    #   refits <- c(refits, i)
-    #   fit_past <- update(fit_past, newdata = df_past, recompile = FALSE)
-    #   loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
-    #   approx_elpds_1sap[i + 1] <- log_mean_exp(loglik[, oos])
-    # } else {
-    lw <- weights(psis_obj, normalize = TRUE)[, 1]
-    approx_elpds_1sap[t + 1] <- log_sum_exp(lw + refitll[, oos.index])
+  # get a tree specific N
+  N <- max(y.m.nona %>% filter(Var1 == i) %>% select(Var2))-1966
+  if(N< (L+1)){
+    approx_elpd_1sap <- matrix(NA, ncol = 36, nrow = 1)
+  }else{
+    for (t in (L + 1):(N - 1)) {
+      past <- 1:t
+      oos <- t + 1
+      # select the one step ahead observation/prediction to use as an index for refitll
+      oos.index <- y.m.nona.yrs$Var2 == (1965+t) & y.m.nona.yrs$Var1 == i 
+      oos.index2 <- y.m.nona.yrs$Var2 == (1965+oos) & y.m.nona.yrs$Var1 == i 
+      #df_past <- df[past, , drop = FALSE]
+      #df_oos <- df[c(past, oos), , drop = FALSE]
+      refit.ll.mat <- data.frame(one = refitll[oos.index], two = refitll[oos.index2])
+      refit.ll.mat <- cbind(refitll[oos.index], refitll[oos.index2])
+      #loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
+      
+      logratio <- sum_log_ratios(loglik = refit.ll.mat)  #, ids = (i_refit + 1):t)
+      psis_obj <- suppressWarnings(psis(logratio)) # all of these are very bad--check calculations
+      k <- psis_obj$diagnostics$pareto_k
+      ks <- c(ks, k)
+      
+      # removing this here because refitting the model for each step ahead would be prohibitive with this model in stan
+      # if (k > k_thres) {
+      #   # refit the model based on the first i observations
+      #   i_refit <- i
+      #   refits <- c(refits, i)
+      #   fit_past <- update(fit_past, newdata = df_past, recompile = FALSE)
+      #   loglik <- log_lik(fit_past, newdata = df_oos, oos = oos)
+      #   approx_elpds_1sap[i + 1] <- log_mean_exp(loglik[, oos])
+      # } else {
+      lw <- weights(psis_obj, normalize = TRUE)[, 1]
+      approx_elpds_1sap[t + 1] <- log_sum_exp(lw + refitll[, oos.index])
+      approx_elpd_1sap.sum <-  sum(approx_elpds_1sap, na.rm = TRUE)
+    }
   }
+  
+  list.elpds_1sap[[i]] <- approx_elpd_1sap
 } 
 
+# for some reason this is returning all NA values
+summary(do.call(rbind, list.elpds_1sap))
 saveRDS(approx_elpds_1sap, here("looresults/", paste0("model_0_LFOelpds_1sap.Rdata")))
 approx_elpds_1sap
 
 approx_elpd_1sap <- sum(approx_elpds_1sap[1:32], na.rm = TRUE)
 
-# plot_ks <- function(ks, ids, thres = 0.6) {
-#   dat_ks <- data.frame(ks = ks, ids = ids)
-#   ggplot(dat_ks, aes(x = ids, y = ks)) + 
-#     geom_point(aes(color = ks > thres), shape = 3, show.legend = FALSE) + 
-#     geom_hline(yintercept = thres, linetype = 2, color = "red2") + 
-#     scale_color_manual(values = c("cornflowerblue", "darkblue")) + 
-#     labs(x = "Data point", y = "Pareto k") + 
-#     ylim(-0.5, 1.5)
-# }
-# approx_elpds_1sap
+
