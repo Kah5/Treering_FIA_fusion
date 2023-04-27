@@ -91,7 +91,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     nt <- length(2001:2098)
     ntfull <- length(1998:2098)
     # fill in the array with the diameter estimates for 2018:
-    dbh.pred <- increment <- TPAmort<- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAmort <- TPADD <- TPADI <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -115,7 +115,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     for(i in 1:ni){
       
       TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
-      
+      TPADI[i,,1:(ntfull + 1)] <- 0
+      TPADD[i,,1:(ntfull + 1)] <- 0
     }
     
  
@@ -558,20 +559,30 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
+            
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+            
             TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
-            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
+            # add to the dead carbon
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced))  #(0.2) # would also have to reduce mnort prob here
+            
+            # subtract from the live carbon
             TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
           }
           
         }else{
+          TPADI[i,,(t+1)] <- TPADI[i,,(t)]
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
         }
         
         if(mean(TPAmort[i,,t+1]) <= 0){
           TPAmort[i,,t+1] <- 0
+          #TPADI[i,,(t+1)] <- 0
           dbh.pred[i,,t+1] <- 0
         }
+        
+        # check to make sure TPA is working properly
         if(mean(TPAmort[i,,t+1]) > mean(TPAmort[i,,t])){
           cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
           break
@@ -650,7 +661,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
+              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <-TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               
               if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
@@ -770,6 +782,30 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     tpa.means.index <- left_join(TPA.quants, index.df, by = "treeno")
     
+    # do the same for the TPAdd and TPAdi:
+    TPA.DD.quants <- reshape2::melt(apply(TPADD, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DD.quants) <- c("treeno","time", "TPA")
+    
+    
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DD.means.index <- left_join(TPA.DD.quants, index.df, by = "treeno")
+    
+    
+    TPA.DI.quants <- reshape2::melt(apply(TPADI, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DI.quants) <- c("treeno","time", "TPA")
+    
+    TPA.DI.quants %>% filter(time %in% 99)
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DI.means.index <- left_join(TPA.DI.quants, index.df, by = "treeno")
+    
     
     #ggplot()+geom_line(data = tpa.means.index, aes(x = time, y = TPA, group = treeno, color = as.character(treeno))) 
     
@@ -779,34 +815,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     dbh.means.TPA.index$hi.scaled.DBH <- dbh.means.TPA.index$`97.5%`*dbh.means.TPA.index$TPA
     dbh.means.TPA.index$lo.scaled.DBH <- dbh.means.TPA.index$`2.5%`*dbh.means.TPA.index$TPA
     
-    # p <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) +
-    # geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-    # theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
-    # p
-    #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.dbhs.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p)
-    
-    # plot dead trees to see how they are behaving:
-    
-    # the dead trees with the TPA based mortality are the same diams as the dbh.pred
-    # dead trees should be the # of tres in tpa.diff * out
-    # dead.quants <- reshape2::melt(apply(dbh.dead, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
-    # colnames(dead.quants) <- c("quantile","treeno","time", "diameter")
-    # 
-    # 
-    # dead.quants.spread <- dead.quants %>% group_by(treeno, time) %>% spread(quantile, diameter)
-    # # dead.means <- reshape2::melt(apply(dead.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
-    # # colnames(dead.means) <- c("treeno","time", "diameter")
-    # index.df$treeno <- 1:length(index.df$treeid)
-    # 
-    # dead.means.index <- left_join(dead.quants.spread , index.df, by = "treeno")
-    # 
-    # ded <- ggplot()+geom_line(data = dead.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) + 
-    #   geom_ribbon(data = dead.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-    #   theme_bw() + ylab("Diameters (cm)")+xlab("years after 2018") + ggtitle(paste0("Diameter of dead for plot ", plot))
-    # 
-    # ded
-    # 
-    # make a plot of all the increment forecasts:
+   
+  
     
     inc.quants <- reshape2::melt(apply(increment, c(1,3), function(x){quantile(x,c(0.025,0.5,0.975), na.rm = TRUE)}))
     colnames(inc.quants) <- c("quantile","treeno","time", "increment")
@@ -830,15 +840,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     
     combined <- index.df
-    #out.dbh <- as.data.frame(dbh.pred)
-    
-    #dbh.mat <- matrix(dbh.pred, nrow = dim(dbh.pred)[2], ncol = prod(dim(dbh.pred)[1],dim(dbh.pred)[3]), byrow = TRUE)
-    # dim(dbh.mat)
-    # summary((dbh.mat[,1:10 ]))
-    # out <- dbh.mat
-    # 
-    # plot(out[1,])
-    
+   
     # var 1 is tree, var2 is mcmc sample, and var 3 is time
     test.m <- reshape2::melt(dbh.pred, id.vars = dim(dbh.pred)[2])
     test.m$id <- paste0("x[",test.m$Var1, ",", test.m$Var3,"]")
@@ -849,8 +851,6 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     out <- test.m.time %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(all_of(colid.ordered))
     #out <- out[1:50,]
     out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
-    
-    
     
     # get a TPA out:
     tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
@@ -868,11 +868,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     
     # calculate an out for the dead trees
-    
-    # need to redo how we are determingin dead vs living with FVS mortality...
-    # the TPA adjustment also needs to be applied at the tree scale....
-    # The dead trees will are the original TPA-current TPA multiplied by the out
-    # tpa.diff = (original tpa - current year tpa)*out for that year
+    # should we do this difference, or just add up the total dead trees? 
     tpa.diff.df <- tpa.m %>% group_by( Var1, Var2) %>% mutate(firstTPA = value[1]) %>%
       ungroup()%>% group_by(Var1, Var2) %>% mutate(TPAdiff = firstTPA-value)
     
@@ -889,7 +885,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # 
     # out.dead <- out.mean*tpa.diff.mean
     
-    
+    # tpa.diff.df %>% filter(Var3 %in% 99)
+    # TPA.DD.quants %>% filter(time %in% 99)
+    # TPA.DI.quants %>% filter(time %in% 99)
     # dead.m <- melt(dbh.dead, id.vars = dim(dbh.dead)[2])
     # dead.m$newVar3 <- rep(4:102, each = 100*ni)
     # tpa.m$id <- paste0("x[",tpa.m$Var1, ",", tpa.m$newVar3,"]")
@@ -905,7 +903,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates full model")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic", parse.type = "full")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic", parse.type = "full")
     
     ####################################################
     #run SSM with an SDI effect of 0
@@ -935,6 +933,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     for(i in 1:ni){
       
       TPAmort[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
+      TPADD[i,,1:(ntfull+1)] <- 0
+      TPADI[i,,1:(ntfull+1)] <- 0
       
     }
     
@@ -1007,14 +1007,19 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced)*2  #(0.2) # would also have to reduce mnort prob here
+            
             TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced)  #(0.2) # would also have to reduce mnort prob here
+            
             TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
           }
           
         }else{
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+          TPADI[i,,(t+1)] <- TPADI[i,,(t)]
         }
         
         if(mean(TPAmort[i,,t+1]) <= 0){
@@ -1099,7 +1104,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
+              # use t + 1 here because we have already adjusted TPA, for some trees
+              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               
               if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
@@ -1302,12 +1310,36 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # # #out <- out[1:50,]
     # out.mean.dead <- apply(out.dead, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     # 
+    # do the same for the TPAdd and TPAdi:
+    TPA.DD.quants <- reshape2::melt(apply(TPADD, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DD.quants) <- c("treeno","time", "TPA")
+    
+    
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DD.means.index <- left_join(TPA.DD.quants, index.df, by = "treeno")
+    
+    
+    TPA.DI.quants <- reshape2::melt(apply(TPADI, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DI.quants) <- c("treeno","time", "TPA")
+    
+    
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DI.means.index <- left_join(TPA.DI.quants, index.df, by = "treeno")
+    
     
     
     # biomass estimation
     
     cat("start biomass estimates for no SDI")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI")
     
     
     ####################################################
@@ -1384,6 +1416,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     for(i in 1:ni){
       
       TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
+      TPADD[i,,1:(ntfull + 1)] <- 0
+      TPADI[i,,1:(ntfull + 1)] <- 0
       
     }
     
@@ -1456,14 +1490,17 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
-          }else{
+            TPAmort[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)
+            }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
             TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + ((TPAmort[i,,t]* mort.prob.reduced))
           }
           
         }else{
           TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+          TPADI[i,,(t+1)] <- TPADI[i,,(t)]
         }
         
         if(mean(TPAmort[i,,t+1]) <= 0){
@@ -1548,7 +1585,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-(TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree)
+              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               
               if(mean(TPAmort[trees.subplot[live.trees],,t+1]) > mean(TPAmort[trees.subplot[live.trees],,t])){
@@ -1737,12 +1775,34 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     #out <- out[1:50,]
     tpa.diff.mean <- apply(out.tpa.diff, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
+    TPA.DD.quants <- reshape2::melt(apply(TPADD, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DD.quants) <- c("treeno","time", "TPA")
+    
+    
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DD.means.index <- left_join(TPA.DD.quants, index.df, by = "treeno")
+    
+    
+    TPA.DI.quants <- reshape2::melt(apply(TPADI, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    colnames(TPA.DI.quants) <- c("treeno","time", "TPA")
+    
+    
+    # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
+    # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
+    # colnames(dbh.means) <- c("treeno","time", "diameter")
+    index.df$treeno <- 1:length(index.df$CN)
+    
+    tpa.DI.means.index <- left_join(TPA.DI.quants, index.df, by = "treeno")
     
     
     # biomass estimation
     
     cat("start biomass estimates no precipitation")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noCC", parse.type = "detrendedCC")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noCC", parse.type = "detrendedCC")
     
     
   }   

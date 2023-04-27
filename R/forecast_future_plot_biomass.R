@@ -526,7 +526,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 
 
 # see how long this will take:
-system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
+#system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
 #3.8 user time multiplied by ~1500 =95 mintues 
 
 sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
@@ -582,7 +582,7 @@ plots <- unique(x.mat$plotid)
 
 #select the outdata for the cored and uncored trees:
 sel.noncored <- which(ci.names.noncored $row %in% y)
-out <- out.noncored[,sel.noncored]
+#out <- out.noncored[,sel.noncored]
 
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
@@ -722,32 +722,44 @@ source("R/biomass.sensitivity.periodic.R")
 system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
-system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '3081205010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 
 # run all the plots for this scenario and 
-# started at 12:12 pm....
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started at 16:11pm 4/25/23
+lapply(unique(plots)[1:6],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #6.0 stopped at: plot "2483452010690"
 # 4.5 stopped at plot: "2483452010690"
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 plot <- "2483452010690"
 scenario = "rcp45"
 
 
 # run these for No SDI mortality now:
-# started at 14:08 on 3/4/23
-# ended sometime around 8 or9:00 am 3/5/23
+# started at 17:11 on 3/17/23- finished at 10:15 pm 3/17/23
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-# started around 9:08 am on 3/5/23
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started around 6:22 am on 3/18/22 ended at 12:30 pm 3/18/23
+lapply(unique(plots)[65:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+#unique(plots) %in% 2471324010690
+# started at 14:45 pm 2/18/23
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 
+
+# run these for No density independent mortality now:
+# ended around 8:20
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started around 8:21 am on 4/19/22
+lapply(unique(plots)[65:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[566:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+lapply(unique(plots)[471:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+
+
 #lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #stopped with plot "2587295010690" (plot 250)
-unique(plots) %in% "2483452010690"
+unique(plots) %in% "3635611010690"
+unique(plots) %in% "3079851010690"
 # plot 180
 plot <- 2567520010690
 # 2461254010690"ates no tmaxcalculating biomass: percent complete complete

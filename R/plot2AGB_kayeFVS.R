@@ -1,4 +1,4 @@
-plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic", folder.name, parse.type) {
+plot2AGB <- function(combined, out, tpa , tpa.diff , tpa.di, tpa.dd, mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic", folder.name, parse.type) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -544,6 +544,8 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
        diam.live, 
        tpa.dead, 
        tpa.live,
+       tpa.dd, 
+       tpa.di,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
        file = file.path(paste0(folder.name ,"/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".", parse.type, ".Rdata")))
