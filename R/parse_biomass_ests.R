@@ -872,24 +872,26 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
   if(nrow(oldTREE) <=1){
     cat("less than 2 trees on the first plot")
   }else{
-    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata"))){
+    
+    if(parse == "full"){
+      fn <- paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata")
+    }else{
+      if(parse == "noSDI"){
+        fn <- paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+           }else{
+        
+             fn <-  paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+        
+      }
+    }
+    
+    
+    
+    if(!file.exists(fn)){
       cat("no existing future climate data") 
     }else{
    
       
-      if(parse == "full"){
-        
-        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-      }else{
-        if(parse == "noSDI"){
-        load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-        #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-        }else{
-        
-          load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-          
-        }
-      }
       
       
       
@@ -1059,17 +1061,16 @@ mort.full.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse
 
 # get general summary of the total mortality in terms of C for each mortality type
 mort.test <- mort.full.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
-  
-  #spread(parse, mAGB) %>% 
-  summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
-  ungroup() %>% # sum across all the PLT_CNs
-  group_by(rcp, mort.scheme, year, parse) %>%
-  summarise(across(c(mAGB.dead:hiAGB.dead.di), sum)) 
+                                summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
+                                ungroup() %>% # sum across all the PLT_CNs
+                                group_by(rcp, mort.scheme, year, parse) %>%
+                                summarise(across(c(mAGB.dead:hiAGB.dead.di), sum)) 
 
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
 ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di))+
-  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd), fill = "red")+facet_wrap(~rcp)
+  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd), fill = "red")+
+  facet_grid(rows = vars(parse), cols= vars(rcp))
 
 
      
