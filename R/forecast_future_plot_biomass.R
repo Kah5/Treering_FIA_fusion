@@ -725,8 +725,8 @@ system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.depende
 system.time(biomass.sensitivity.periodic( plot = '3081205010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
 
 # run all the plots for this scenario and 
-# started at 16:11pm 4/25/23
-lapply(unique(plots)[1:6],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# started at 13:48pm 4/27/23
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 #6.0 stopped at: plot "2483452010690"

@@ -865,51 +865,24 @@ ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median,
 #   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
 #   facet_wrap(~mort.scheme)
 #------------------------- Parse DI and DD mortality contributions--------------------------------------
-parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8, rcp, cc.scenario = "doubleCC" ){
+parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8, rcp, cc.scenario = "doubleCC", parse ){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
   
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
     cat("less than 2 trees on the first plot")
   }else{
-    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
+    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata"))){
       cat("no existing future climate data") 
     }else{
-      # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
-      # newTREE$PREVDIA
-      # STATUSCD_change <- newTREE %>% group_by(STATUSCD,  PREV_STATUS_CD) %>% 
-      #   mutate(dead.class = ifelse(STATUSCD == 1 & PREV_STATUS_CD == 1, "live", 
-      #                              ifelse(STATUSCD == 2 & PREV_STATUS_CD == 1, "died in inventory", 
-      #                                     ifelse(STATUSCD == 2 & PREV_STATUS_CD == 2, "died before first survey",
-      #                                            ifelse(STATUSCD == 1 & is.na(PREV_STATUS_CD) == "TRUE","ingrowth", 
-      #                                                   ifelse(STATUSCD == 3 & PREV_STATUS_CD == 1,"cut/removed in inventory", 
-      #                                                          ifelse(STATUSCD == 3 & PREV_STATUS_CD == 3, "cut/removed before first survey", "ingrowth")))))))
-      # newTREE$INV_Period <- newTREE$MEASYR - newTREE$PREV_MEASYR
-      # INVperiod <- mean(newTREE$INV_Period, na.rm =TRUE)
-      # STATUSCD_change$PREVDIA*2.54
-      
-      
-      
-      #STATUSCD_change$DRYBIO_AG
-      oldTREE$DRYBIO_AG
-      
-      # dead.diams <- STATUSCD_change %>% ungroup() %>% filter(dead.class == "died in inventory" ) %>% 
-      #   dplyr::select(CN, dead.class, PREVDIA, TPAMORT_UNADJ, TPA_UNADJ, PREV_TPA_UNADJ, AGENTCD) %>% mutate(PREVDBH = PREVDIA*2.54)
-      # #rem.summary <- STATUSCD_change  %>% ungroup() %>% filter(dead.class == "cut/removed in inventory" ) %>% summarise(rem_peryr_perha = sum(TPAREMV_UNADJ, na.rm =TRUE))
-      
-      
-      
-      # scale by TPAMORT_UNADJ to get trees per acre per year, 
-      # may need to also cale by # inventory years
-      # 
-      # mort.scheme <- "DIonly"
+   
       
       if(cc.scenario == "doubleCC"){
         
-        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       }else{
-        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
-        #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
         
       }
       
@@ -947,24 +920,100 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
       all.tpa <- left_join(full.di.dd.tpa, tpa.dead.m)
       all.tpa$PLT_CN <- as.character(plot)
       all.tpa
+      
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB.dead.dd <- mAGB.dead.di <- sAGB.dead.dd <- sAGB.dead.di<- matrix(NA, mplot, nt)
+      #mNPP.dead <- sNPP.dead  <- matrix(NA, mplot,nt)
+      lowAGB.dead <- hiAGB.dead  <- lowAGB.dead.di <- hiAGB.dead.di <-  lowAGB.dead.dd <- hiAGB.dead.dd  <-matrix(NA, mplot, nt)
+      #lowNPP.dead <- hiNPP.dead  <-matrix(NA, mplot,nt)
+      AGB.dead.dd <- AGB.dead.di <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
+      
+      
+      # need to create a matrix for tpadead.dd & tpadead.di
+      tpa.dead.dd  <- tpa.dd.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdd) %>% select(`1`:`99`)
+      tpa.dead.di  <- tpa.di.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdi) %>% select(`1`:`99`)
+    
+      nrep    <- 3
+      for (g in seq_len(nrep)) {
+  
+        j <- 1
+      AGB.dead[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      AGB.dead.di[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.di[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      AGB.dead.dd[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.dd[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      
+      }
+     
+      
+      # dead trees:
+
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # parse into dead from DI vs dead from DD
+      
+      mAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead.di[i,]<- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead.di[i,] <- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      mAGB.dead.dd[i, ] <- apply(AGB.dead.dd[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead.dd[i, ] <- apply(AGB.dead.dd[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead.dd[i,]<- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead.dd[i,] <- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      yrvec <- 2001:2099
+      # okay now add all to a dataframe:
+      total.plot <- data.frame(plot = plot, 
+                               mort.scheme = mort.scheme, 
+                               rcp = rcp,
+                               cc.scenario = cc.scenario,
+                               parse = parse,
+                               year = yrvec, 
+                               
+                      
+                               mAGB.dead  = mAGB.dead[i,],
+                               mAGB.dead.dd = mAGB.dead.dd[i,], 
+                               mAGB.dead.di = mAGB.dead.di[i,], 
+                               
+                               lowAGB.dead = lowAGB.dead[i,], 
+                               lowAGB.dead.dd = lowAGB.dead.dd[i,], 
+                               lowAGB.dead.di = lowAGB.dead.di[i,], 
+                               
+                               hiAGB.dead = hiAGB.dead[i,], 
+                               hiAGB.dead.dd = hiAGB.dead.dd[i,], 
+                               hiAGB.dead.di = hiAGB.dead.di[i,])
+      
+      total.plot
     }
     
   }
 }
 
-'2567520010690'
-mort.test.list <- lapply(unique(plots)[1:6],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
+plot = '2567520010690'
+mort.test.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
 mort.test <- do.call(rbind, mort.test.list)
 
 #mort.test <- parse_mortality_ests (plot = '2567520010690', mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )
 head(mort.test)
 summary(mort.test)
 
-mort.test <- mort.test %>% group_by(treeno, time, SUBP, CN) %>% mutate(TPAtotal = TPAdi + TPAdd)
+# get general summary of the total mortality in terms of C for each mortality type
+mort.test <- mort.test %>% 
 
 # hist(mort.test$TPAdd)
-hist(mort.test$TPAdi)
-hist(mort.test$TPAdead)
+hist(mort.test$TPAdipct)
+hist(mort.test$TPAddpct)
 
 
 ggplot(mort.test, aes(TPA_UNADJ, TPAfull))+geom_point()
@@ -972,7 +1021,9 @@ ggplot(mort.test, aes(TPAtotal, TPAdead))+geom_point()
 ggplot(mort.test, aes(TPA_UNADJ, TPAdeadDI))+geom_point()
 ggplot(mort.test, aes(TPA_UNADJ, TPAdead))+geom_point()
 
-ggplot(mort.test, aes(time, TPAdi))+geom_point()
+ggplot(mort.test, aes(time, TPAdipct))+geom_point()
+ggplot(mort.test, aes(time, TPAddpct))+geom_point()
+ggplot(mort.test, aes(TPAdipct, TPAddpct))+geom_point()
 ggplot(mort.test, aes(time, TPAdd))+geom_point()
 ggplot(mort.test, aes(time, TPAdead))+geom_point()
 ggplot(mort.test, aes(time, TPAfull))+geom_point()
@@ -1075,7 +1126,7 @@ ggplot(mort.test, aes(time, TPAfull))+geom_point()
       hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
       
       mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
-      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ]  , 2, sd, na.rm = TRUE)
       
       lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
       hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
