@@ -891,7 +891,7 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
       cat("no existing future climate data") 
     }else{
    
-      
+      load(fn)
       
       
       
@@ -1008,8 +1008,8 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
 }
 
 plot = '2567520010690'
-mort.test.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
-mort.test <- do.call(rbind, mort.test.list)
+mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
+mort.26 <- do.call(rbind, mort.26.list)
 
 mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
 mort.45.test <- do.call(rbind, mort.45.list)
@@ -1020,7 +1020,7 @@ mort.60.test <- do.call(rbind, mort.60.list)
 mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
 mort.85.test <- do.call(rbind, mort.85.list)
 
-mort.full.parse <- rbind(mort.test, mort.45.test, mort.60.test, mort.85.test)
+mort.full.parse <- rbind(mort.26, mort.45.test, mort.60.test, mort.85.test)
 
 
 # get it for noCC:
@@ -1057,10 +1057,10 @@ mort.85.test.noSDI <- do.call(rbind, mort.85.list.noSDI)
 
 mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test.noSDI, mort.85.test.noSDI)
 
-mort.full.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
+mort.all.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
 
 # get general summary of the total mortality in terms of C for each mortality type
-mort.test <- mort.full.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
+mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
                                 summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
                                 ungroup() %>% # sum across all the PLT_CNs
                                 group_by(rcp, mort.scheme, year, parse) %>%
@@ -1068,9 +1068,12 @@ mort.test <- mort.full.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %
 
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
-ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di))+
-  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd), fill = "red")+
-  facet_grid(rows = vars(parse), cols= vars(rcp))
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
+  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
+  facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C)")
+
 
 
      
