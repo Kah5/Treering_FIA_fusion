@@ -877,13 +877,18 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
     }else{
    
       
-      if(cc.scenario == "doubleCC"){
+      if(parse == "full"){
         
         load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       }else{
-        load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        if(parse == "noSDI"){
+        load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
         #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        }else{
         
+          load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+          
+        }
       }
       
       
@@ -1015,8 +1020,45 @@ mort.85.test <- do.call(rbind, mort.85.list)
 
 mort.full.parse <- rbind(mort.test, mort.45.test, mort.60.test, mort.85.test)
 
+
+# get it for noCC:
+
+mort.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.test.noCC <- do.call(rbind, mort.test.list.noCC)
+
+mort.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.45.test.noCC <- do.call(rbind, mort.45.list.noCC)
+
+mort.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
+
+mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
+
+
+mort.full.parse.noCC <- rbind(mort.test.noCC, mort.45.test.noCC, mort.60.test.noCC, mort.85.test.noCC)
+
+# get it for noSDI:
+
+mort.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.test.noSDI <- do.call(rbind, mort.test.list.noSDI)
+
+mort.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.45.test.noSDI <- do.call(rbind, mort.45.list.noSDI)
+
+mort.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.60.test.noSDI <- do.call(rbind, mort.60.list.noSDI)
+
+mort.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.85.test.noSDI <- do.call(rbind, mort.85.list.noSDI)
+
+
+mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test.noSDI, mort.85.test.noSDI)
+
+mort.full.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
+
 # get general summary of the total mortality in terms of C for each mortality type
-mort.test <- mort.test %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
+mort.test <- mort.full.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
   
   #spread(parse, mAGB) %>% 
   summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
