@@ -781,6 +781,9 @@ DIDD.rcp45.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_bio
 DIDD.rcp60.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC" )})
 
 
+
+
+
 # get the no Density Dependent mortality forecasts too:
 DIonly.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
 DIonly.rcp85.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
@@ -800,7 +803,7 @@ DDonly.rcp45.parse.df <- do.call(rbind, DDonly.rcp45.parse.list)
 DDonly.rcp60.parse.df <- do.call(rbind, DDonly.rcp60.parse.list)
 DDonly.rcp85.parse.df <- do.call(rbind, DDonly.rcp85.parse.list)
 parse.DD.mort <- rbind( DDonly.parse.df, DDonly.rcp45.parse.df, DDonly.rcp60.parse.df,DDonly.rcp85.parse.df)
-saveRDS(parse.DD.mort, "outputs/parse.DD.mort.RDS")
+saveRDS(parse.DD.mort, "outputs/parse.DIDD.mort.RDS")
 parse.DD.mort <- readRDS( "outputs/parse.DD.mort.RDS")
 
 
@@ -813,6 +816,10 @@ DIDD.parse.df <- do.call(rbind, DIDD.parse.list)
 DIDD.rcp45.parse.df <- do.call(rbind, DIDD.rcp45.parse.list)
 DIDD.rcp60.parse.df <- do.call(rbind, DIDD.rcp60.parse.list)
 DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85.parse.list)
+
+parse.DIDD.mort <- rbind( DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df, DIDD.rcp85.parse.df)
+saveRDS(parse.DIDD.mort, "outputs/parse.DIDD.mort.RDS")
+
 
 DIonly.parse.df <- do.call(rbind, DIonly.parse.list)
 DIonly.rcp45.parse.df <- do.call(rbind, DIonly.rcp45.parse.list)
@@ -979,6 +986,11 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
       lowAGB.dead.dd[i,]<- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.025)
       hiAGB.dead.dd[i,] <- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.975)
       
+      # get total dead: 
+      tpa.dead.dd.sum <- colSums(tpa.dead.dd)
+      tpa.dead.di.sum <- colSums(tpa.dead.di)
+      
+      
       yrvec <- 2001:2099
       # okay now add all to a dataframe:
       total.plot <- data.frame(plot = plot, 
@@ -987,7 +999,9 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
                                cc.scenario = cc.scenario,
                                parse = parse,
                                year = yrvec, 
-                               
+                               tpa.dead.dd =  tpa.dead.dd.sum, 
+                               tpa.dead.di = tpa.dead.di.sum , 
+                              
                       
                                mAGB.dead  = mAGB.dead[i,],
                                mAGB.dead.dd = mAGB.dead.dd[i,], 
@@ -1059,6 +1073,8 @@ mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test
 
 mort.all.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
 
+# save as RDS:
+
 # get general summary of the total mortality in terms of C for each mortality type
 mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
                                 summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
@@ -1074,9 +1090,11 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax
   scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
   ylab("Dead Wood carbon (Tg C)")
 
+ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic.png"))
+
+# probably want to do the same thing but with the #of dead trees for each plot
 
 
-     
 #------------------------get regional differences for the Components-----------------------------------
 # sum up across plots, then take parse differences:
 get_component_diffs <- function(component, parse.all.mort){
@@ -1153,7 +1171,10 @@ ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax 
 # get_component_diffs("low", parse.all.mort)
 
 
+
+parse.all.mort <- parse.DIDD.mort # use only DIDD runs
 colnames(parse.all.mort)[1] <- "PLT_CN"
+
 
 # plot each of the summed forecasts for the region:
 AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, parse, mAGB) %>% 
