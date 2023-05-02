@@ -1074,6 +1074,7 @@ mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test
 mort.all.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
 
 # save as RDS:
+saveRDS(mort.all.parse, here("outputs/", "all.plot.mort.C.RDS"))
 
 # get general summary of the total mortality in terms of C for each mortality type
 mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
@@ -1092,6 +1093,13 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax
 
 ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic.png"))
 
+# reoient it so it looks closer to the parse plots
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
+  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
+  facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C)")
 # probably want to do the same thing but with the #of dead trees for each plot
 
 
