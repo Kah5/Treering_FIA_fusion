@@ -1093,13 +1093,49 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax
 
 ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic.png"))
 
-# reoient it so it looks closer to the parse plots
+# reorient it so it looks closer to the parse plots
 
-ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
-  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
-  facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
-  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
-  ylab("Dead Wood carbon (Tg C)")
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+ # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C)")+scale_fill_manual( name = "Scenario",
+                                                    values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+  
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C) \n Density Independent Mortality")+scale_fill_manual( name = "Scenario",
+                                                     values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_total_parse_periodic.png"))
+
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.dd, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C) \n Density Independent Mortality")+scale_fill_manual( name = "Scenario",
+                                                     values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+
+ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DD_total_parse_periodic.png"))
+
 # probably want to do the same thing but with the #of dead trees for each plot
 
 
