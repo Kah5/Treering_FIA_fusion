@@ -835,9 +835,9 @@ parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,
 saveRDS(parse.all.mort, "outputs/parse.all.mortDI_DIDD.RDS")
 parse.all.mort <- readRDS("outputs/parse.all.mortDI_DIDD.RDS")
 parse.all.mort$plot
-parse.DD.mort$plot <- as.character(parse.DD.mort$plot)
+#parse.DD.mort$plot <- as.character(parse.DD.mort$plot)
 
-parse.all.mort <- rbind(parse.all.mort, parse.DD.mort)
+#parse.all.mort <- rbind(parse.all.mort, parse.DD.mort)
 # subtract the scenarios from the full scenario for the mean AGB:
 AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
   spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
@@ -1077,13 +1077,19 @@ mort.all.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.
 
 # save as RDS:
 saveRDS(mort.all.parse, here("outputs/", "all.plot.mort.C.RDS"))
+mort.all.parse <- readRDS( here("outputs/", "all.plot.mort.C.RDS"))
+
+# create function to scale biomass to C and convert to Tg?
+# Cfraction
+C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000}
+C.convert.deadwood(mort.all.parse$mAGB.dead, C.frac = 0.4822)
 
 # get general summary of the total mortality in terms of C for each mortality type
 mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
-                                summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){(x*0.5)/1000000})) %>% 
+                                summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){C.convert.deadwood(x)})) %>% 
                                 ungroup() %>% # sum across all the PLT_CNs
                                 group_by(rcp, mort.scheme, year, parse) %>%
-                                summarise(across(c(mAGB.dead:hiAGB.dead.di), sum)) 
+                                summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
 
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
@@ -1130,7 +1136,7 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax
   #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
   facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
   # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
-  ylab("Dead Wood carbon (Tg C) \n Density Independent Mortality")+scale_fill_manual( name = "Scenario",
+  ylab("Dead Wood carbon (Tg C) \n Density Dependent Mortality")+scale_fill_manual( name = "Scenario",
                                                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
   scale_color_manual( name = "Scenario",
                       values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
