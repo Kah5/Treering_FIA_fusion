@@ -833,8 +833,8 @@ parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,
   DIonly.parse.df, DIonly.rcp45.parse.df, DIonly.rcp60.parse.df,DIonly.rcp85.parse.df)
 
 saveRDS(parse.all.mort, "outputs/parse.all.mortDI_DIDD.RDS")
-parse.all.mort <- readRDS("outputs/parse.all.mortDI_DIDD.RDS")
-parse.all.mort$plot
+parse.all.mort <- readRDS("outputs/parse.DIDD.mort.RDS")
+parse.all.mort$plot <- as.character(parse.all.mort$plot)
 #parse.DD.mort$plot <- as.character(parse.DD.mort$plot)
 
 #parse.all.mort <- rbind(parse.all.mort, parse.DD.mort)
@@ -1402,16 +1402,20 @@ ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax 
 
 
 
-parse.all.mort <- parse.DIDD.mort # use only DIDD runs
+#parse.all.mort <- parse.DIDD.mort # use only DIDD runs
 colnames(parse.all.mort)[1] <- "PLT_CN"
 
 
 # plot each of the summed forecasts for the region:
+
+C.convert.livewood <- function(x, C.frac = 0.501){(x*C.frac)/1000000}
+C.convert.livewood(mort.all.parse$mAGB.dead, C.frac = 0.501)
+
 AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, parse, mAGB) %>% 
   group_by(PLT_CN, mort.scheme,rcp, year, parse) %>%
   
   #spread(parse, mAGB) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){C.convert.livewood(x)})) %>% 
   ungroup() %>% # sum across all the PLT_CNs
     group_by(rcp, mort.scheme, year, parse) %>%
   summarise(across(c(mAGB:low.foliage), sum)) 
