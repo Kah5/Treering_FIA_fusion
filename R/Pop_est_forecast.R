@@ -4,21 +4,30 @@ library(viridis)
 library(here)
 library(tidyverse)
 library(rFIA)
+library(sf)
 AGB <- readRDS("outputs/parse.DIDD.mort.RDS")
 colnames(AGB)[1] <- "PLT_CN"
 
 db <- readRDS("data/InWeUS_FIAdb.rds")
-db$PLOT <- db$PLOT %>% filter(STATECD %in% 4 )#& CN %in% unique(AGB$CN))
-db$POP_EVAL <- read.csv("data/AZ_POP_EVAL.csv")
-db$POP_ESTN_UNIT <- read.csv("data/AZ_POP_ESTN_UNIT.csv")
-db$POP_PLOT_STRATUM_ASSGN <- read.csv("data/AZ_POP_PLOT_STRATUM_ASSGN.csv")
-db$POP_EVAL_TYP <- read.csv("data/AZ_POP_EVAL_TYP.csv")
-db$POP_STRATUM <- read.csv("data/AZ_POP_STRATUM.csv")
+db$PLOT <- db$PLOT %>% filter(STATECD %in% c(4, 8, 56, 16, 30, 35, 49))#& CN %in% unique(AGB$CN))
+db$POP_EVAL <- rbind(read.csv("data/AZ_POP_EVAL.csv"), read.csv("data/NM_POP_EVAL.csv"), read.csv("data/UT_POP_EVAL.csv"), read.csv("data/CO_POP_EVAL.csv"))
+db$POP_ESTN_UNIT <- rbind(read.csv("data/AZ_POP_ESTN_UNIT.csv"), read.csv("data/NM_POP_ESTN_UNIT.csv"),  read.csv("data/UT_POP_ESTN_UNIT.csv"),  read.csv("data/CO_POP_ESTN_UNIT.csv"))
+db$POP_PLOT_STRATUM_ASSGN <- rbind(read.csv("data/AZ_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/NM_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/UT_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/CO_POP_PLOT_STRATUM_ASSGN.csv"))
+db$POP_EVAL_TYP <- rbind(read.csv("data/AZ_POP_EVAL_TYP.csv"), read.csv("data/NM_POP_EVAL_TYP.csv"), read.csv("data/UT_POP_EVAL_TYP.csv"), read.csv("data/CO_POP_EVAL_TYP.csv"))
+db$POP_STRATUM <- rbind(read.csv("data/AZ_POP_STRATUM.csv"), read.csv("data/NM_POP_STRATUM.csv"), read.csv("data/UT_POP_STRATUM.csv"), read.csv("data/CO_POP_STRATUM.csv"))
 
 ## Select only the columns we need from each table, to keep things slim
-PLOT <- select(db$PLOT, CN, MACRO_BREAKPOINT_DIA)
+PLOT <- select(db$PLOT, CN, MACRO_BREAKPOINT_DIA, ECOSUBCD)
 COND <- select(db$COND, PLT_CN, CONDID, CONDPROP_UNADJ, PROP_BASIS, COND_STATUS_CD, OWNGRPCD)
 TREE <- select(db$TREE, PLT_CN, CONDID, SUBP, TREE, STATUSCD, DRYBIO_AG, CARBON_AG, TPA_UNADJ, DIA, SPCD)
+
+
+PLOT$ECOSUBCD <- str_trim(PLOT$ECOSUBCD)
+PLOT$ECODIV <- str_sub(PLOT$ECOSUBCD, 1, -3)
+## One is doesnt work
+# PLOT <- PLOT %>%
+#   mutate(ECODIV = case_when(ECODIV == 'M313' ~ '313',
+#                             TRUE ~ ECODIV))
 
 POP_ESTN_UNIT <- select(db$POP_ESTN_UNIT, CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
 POP_EVAL <- select(db$POP_EVAL, EVALID, EVAL_GRP_CN, ESTN_METHOD, CN, END_INVYR, REPORT_YEAR_NM)
@@ -39,7 +48,7 @@ ids <- db$POP_EVAL %>%
 
 db <- clipFIA(db, evalid = ids$EVALID)
 ## Select only the columns we need from each table, to keep things slim
-PLOT <- select(db$PLOT, CN, MACRO_BREAKPOINT_DIA)
+PLOT <- select(PLOT, CN, MACRO_BREAKPOINT_DIA, ECODIV, ECOSUBCD)
 COND <- select(db$COND, PLT_CN, CONDID, CONDPROP_UNADJ, PROP_BASIS, COND_STATUS_CD, OWNGRPCD, FORTYPCD)
 TREE <- select(db$TREE, PLT_CN, CONDID, SUBP, TREE, STATUSCD, DRYBIO_AG, CARBON_AG, TPA_UNADJ, DIA, SPCD)
 POP_ESTN_UNIT <- select(db$POP_ESTN_UNIT, CN, EVAL_CN, AREA_USED, P1PNTCNT_EU)
@@ -123,7 +132,9 @@ data <- data %>%
   filter(!is.na(YEAR))
 
 unique(data$YEAR)
-
+## Estimate Tree totals
+colnames(AGB)[1] <- "PLT_CN"
+AGB <- AGB %>% filter(parse == "full") # just get the full scernario
 periodic.data <- data %>% filter(PLT_CN %in% unique(AGB$PLT_CN))
 periodic.data$EXPNS
 periodic.data$CONDPROP_UNADJ
@@ -135,17 +146,15 @@ unique(periodic.data$FORTYPCD)
 # We already have plot totals for each plot, need to multiply by the EXPNS
 # make sure that EXPNS is a plot value--It looks like it from the manual and dataset
 
-## Estimate Tree totals
-colnames(AGB)[1] <- "PLT_CN"
-AGB <- AGB %>% filter(parse == "full") # just get the full scernario
-AGB.periodic <- left_join(AGB, periodic.data)
+
+AGB.periodic <- left_join(periodic.data, AGB)
 
 
 
 tre_bio <- AGB.periodic  %>%
   filter(EVAL_TYP == 'EXPVOL') %>%
   ## Make sure we only have unique observations of plots, trees, etc.
-  distinct(ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,  mort.scheme, rcp, parse, year, .keep_all = TRUE) %>%
+  distinct( ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,  mort.scheme, rcp, parse, year, .keep_all = TRUE) %>%
   ## Plot-level estimates first (multiplying by EXPNS here)
   group_by(YEAR, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN,  mort.scheme, rcp, parse, year) %>%
   summarize(bioPlot = mAGB* EXPNS / 2000,
@@ -182,11 +191,11 @@ bio <- left_join(tre_bio, area_bio_full) %>%
   ## Reordering the columns
   select(year, BIO_AG_ACRE, CARB_AG_ACRE, BIO_AG_TOTAL, CARB_AG_TOTAL, AREA_TOTAL)
 
-biomass(clipFIA(fiaRI), totals = TRUE)
+#biomass(clipFIA(fiaRI), totals = TRUE)
 
 ggplot(bio, aes(year, BIO_AG_TOTAL))+geom_line()
 
-# lets add some grouping variables by ownership code
+# lets add some grouping variables by ECOTYPE CODES
 
 #Without Sampling Errors
 #Now we are ready to start computing estimates. If we don’t care aboute sampling errors, 
@@ -197,7 +206,7 @@ ggplot(bio, aes(year, BIO_AG_TOTAL))+geom_line()
 #across all plots in the population of interest, EXPNS allows us to easily obtain estimates of 
 #population totals, without worrying about fancy stratifaction procedures and variance estimators.
 
-#Adding grouping variables
+#Adding grouping variables by ecotype code
 #To add grouping variables to the above procedures, we can simply add the names 
 #of the variables we wish to group by to the group_by call:
 ## Grouping by Ownership group (OWNGRPCD)
@@ -205,40 +214,71 @@ ggplot(bio, aes(year, BIO_AG_TOTAL))+geom_line()
 tre_bioGrp <- AGB.periodic %>%
   filter(EVAL_TYP == 'EXPVOL') %>%
   ## Make sure we only have unique observations of plots, trees, etc.
-  distinct(ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,year, .keep_all = TRUE) %>%
+  distinct(ECODIV, ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,year, .keep_all = TRUE) %>%
   ## Plot-level estimates first (multiplying by EXPNS here)
-  group_by(year, FORTYPCD, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
+  group_by(year, ECODIV, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
   summarize(bioPlot = mAGB* EXPNS / 2000,
             carbPlot = bioPlot*0.501) %>%  ## Now we simply sum the values of each plot (expanded w/ EXPNS)
   ## to obtain population totals
-  group_by(year, FORTYPCD) %>%
+  group_by(year, ECODIV) %>%
   summarize(BIO_AG_TOTAL = sum(bioPlot, na.rm = TRUE),
             CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE))
 tre_bioGrp 
 
-## Estimate Area totals
+## Estimate Area totals by ECOTYPCD
 area_bioGrp <- AGB.periodic %>%
   filter(EVAL_TYP == 'EXPCURR') %>%
   ## Make sure we only have unique observations of plots, trees, etc.
-  distinct(ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, .keep_all = TRUE) %>%
+  distinct(ECODIV, ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, .keep_all = TRUE) %>%
   ## Plot-level estimates first (multiplying by EXPNS here)
-  group_by(year, FORTYPCD, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
+  group_by(year, ECODIV, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
   summarize(forArea = sum(CONDPROP_UNADJ *  EXPNS, na.rm = TRUE)) %>% # I changed this not sure if its right
   ## Now we simply sum the values of each plot (expanded w/ EXPNS)
   ## to obtain population totals
-  group_by(year, FORTYPCD) %>%
+  group_by(year, ECODIV) %>%
   summarize(AREA_TOTAL = sum(forArea, na.rm = TRUE))
 area_bioGrp 
 
 
 ## Now we can simply join these two up, and produce ratio estimates
-bioGrp <- left_join(tre_bioGrp, area_bioGrp[,c("FORTYPCD", "AREA_TOTAL")], by = "FORTYPCD") %>%
+bioGrp <- left_join(tre_bioGrp, area_bioGrp[,c("ECODIV", "AREA_TOTAL")], by = "ECODIV") %>%
   mutate(BIO_AG_ACRE = BIO_AG_TOTAL / AREA_TOTAL,
          CARB_AG_ACRE = CARB_AG_TOTAL / AREA_TOTAL) %>%
   ## Reordering the columns
-  select(year, FORTYPCD, BIO_AG_ACRE, CARB_AG_ACRE, BIO_AG_TOTAL, CARB_AG_TOTAL, AREA_TOTAL)
+  select(year, ECODIV, BIO_AG_ACRE, CARB_AG_ACRE, BIO_AG_TOTAL, CARB_AG_TOTAL, AREA_TOTAL)
 
-# 221 is PIPO forest
-ggplot(bioGrp, aes(year, BIO_AG_TOTAL, color = as.character(FORTYPCD)))+geom_line()
+# 313 is the only ecodivs in AZ with PIPO
+ggplot(bioGrp, aes(year, BIO_AG_TOTAL, color = as.character(ECODIV)))+geom_line()
+bio.C.diff <- bioGrp %>% filter(year %in% 2002 | year == 2098) %>% select(ECODIV, year, CARB_AG_TOTAL)%>% group_by(ECODIV) %>% spread(year, CARB_AG_TOTAL) %>%
+  summarise(deltaC = `2098`-`2002`) %>% mutate(MAP_UNIT_S = ECODIV)
 
+# link up with ecoregion map in AZ:
 
+eco.regions <- read_sf( "data/S_USA/S_USA.EcoMapProvinces.shp")
+
+eco.regions %>%
+  ggplot() +
+  geom_sf() +
+  theme_bw()
+
+eco.regions.Cdiff <- left_join(eco.regions, bio.C.diff)
+
+eco.regions.Cdiff %>%
+  ggplot() +
+  geom_sf(aes(fill = deltaC)) +
+  theme_bw() 
+  
+eco.regions.Cdiff %>%
+  ggplot() +
+  geom_sf(aes(fill = MAP_UNIT_S)) +
+  theme_bw() 
+
+st_crs(eco.regions)
+#-124.79,49.38, 24.41, -101
+bbox <- st_as_sf(as(raster::extent(-124.79, -101, 24.41, 49.38), "SpatialPolygons"))
+st_crs(bbox) <- 4326
+bbox <- st_transform(bbox, st_crs(eco.regions))
+
+eco_crop <- st_crop(eco.regions, bbox)
+unique(eco.regions$MAP_UNIT_S)
+eco.regions %>% filter(MAP_UNIT_S %in% unique(bioGrp$ECODIV))
