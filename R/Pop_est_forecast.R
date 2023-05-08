@@ -9,12 +9,12 @@ AGB <- readRDS("outputs/parse.DIDD.mort.RDS")
 colnames(AGB)[1] <- "PLT_CN"
 
 db <- readRDS("data/InWeUS_FIAdb.rds")
-db$PLOT <- db$PLOT %>% filter(STATECD %in% c(4, 8, 56, 16, 30, 35, 49))#& CN %in% unique(AGB$CN))
-db$POP_EVAL <- rbind(read.csv("data/AZ_POP_EVAL.csv"), read.csv("data/NM_POP_EVAL.csv"), read.csv("data/UT_POP_EVAL.csv"), read.csv("data/CO_POP_EVAL.csv"))
-db$POP_ESTN_UNIT <- rbind(read.csv("data/AZ_POP_ESTN_UNIT.csv"), read.csv("data/NM_POP_ESTN_UNIT.csv"),  read.csv("data/UT_POP_ESTN_UNIT.csv"),  read.csv("data/CO_POP_ESTN_UNIT.csv"))
-db$POP_PLOT_STRATUM_ASSGN <- rbind(read.csv("data/AZ_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/NM_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/UT_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/CO_POP_PLOT_STRATUM_ASSGN.csv"))
-db$POP_EVAL_TYP <- rbind(read.csv("data/AZ_POP_EVAL_TYP.csv"), read.csv("data/NM_POP_EVAL_TYP.csv"), read.csv("data/UT_POP_EVAL_TYP.csv"), read.csv("data/CO_POP_EVAL_TYP.csv"))
-db$POP_STRATUM <- rbind(read.csv("data/AZ_POP_STRATUM.csv"), read.csv("data/NM_POP_STRATUM.csv"), read.csv("data/UT_POP_STRATUM.csv"), read.csv("data/CO_POP_STRATUM.csv"))
+db$PLOT <- db$PLOT %>% filter(STATECD %in% c(4, 8, 35, 49, 56, 16, 30))#& CN %in% unique(AGB$CN))
+db$POP_EVAL <- rbind(read.csv("data/AZ_POP_EVAL.csv"), read.csv("data/NM_POP_EVAL.csv"), read.csv("data/UT_POP_EVAL.csv"), read.csv("data/CO_POP_EVAL.csv"),  read.csv("data/MT_POP_EVAL.csv"), read.csv("data/ID_POP_EVAL.csv"), read.csv("data/WY_POP_EVAL.csv"))
+db$POP_ESTN_UNIT <- rbind(read.csv("data/AZ_POP_ESTN_UNIT.csv"), read.csv("data/NM_POP_ESTN_UNIT.csv"),  read.csv("data/UT_POP_ESTN_UNIT.csv"),  read.csv("data/CO_POP_ESTN_UNIT.csv"), read.csv("data/MT_POP_ESTN_UNIT.csv"),  read.csv("data/ID_POP_ESTN_UNIT.csv"),  read.csv("data/WY_POP_ESTN_UNIT.csv"))
+db$POP_PLOT_STRATUM_ASSGN <- rbind(read.csv("data/AZ_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/NM_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/UT_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/CO_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/MT_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/ID_POP_PLOT_STRATUM_ASSGN.csv"), read.csv("data/WY_POP_PLOT_STRATUM_ASSGN.csv"))
+db$POP_EVAL_TYP <- rbind(read.csv("data/AZ_POP_EVAL_TYP.csv"), read.csv("data/NM_POP_EVAL_TYP.csv"), read.csv("data/UT_POP_EVAL_TYP.csv"), read.csv("data/CO_POP_EVAL_TYP.csv"), read.csv("data/MT_POP_EVAL_TYP.csv"), read.csv("data/ID_POP_EVAL_TYP.csv"), read.csv("data/WY_POP_EVAL_TYP.csv"))
+db$POP_STRATUM <- rbind(read.csv("data/AZ_POP_STRATUM.csv"), read.csv("data/NM_POP_STRATUM.csv"), read.csv("data/UT_POP_STRATUM.csv"), read.csv("data/CO_POP_STRATUM.csv"), read.csv("data/MT_POP_STRATUM.csv"), read.csv("data/ID_POP_STRATUM.csv"), read.csv("data/WY_POP_STRATUM.csv"))
 
 ## Select only the columns we need from each table, to keep things slim
 PLOT <- select(db$PLOT, CN, MACRO_BREAKPOINT_DIA, ECOSUBCD)
@@ -140,7 +140,7 @@ periodic.data$EXPNS
 periodic.data$CONDPROP_UNADJ
 unique(periodic.data$aAdj)
 unique(periodic.data$FORTYPCD)
-
+unique(periodic.data)
 
 # notes on how to adjust this:
 # We already have plot totals for each plot, need to multiply by the EXPNS
@@ -151,49 +151,49 @@ AGB.periodic <- left_join(periodic.data, AGB)
 
 
 
-tre_bio <- AGB.periodic  %>%
-  filter(EVAL_TYP == 'EXPVOL') %>%
-  ## Make sure we only have unique observations of plots, trees, etc.
-  distinct( ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,  mort.scheme, rcp, parse, year, .keep_all = TRUE) %>%
-  ## Plot-level estimates first (multiplying by EXPNS here)
-  group_by(YEAR, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN,  mort.scheme, rcp, parse, year) %>%
-  summarize(bioPlot = mAGB* EXPNS / 2000,
-            carbPlot = bioPlot*0.501) %>%
-  ## Now we simply sum the values of each plot (expanded w/ EXPNS)
-  ## to obtain population totals
-  group_by(year) %>%
-  summarize(BIO_AG_TOTAL = sum(bioPlot, na.rm = TRUE),
-            CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE))
-
-## Estimate Area totals
-area_bio <- AGB.periodic %>%
-  filter(EVAL_TYP == 'EXPCURR') %>%
-  ## Make sure we only have unique observations of plots, trees, etc.
-  distinct(ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, .keep_all = TRUE) %>%
-  ## Plot-level estimates first (multiplying by EXPNS here)
-  group_by(year, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
-  summarize(forArea = sum(CONDPROP_UNADJ *  EXPNS, na.rm = TRUE)) %>% # I changed this not sure if its right
-  ## Now we simply sum the values of each plot (expanded w/ EXPNS)
-  ## to obtain population totals
-  group_by(year) %>%
-  summarize(AREA_TOTAL = sum(forArea, na.rm = TRUE))
-
-# assume the area is the same for all values going forward?
-# proably want to adjust this but for now lets assume
-area_bio_full <- data.frame(year = 2002:2099, 
-                            AREA_TOTAL = rep(area_bio$AREA_TOTAL, length(2002:2099)))
-
-#Then we can join these tables up, and produce ratio estimates:
-
-bio <- left_join(tre_bio, area_bio_full) %>%
-  mutate(BIO_AG_ACRE = BIO_AG_TOTAL / AREA_TOTAL,
-         CARB_AG_ACRE = CARB_AG_TOTAL / AREA_TOTAL) %>%
-  ## Reordering the columns
-  select(year, BIO_AG_ACRE, CARB_AG_ACRE, BIO_AG_TOTAL, CARB_AG_TOTAL, AREA_TOTAL)
-
-#biomass(clipFIA(fiaRI), totals = TRUE)
-
-ggplot(bio, aes(year, BIO_AG_TOTAL))+geom_line()
+# tre_bio <- AGB.periodic  %>%
+#   filter(EVAL_TYP == 'EXPVOL') %>%
+#   ## Make sure we only have unique observations of plots, trees, etc.
+#   distinct( ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,  mort.scheme, rcp, parse, year, .keep_all = TRUE) %>%
+#   ## Plot-level estimates first (multiplying by EXPNS here)
+#   group_by(YEAR, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN,  mort.scheme, rcp, parse, year) %>%
+#   summarize(bioPlot = mAGB* EXPNS / 2000,
+#             carbPlot = bioPlot*0.501) %>%
+#   ## Now we simply sum the values of each plot (expanded w/ EXPNS)
+#   ## to obtain population totals
+#   group_by(year) %>%
+#   summarize(BIO_AG_TOTAL = sum(bioPlot, na.rm = TRUE),
+#             CARB_AG_TOTAL = sum(carbPlot, na.rm = TRUE))
+# 
+# ## Estimate Area totals
+# area_bio <- AGB.periodic %>%
+#   filter(EVAL_TYP == 'EXPCURR') %>%
+#   ## Make sure we only have unique observations of plots, trees, etc.
+#   distinct(ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, .keep_all = TRUE) %>%
+#   ## Plot-level estimates first (multiplying by EXPNS here)
+#   group_by(year, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
+#   summarize(forArea = sum(CONDPROP_UNADJ *  EXPNS, na.rm = TRUE)) %>% # I changed this not sure if its right
+#   ## Now we simply sum the values of each plot (expanded w/ EXPNS)
+#   ## to obtain population totals
+#   group_by(year) %>%
+#   summarize(AREA_TOTAL = sum(forArea, na.rm = TRUE))
+# 
+# # assume the area is the same for all values going forward?
+# # proably want to adjust this but for now lets assume
+# area_bio_full <- data.frame(year = 2002:2099, 
+#                             AREA_TOTAL = rep(area_bio$AREA_TOTAL, length(2002:2099)))
+# 
+# #Then we can join these tables up, and produce ratio estimates:
+# 
+# bio <- left_join(tre_bio, area_bio_full) %>%
+#   mutate(BIO_AG_ACRE = BIO_AG_TOTAL / AREA_TOTAL,
+#          CARB_AG_ACRE = CARB_AG_TOTAL / AREA_TOTAL) %>%
+#   ## Reordering the columns
+#   select(year, BIO_AG_ACRE, CARB_AG_ACRE, BIO_AG_TOTAL, CARB_AG_TOTAL, AREA_TOTAL)
+# 
+# #biomass(clipFIA(fiaRI), totals = TRUE)
+# 
+# ggplot(bio, aes(year, BIO_AG_TOTAL))+geom_line()
 
 # lets add some grouping variables by ECOTYPE CODES
 
@@ -250,7 +250,8 @@ bioGrp <- left_join(tre_bioGrp, area_bioGrp[,c("ECODIV", "AREA_TOTAL")], by = "E
 # 313 is the only ecodivs in AZ with PIPO
 ggplot(bioGrp, aes(year, BIO_AG_TOTAL, color = as.character(ECODIV)))+geom_line()
 bio.C.diff <- bioGrp %>% filter(year %in% 2002 | year == 2098) %>% select(ECODIV, year, CARB_AG_TOTAL)%>% group_by(ECODIV) %>% spread(year, CARB_AG_TOTAL) %>%
-  summarise(deltaC = `2098`-`2002`) %>% mutate(MAP_UNIT_S = ECODIV)
+  summarise(deltaC = `2098`-`2002`,
+            pct.deltaC = (`2098`-`2002`)/`2002`) %>% mutate(MAP_UNIT_S = ECODIV)
 
 # link up with ecoregion map in AZ:
 
@@ -266,6 +267,11 @@ eco.regions.Cdiff <- left_join(eco.regions, bio.C.diff)
 eco.regions.Cdiff %>%
   ggplot() +
   geom_sf(aes(fill = deltaC)) +
+  theme_bw() 
+
+eco.regions.Cdiff %>%
+  ggplot() +
+  geom_sf(aes(fill = pct.deltaC)) +
   theme_bw() 
   
 eco.regions.Cdiff %>%
