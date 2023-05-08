@@ -1091,6 +1091,8 @@ mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>
                                 group_by(rcp, mort.scheme, year, parse) %>%
                                 summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
 
+
+
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
 ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
@@ -1287,6 +1289,7 @@ mort.dbh.all.parse <- rbind(mort.dbh.full.parse, mort.dbh.full.parse.noSDI, mort
 
 # save as RDS:
 saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.RDS"))
+mort.dbh.all.parse <- readRDS(here("outputs/", "all.plot.mort.dbh.N.RDS"))
 
 
 # generate plots of dead by size class
@@ -1298,13 +1301,30 @@ n.mort.dbh.class <- mort.dbh.all.parse %>% group_by(mort.scheme, rcp, time, pars
                                   n.mort.di = sum(TPAdi, na.rm = TRUE), 
                                   n.total = sum(TPAfull, na.rm = TRUE))
 
+pct.mort.dbh.class <- n.mort.dbh.class  %>% group_by(mort.scheme, rcp, time, parse) %>% mutate(total.trees.dead.dd = sum(n.mort.dd), 
+                                                                         total.trees.dead.di = sum(n.mort.di))%>%
+                    ungroup()%>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>% mutate(pct.mort.dd = n.mort.dd/total.trees.dead.dd, 
+                                                                                               pct.mort.di =  n.mort.di/total.trees.dead.di)
+
+
 parse.names <- data.frame(parse = c("full", "detrendedCC", "noSDI"), 
                           scenario = c("full", "no climate change", "no SDI effect on growth"))
 
+
+
 n.mort.dbh.class <- left_join(n.mort.dbh.class, parse.names)
+
+pct.mort.dbh.class <- left_join(pct.mort.dbh.class, parse.names)
 
 ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = dbh.class))+geom_line()+
   facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
 
 ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = scenario))+geom_line()+
   facet_grid(rows = vars(dbh.class), cols = vars(rcp))
@@ -1322,8 +1342,15 @@ ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, col = dbh.class, fill = db
 ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic.png"))
 
 
-ggplot(n.mort.dbh.class, aes(x = time, y = n.total, color = dbh.class))+geom_line()+
-  facet_grid(rows = vars(parse), cols = vars(rcp))
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DI_parse_periodic.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic.png"))
+
 
 #------------------------get regional differences for the Components-----------------------------------
 # sum up across plots, then take parse differences:
@@ -1418,7 +1445,7 @@ AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, 
   summarise(across(c(mAGB:low.foliage), function(x){C.convert.livewood(x)})) %>% 
   ungroup() %>% # sum across all the PLT_CNs
     group_by(rcp, mort.scheme, year, parse) %>%
-  summarise(across(c(mAGB:low.foliage), sum)) 
+  summarise(across(c(mAGB:low.foliage), sum)) # sum across all the PLT_CNs then divide by # plots to convert to per acre
 
 
 # More about the parse scenarios:
