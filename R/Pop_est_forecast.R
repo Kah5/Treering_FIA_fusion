@@ -273,6 +273,7 @@ eco.regions.Cdiff %>%
   ggplot() +
   geom_sf(aes(fill = pct.deltaC)) +
   theme_bw() 
+ggsave(height = 4, width = 8, units = "in", "outputs/full_changepctC_ecoregion.png")
   
 eco.regions.Cdiff %>%
   ggplot() +
