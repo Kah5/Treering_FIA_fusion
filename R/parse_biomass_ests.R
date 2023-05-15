@@ -1217,15 +1217,15 @@ mort.all.parse.60 <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.par
 
 # save as RDS:
 saveRDS(mort.all.parse.60, here("outputs/", "all.plot.mort.C.60SDIthresh.RDS"))
-mort.all.parse <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh.RDS"))
+mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh.RDS"))
 
 # create function to scale biomass to C and convert to Tg?
 # Cfraction
 C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000}
-C.convert.deadwood(mort.all.parse$mAGB.dead, C.frac = 0.4822)
+C.convert.deadwood(mort.all.parse.60$mAGB.dead, C.frac = 0.4822)
 
 # get general summary of the total mortality in terms of C for each mortality type
-mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
+mort.test <- mort.all.parse.60 %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
   summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){C.convert.deadwood(x)})) %>% 
   ungroup() %>% # sum across all the PLT_CNs
   group_by(rcp, mort.scheme, year, parse) %>%
@@ -1491,6 +1491,122 @@ ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill 
   facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
 ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic.png"))
 
+
+#-------------- get the number and size for all dead trees for the SDI 60% threshold runs
+mort.dbh.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.26 <- do.call(rbind, mort.dbh.26.list)
+
+mort.dbh.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.45.test <- do.call(rbind, mort.dbh.45.list)
+
+mort.dbh.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.60.test <- do.call(rbind, mort.dbh.60.list)
+
+mort.dbh.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.85.test <- do.call(rbind, mort.dbh.85.list)
+
+mort.dbh.full.parse <- rbind(mort.dbh.26, mort.dbh.45.test, mort.dbh.60.test, mort.dbh.85.test)
+
+
+# get it for noCC:
+
+mort.dbh.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.test.noCC <- do.call(rbind, mort.dbh.test.list.noCC)
+
+mort.dbh.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.45.test.noCC <- do.call(rbind, mort.dbh.45.list.noCC)
+
+mort.dbh.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.60.test.noCC <- do.call(rbind, mort.dbh.60.list.noCC)
+
+mort.dbh.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.85.test.noCC <- do.call(rbind, mort.dbh.85.list.noCC)
+
+
+mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC, mort.dbh.45.test.noCC, mort.dbh.60.test.noCC, mort.dbh.85.test.noCC)
+
+# get it for noSDI:
+
+mort.dbh.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.test.noSDI <- do.call(rbind, mort.dbh.test.list.noSDI)
+
+mort.dbh.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.45.test.noSDI <- do.call(rbind, mort.dbh.45.list.noSDI)
+
+mort.dbh.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.60.test.noSDI <- do.call(rbind, mort.dbh.60.list.noSDI)
+
+mort.dbh.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.85.test.noSDI <- do.call(rbind, mort.dbh.85.list.noSDI)
+
+
+mort.dbh.full.parse.noSDI <- rbind(mort.dbh.test.noSDI, mort.dbh.45.test.noSDI, mort.dbh.60.test.noSDI, mort.dbh.85.test.noSDI)
+
+mort.dbh.all.parse <- rbind(mort.dbh.full.parse, mort.dbh.full.parse.noSDI, mort.dbh.full.parse.noCC)
+
+# save as RDS:
+saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
+mort.dbh.all.parse <- readRDS(here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
+
+
+# generate plots of dead by size class
+mort.dbh.all.parse <- mort.dbh.all.parse  %>%
+  mutate(dbh.class = cut(diameter, breaks=c(0, 10, 20, 30, 120)))
+
+n.mort.dbh.class <- mort.dbh.all.parse %>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>%
+  summarise(n.mort.dd = sum(TPAdd, na.rm = TRUE), 
+            n.mort.di = sum(TPAdi, na.rm = TRUE), 
+            n.total = sum(TPAfull, na.rm = TRUE))
+
+pct.mort.dbh.class <- n.mort.dbh.class  %>% group_by(mort.scheme, rcp, time, parse) %>% mutate(total.trees.dead.dd = sum(n.mort.dd), 
+                                                                                               total.trees.dead.di = sum(n.mort.di))%>%
+  ungroup()%>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>% mutate(pct.mort.dd = n.mort.dd/total.trees.dead.dd, 
+                                                                             pct.mort.di =  n.mort.di/total.trees.dead.di)
+
+
+parse.names <- data.frame(parse = c("full", "detrendedCC", "noSDI"), 
+                          scenario = c("full", "no climate change", "no SDI effect on growth"))
+
+
+
+n.mort.dbh.class <- left_join(n.mort.dbh.class, parse.names)
+
+pct.mort.dbh.class <- left_join(pct.mort.dbh.class, parse.names)
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = scenario))+geom_line()+
+  facet_grid(rows = vars(dbh.class), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic_60SDIthresh.png"))
 
 #------------------------get regional differences for the Components-----------------------------------
 # sum up across plots, then take parse differences:

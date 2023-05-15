@@ -23,7 +23,7 @@ TREE <- select(db$TREE, PLT_CN, CONDID, SUBP, TREE, STATUSCD, DRYBIO_AG, CARBON_
 
 
 PLOT$ECOSUBCD <- str_trim(PLOT$ECOSUBCD)
-PLOT$ECODIV <- str_sub(PLOT$ECOSUBCD, 1, -3)
+PLOT$ECODIV <- PLOT$ECOSUBCD#str_sub(PLOT$ECOSUBCD, 1, -3)
 ## One is doesnt work
 # PLOT <- PLOT %>%
 #   mutate(ECODIV = case_when(ECODIV == 'M313' ~ '313',
@@ -205,7 +205,12 @@ AGB.periodic <- left_join(periodic.data, AGB)
 #section 4.2 for more information on FIA stratification procedures). When summed across summed 
 #across all plots in the population of interest, EXPNS allows us to easily obtain estimates of 
 #population totals, without worrying about fancy stratifaction procedures and variance estimators.
-
+rm(AGB)
+rm(POP_PLOT_STRATUM_ASSGN)
+rm(db)
+rm(TREE)
+rm(PLOT)
+rm(data)
 #Adding grouping variables by ecotype code
 #To add grouping variables to the above procedures, we can simply add the names 
 #of the variables we wish to group by to the group_by call:
@@ -217,7 +222,7 @@ tre_bioGrp <- AGB.periodic %>%
   distinct(ECODIV, ESTN_UNIT_CN, STRATUM_CN, PLT_CN, CONDID, SUBP, TREE,year, .keep_all = TRUE) %>%
   ## Plot-level estimates first (multiplying by EXPNS here)
   group_by(year, ECODIV, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN) %>%
-  summarize(bioPlot = mAGB* EXPNS / 2000,
+  summarize(bioPlot = mAGB*EXPNS , # out mAGB is in kg (?), assuming acre plto
             carbPlot = bioPlot*0.501) %>%  ## Now we simply sum the values of each plot (expanded w/ EXPNS)
   ## to obtain population totals
   group_by(year, ECODIV) %>%
@@ -255,7 +260,7 @@ bio.C.diff <- bioGrp %>% filter(year %in% 2002 | year == 2098) %>% select(ECODIV
 
 # link up with ecoregion map in AZ:
 
-eco.regions <- read_sf( "data/S_USA/S_USA.EcoMapProvinces.shp")
+eco.regions <- read_sf( "data/S_USA/S_USA.EcomapSubsections.shp")
 
 eco.regions %>%
   ggplot() +
@@ -273,7 +278,7 @@ eco.regions.Cdiff %>%
   ggplot() +
   geom_sf(aes(fill = pct.deltaC)) +
   theme_bw() 
-ggsave(height = 4, width = 8, units = "in", "outputs/full_changepctC_ecoregion.png")
+ggsave(height = 4, width = 8, units = "in", "outputs/full_changepctC_ecosubregion.png")
   
 eco.regions.Cdiff %>%
   ggplot() +

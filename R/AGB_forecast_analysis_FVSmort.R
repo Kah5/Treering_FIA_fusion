@@ -245,7 +245,7 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
   }
 }
 
-get_biomass_ests(plot = 3169377010690, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD= 0.8, cc.scenario = "singleCC")
+get_biomass_ests(plot = 3169377010690, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD= 0.6, cc.scenario = "singleCC")
 plot = 3169377010690
 
 # -------------------------------------------------------------------------------
@@ -270,21 +270,29 @@ DIDD.AGB.45.df <- do.call(rbind, DIDD.AGB.45)
 DIDD.AGB.60.df <- do.call(rbind, DIDD.AGB.60)
 DIDD.AGB.85.df <- do.call(rbind, DIDD.AGB.85)
 
+# do this for the 60% max SDI threshold scenario
+DIDD.AGB.60thresh <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.6, cc.scenario = "singleCC")})
+DIDD.AGB.45.60thresh <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45", SDI.ratio.DD = 0.6, cc.scenario = "singleCC")})
+DIDD.AGB.60.60thresh <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60", SDI.ratio.DD = 0.6, cc.scenario = "singleCC")})
+DIDD.AGB.85.60thresh <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85", SDI.ratio.DD = 0.6, cc.scenario = "singleCC")})
+
+
+# normort.AGB.df <- do.call(rbind, normort.AGB)
+# DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
+# DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
+DIDD.AGB.60thresh.df <- do.call(rbind, DIDD.AGB.60thresh)
+DIDD.AGB.45.60thresh.df <- do.call(rbind, DIDD.AGB.45.60thresh)
+DIDD.AGB.60.60thresh.df <- do.call(rbind, DIDD.AGB.60.60thresh)
+DIDD.AGB.85.60thresh.df <- do.call(rbind, DIDD.AGB.85.60thresh)
+
 
 
 # -------------------------------------------------------------------------------
 # combine all forecasts
 # -------------------------------------------------------------------------------
-all10plots <- rbind(DIDD.AGB.df, DIDD.AGB.45.df, DIDD.AGB.60.df, DIDD.AGB.85.df) #, 
-#all10plots <- DIDD.AGB.df#, 
+all10plots <- rbind(DIDD.AGB.60thresh.df, DIDD.AGB.45.60thresh.df, DIDD.AGB.60.60thresh.df, DIDD.AGB.85.60thresh.df) #, 
 
-#normort.AGB.60.df, DIonly.AGB.60.df, DDonly.AGB.60.df, DIDD.AGB.60.df, 
-#normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
-#normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df) #, 
-#nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
-#all.AGB.26.nomort <- rbind(nocc.nomort.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df, nocc.DIonly.AGB.df)
-
-saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
+saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_0.8.60thresh_full.RDS")
 
 # -------------------------------------------------------------------------------
 # read in forecasts for all scenarios and mortality conditions (double cc)
@@ -1070,23 +1078,30 @@ dev.off()
 #------------------------------------------------------------------------------------
 # Make a pretty figure of total biomass by different components across all the stands in the region
 #------------------------------------------------------------------------------------
-all10plot <- readRDS("all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
-
+#all10plot <- readRDS("all.AGB.fiaperiodic_singleCC_0.8_full.RDS")
+all10plot <- readRDS("all.AGB.fiaperiodic_singleCC_0.8.60thresh_full.RDS")
 # get the low and high values and sum across plots?
 all.woody.sums <- all10plot %>% group_by(mort.scheme, rcp, year) %>% 
   summarise(across(c(mAGB:low.foliage), sum)) # sum up all plots for each column simply for each year and rcp, and mort.scheme
 
+# convert on a per acre basis--based on 517 plots in the forecats
+n.plt <- all10plot %>% group_by(mort.scheme, rcp, year) %>% summarise(n = n())
+unique(n.plt$n)
+
+all.woody.per.acre <- all.woody.sums %>% group_by(mort.scheme, rcp, year) %>%
+  summarise(across(c(mAGB:low.foliage), function(x){x/unique(n.plt$n)}))
+
 # convert to Teragrams and Carbon
 # convert to Mg/ha to Tg/ha: 1 Tg = 1000000 Mg
-all.woody.sums.TgC <-  all.woody.sums %>% group_by(mort.scheme, rcp, year) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) 
+all.woody.per.acre.TgC <-  all.woody.per.acre %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.501)/1000000})) 
 
-all.woody.sums.MgC <-  all.woody.sums %>% group_by(mort.scheme, rcp, year) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)})) # convert to Teragrams and Carbon
+all.woody.per.acre.MgC <-  all.woody.per.acre %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){(x*0.501)})) # convert to Teragrams and Carbon
 
 # okay lets plot all.woody.sums.TgC:
 
-ggplot(all.woody.sums.TgC, aes(x = year, y =mAGB))+geom_line()+facet_wrap(~rcp)
+ggplot(all.woody.per.acre.MgC, aes(x = year, y =mAGB))+geom_line()+facet_wrap(~rcp)
 
 ggplot()+geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood), fill = "blue")+
   geom_ribbon(data = all.woody.sums.TgC, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive), fill = "red")+
@@ -1128,7 +1143,7 @@ b.flux.all <- ggplot()+
 # all.live = branch.wood.bark + foliage
 # dead.live.branch = all.live + dead branch
 
-all.woody.summed.TgC <- all.woody.sums.TgC %>% group_by(mort.scheme, rcp, year) %>% 
+all.woody.perha.TgC <- all.woody.per.acre.TgC %>% group_by(mort.scheme, rcp, year) %>% 
   mutate(upA.stem.branch = upA.stemwood + upA.branchlive, 
          lowA.stem.branch = upA.stemwood, 
          
@@ -1160,12 +1175,12 @@ all.woody.summed.TgC <- all.woody.sums.TgC %>% group_by(mort.scheme, rcp, year) 
 # pretty figure for the regional forecasts:
 regional.C.trends <- ggplot()+
   #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
-  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.stem.branch, ymax = upA.stem.branch, fill = "live branch"))+
-  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.branch.wood.bark, ymax = upA.branch.wood.bark, fill = "stem bark"))+
-  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.all.live, ymax = upA.all.live, fill = "foliage"))+
+  geom_ribbon(data = all.woody.perha.TgC, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.perha.TgC, aes(x = year, ymin = lowA.stem.branch, ymax = upA.stem.branch, fill = "live branch"))+
+  geom_ribbon(data = all.woody.perha.TgC, aes(x = year, ymin = lowA.branch.wood.bark, ymax = upA.branch.wood.bark, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.perha.TgC, aes(x = year, ymin = lowA.all.live, ymax = upA.all.live, fill = "foliage"))+
   
-  geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadbranch.live, ymax = upA.deadbranch.live, fill = "dead branch"))+
+  geom_ribbon(data = all.woody.perha.TgC, aes(x = year, ymin = lowA.deadbranch.live, ymax = upA.deadbranch.live, fill = "dead branch"))+
   #geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
   
   theme_bw(base_size = 14)+
@@ -1177,16 +1192,16 @@ regional.C.trends <- ggplot()+
 # plot NPP:
 regional.NPP <- ggplot()+
   #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-  geom_ribbon(data = all.woody.summed.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stemwood*-1, ymax = up.stemwood*-1, fill = "stem wood"))+
-  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stem.branch*-1, ymax = up.stem.branch*-1, fill = "live branch"))+
-  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.branch.wood.bark*-1, ymax = up.branch.wood.bark*-1, fill = "stem bark"))+
-  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.all.live*-1, ymax = up.all.live*-1, fill = "foliage"))+
+  geom_ribbon(data = all.woody.perha.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stemwood*-1, ymax = up.stemwood*-1, fill = "stem wood"))+
+  geom_ribbon(data = all.woody.perha.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.stem.branch*-1, ymax = up.stem.branch*-1, fill = "live branch"))+
+  geom_ribbon(data = all.woody.perha.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.branch.wood.bark*-1, ymax = up.branch.wood.bark*-1, fill = "stem bark"))+
+  geom_ribbon(data = all.woody.perha.TgC %>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.all.live*-1, ymax = up.all.live*-1, fill = "foliage"))+
   
-  geom_ribbon(data = all.woody.summed.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.deadbranch.live*-1, ymax = up.deadbranch.live*-1, fill = "dead branch"))+
+  geom_ribbon(data = all.woody.perha.TgC%>% filter(!year %in% 2001:2002), aes(x = year, ymin = low.deadbranch.live*-1, ymax = up.deadbranch.live*-1, fill = "dead branch"))+
   #geom_ribbon(data = all.woody.summed.TgC, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
  
   theme_bw(base_size = 14)+xlim(2004, 2099)+
-  ylab(paste("Regional Carbon Density Flux \n (Tg Carbon/hectare/year)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  ylab(paste("Carbon Density Difference \n (Tg Carbon/hectare/year)"))+xlab("Year")+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Component",
                     values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))+
   facet_wrap(~rcp, ncol = 4) #+  geom_abline(aes(intercept = 0, slope = 0), color = "salmon", linetype = "dashed")
@@ -1194,7 +1209,7 @@ regional.NPP <- ggplot()+
 
 Carbon.legend <- cowplot::get_legend(regional.NPP)
 
-png(height = 7, width = 12, units = "in", res = 300, "outputs/Carbon_density_regional_NPP_total_fullperiodic.png")
+png(height = 7, width = 12, units = "in", res = 300, "outputs/Carbon_density_regional_NPP_total_fullperiodic_perha_60threshold.png")
 cowplot::plot_grid(cowplot::plot_grid(regional.C.trends+theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
                    regional.NPP+theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
                    ncol = 1, align = "hv"), Carbon.legend, ncol = 2, rel_widths = c(0.85, 0.1))
