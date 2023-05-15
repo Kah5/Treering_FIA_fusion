@@ -50,9 +50,10 @@ if(file.exists(paste0(dir.path, spp, "/"))){
     geom_polygon(data = canada, 
                  aes(x=long, y=lat, group = group), 
                  color = "black", fill = "white") +
-    geom_sf(alpha = 0.5, fill = "forestgreen")+
-    geom_point(data = cov.data.regional, aes(x = LON, y = LAT), size = 0.75)+theme_bw()+
-    coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.text = element_blank())
+    geom_sf(alpha = 0.75, aes(fill = as.character(CODE)))+
+    scale_fill_manual(values = c("1" = "forestgreen", "0" = "white"))+
+    geom_point(data = cov.data.regional, aes(x = LON, y = LAT), size = 0.5)+theme_bw()+
+    coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank(), legend.position = "none")
   
   ggsave(height = 6, width = 8, units = "in", here("outputs/cored_pipo_distn_", paste0(spp, "_distribution_map_zoom.png")))
   
@@ -67,9 +68,10 @@ if(file.exists(paste0(dir.path, spp, "/"))){
     geom_polygon(data = canada, 
                  aes(x=long, y=lat, group = group), 
                  color = "black", fill = "white") +
-    geom_sf(alpha = 0.5, fill = "forestgreen")+
-    geom_point(data = cov.data.regional, aes(x = LON, y = LAT), size = 0.75)+theme_bw()+
-    coord_sf(xlim = c(-125, -100), ylim = c(20, 52))+theme(axis.text = element_blank())
+    geom_sf(alpha = 0.75, aes(fill = as.character(CODE)))+
+    scale_fill_manual(values = c("1" = "forestgreen", "0" = "white"))+
+    geom_point(data = cov.data.regional, aes(x = LON, y = LAT), size = 0.5)+theme_bw()+
+    coord_sf(xlim = c(-125, -100), ylim = c(20, 52))+theme(axis.title = element_blank(), legend.position = "none")
   
   ggsave(height = 6, width = 8, units = "in", here("outputs/cored_pipo_distn_", paste0(spp, "_distribution_map_full.png")))
   
