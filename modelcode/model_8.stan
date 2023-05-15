@@ -36,10 +36,10 @@ parameters {
   
     real beta_YEAR[Ncol];
     real<lower=1e-6> sigma_YEAR;
+    real<lower=0> betaX;
+    real<lower=0> Xdecay;
     real<lower=1e-6> sigmaX_TREE;
-    real betaX;
     real betaX_TREE[Nrow];
-   // real betaX_TREE[Nrow];
     real betaTmax;
     real betaPrecip;
     real betaMAP;
@@ -127,7 +127,10 @@ model {
  betaTmax_MAT ~ normal(0,10);
  betaTmax_SDI ~ normal(0,10);
  betaPrecip_SDI ~ normal(0,10);
- betaX ~ normal(0, 10);
+ //betaX ~ normal(0, 10);
+ //Xdecay ~
+  //target += lognormal_lpdf(betaX | 1, .5); //these seem pretty tight
+  target += gamma_lpdf(Xdecay | 1, 3);
   betaX_Precip ~ normal(0, 10);
   betaX_Tmax ~ normal(0, 10);
   betaX_SDI ~ normal(0, 10);
@@ -154,7 +157,7 @@ sigma_dbh ~ normal(1, 0.01); //normal(1,0.01) works well on base model
       z[i,1] ~ normal(x[i,1], 5); //or normal(x[i,1], sigma_dbh);
 
      for(t in 2:Ncol){
-       inc[i,t] ~ lognormal(alpha_TREE[i]+ beta_YEAR[t] + betaX_TREE[i]*x[i,t-1] + betaTmax*tmaxAprMayJunscaled[i,t]+ 
+       inc[i,t] ~ lognormal(alpha_TREE[i]+ beta_YEAR[t] + betaX_TREE[i]*x[i,t-1]^(-Xdecay) + betaTmax*tmaxAprMayJunscaled[i,t]+ 
        betaPrecip*wateryrscaled[i,t]+ betaMAP*MAP[i] + betaMAT*MAT[i] + betaPrecip_MAT*wateryrscaled[i,t]*MAT[i] + 
        betaSDI*SDI[i,t] + betaPrecip_Tmax*wateryrscaled[i,t]*tmaxAprMayJunscaled[i,t] + 
        betaPrecip_SDI*wateryrscaled[i,t]*SDI[i,t] + betaTmax_SDI*tmaxAprMayJunscaled[i,t]*SDI[i,t] + 

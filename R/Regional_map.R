@@ -18,6 +18,8 @@ unique(cov.data.regional$PLT_CN)
 cov.data.regional$LAT <- PLOT$LAT[match(cov.data.regional$PLT_CN, PLOT$CN)]
 cov.data.regional$LON <- PLOT$LON[match(cov.data.regional$PLT_CN, PLOT$CN)]
 
+saveRDS(cov.data.regional, "data/cov.data.regional.ll.rds")
+
 # get the states:
 # make a map of all of these:
 all_states <- map_data("state")

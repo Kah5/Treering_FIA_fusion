@@ -2,7 +2,7 @@ library(rstan)
 library(MASS)
 options(mc.cores = parallel::detectCores())
 # revised model
-data <- readRDS("jags.data.formatted.rds")
+data <- readRDS("model_simple_run/jags.data.formatted.rds")
 data$tau_y_ic = 1/10
 
 # only one chain for testing
@@ -80,13 +80,13 @@ mod.data <- list(Nrow = nrow(dat),
 initfun <- function(...) {list(x=runif(1,5,35))}#, sigma2=runif(1,0.01,0.05))}
 initfun(1)
 
-model.name <- "RE.MAP.MAT.X.timevaryingclimate.SDI.all.interactions.REX"
+model.name <- "RE.MAP.MAT.X.timevaryingclimate.SDI.all.interactions.Xdecay_REX"
 
-
+setwd("model_simple_run/")
 # fit a bunch of models:
-#setwd("model_simple_run/")
+
 # null model:
-fit.5 <- stan(file = 'model_5.stan' , 
+fit.8 <- stan(file = 'model_8.stan' , 
               data = mod.data,
               iter = 5000, 
               chains = 3, 
@@ -95,21 +95,21 @@ fit.5 <- stan(file = 'model_5.stan' ,
               sample_file = model.name, 
               #adapt_delta = 0.99, 
               pars = c("mu", "sigma_inc", "sigma_add", "sigma_dbh","beta_YEAR", "alpha_TREE", 
-                       "betaMAP", "betaMAT","betaX", "betaX_TREE","sigmaX_TREE","betaTmax", "betaPrecip","betaSDI",
+                       "betaMAP", "betaMAT", "betaX_TREE", "Xdecay","sigmaX_TREE","betaX","betaTmax", "betaPrecip","betaSDI",
                        "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                        "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
                        "betaX_Precip", "betaX_Tmax", "betaX_SDI", "betaMAP_MAT",
                        "betaX_MAP", "betaX_MAT",
                        "x", "inc")) # , init = initfun)
-
-saveRDS(fit.5, here(paste0("small_model_fits/", model.name, ".RDS")))
+# starting worker pid=68668 on localhost:11514 at 15:24:24.155
+saveRDS(fit.8, here(paste0("small_model_fits/", model.name, ".RDS")))
 # Warning messages:
-#   1: There were 1 divergent transitions after warmup. See
+#   1: There were 6994 divergent transitions after warmup. See
 # https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 # to find out why this is a problem and how to eliminate them. 
 # 2: Examine the pairs() plot to diagnose sampling problems
 # 
-# 3: The largest R-hat is 1.23, indicating chains have not mixed.
+# 3: The largest R-hat is 2.72, indicating chains have not mixed.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#r-hat 
 # 4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
@@ -118,14 +118,14 @@ saveRDS(fit.5, here(paste0("small_model_fits/", model.name, ".RDS")))
 # 5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#tail-ess 
-
-posterior <- as.array(fit.5 )
+fit.8 <- readRDS( here(paste0("small_model_fits/", model.name, ".RDS")))
+posterior <- as.array(fit.8 )
 
 par.names = c("mu", "sigma_inc", 
               "sigma_add", 
               "sigma_dbh", #)#, #)
-              "alpha_TREE[1]", "beta_YEAR[1]","betaX_TREE[1]",
-              "betaX",
+              "alpha_TREE[1]", "beta_YEAR[1]",
+              "betaX_TREE[1]", "Xdecay",
               #"betaTmax", "betaPrecip", 
               "betaMAP", "betaMAT",
               "betaTmax", "betaPrecip", 
@@ -142,26 +142,26 @@ par.names = c("mu", "sigma_inc",
 
 png(height = 16, width = 7, units = "in", res = 100, paste0("output/traceplots_tau_", model.name, "default.png"))
 #par(mfrow = c(5, 3))
-traceplot (fit.5, pars = par.names, nrow = 8, ncol = 4, inc_warmup = FALSE) 
+traceplot (fit.8, pars = par.names, nrow = 8, ncol = 4, inc_warmup = FALSE) 
 dev.off()
 
-pairs(fit.5, pars = c("mu", "sigma_inc", 
+pairs(fit.8, pars = c("mu", "sigma_inc", 
                       "sigma_add", 
                       "sigma_dbh", 
                       "betaMAP", "betaMAT", "betaTmax", "betaPrecip","betaSDI"))
 
 
-x.pred <- dplyr::select(as.data.frame(fit.5),"x[1,1]":"x[100,36]")
-inc.pred <- dplyr::select(as.data.frame(fit.5),"inc[1,1]":"inc[100,36]")
+x.pred <- dplyr::select(as.data.frame(fit.8),"x[1,1]":"x[100,36]")
+inc.pred <- dplyr::select(as.data.frame(fit.8),"inc[1,1]":"inc[100,36]")
 
 model.out <- cbind(x.pred, inc.pred) # get this to make plots
 #model.out <- fit.betaX.tmax.precip
-source("plot_held_out_regional_STANfit.R") # run script to make predicted vs obs plots
+source("plot_held_out_regional_STANfit.R") # make predicted vs obs plots
 
 
 # calculate loo:
-fit_ssm_df <- as.data.frame(fit.5) # takes awhile to convert to df
-covariates = c("betaX", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI", 
+fit_ssm_df <- as.data.frame(fit.8) # takes awhile to convert to df
+covariates = c("betaX","Xdecay", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI", 
                "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
                "betaX_Precip", "betaX_Tmax", "betaX_SDI", "betaMAP_MAT",
@@ -188,8 +188,10 @@ for(i in 1:mod.data$Nrow){
   for(t in 1:mod.data$Ncol){
     increment_mu[i,,t] <- as.matrix(alpha_trees[, i]) + as.matrix(beta_years[,t]) + 
       cov.estimates$betaMAP*data$MAP[i] + cov.estimates$betaMAT*data$MAT[i] + 
-      as.matrix(betaX_trees[,i])*x.pred[,paste0("x[",i,",", t,"]")]+ cov.estimates$betaPrecip*data$wateryrscaled[i,t]+
-      cov.estimates$betaTmax*data$tmaxAprMayJunscaled[i,t] + cov.estimates$betaSDI*data$SDIscaled[i,t]+
+      betaX_trees[,i]*x.pred[,paste0("x[",i,",", t,"]")]^(-cov.estimates$Xdecay)+ 
+      cov.estimates$betaPrecip*data$wateryrscaled[i,t]+
+      cov.estimates$betaTmax*data$tmaxAprMayJunscaled[i,t] + 
+      cov.estimates$betaSDI*data$SDIscaled[i,t]+
       cov.estimates$betaPrecip_MAP*data$wateryrscaled[i,t]*data$MAP[i] + 
       cov.estimates$betaPrecip_MAT*data$wateryrscaled[i,t]*data$MAT[i]+
       cov.estimates$betaPrecip_Tmax*data$wateryrscaled[i,t]*data$tmaxAprMayJunscaled[i,t] + 
@@ -213,7 +215,7 @@ for(i in 1:mod.data$Nrow){
 # 
 inc.m <- reshape2::melt(increment_mu)
 unique(inc.m$Var1) # # trees
-increment_mu_spread <- inc.m %>% spread(Var2, value ) %>% select(-Var1, -Var3)
+increment_mu_spread <- inc.m  %>% spread(Var2, value )%>% dplyr::select(-Var1, -Var3)
 
 y.m <- reshape2::melt(data$y)
 y.m.nona <- y.m[!is.na(y.m$value), ]$value
@@ -229,5 +231,5 @@ newll <- as.matrix(ll)
 r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 2500), cores = 1) # will have to change each for longer iterations
 leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 1)
 
-save(ll, r_eff, leaveoneout, file = here::here("looresults", "model_5_loo_small.RData"))
+save(ll, r_eff, leaveoneout, file = here::here("looresults", "model_8_loo_small.RData"))
 
