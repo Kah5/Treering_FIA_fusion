@@ -91,7 +91,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     nt <- length(2001:2098)
     ntfull <- length(1998:2098)
     # fill in the array with the diameter estimates for 2018:
-    dbh.pred <- increment <- TPAmort <- TPADD <- TPADI <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAmort <- TPADD <- TPADI <- mort.prob.reduced<- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -548,8 +548,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced <- mort.prob/10
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t][i,,t] <- mort.prob/10 # check what the distribution is of this
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t][i,,t])) # to tone down, reduce mort.prob 
         }
         
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
@@ -560,15 +560,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
             
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
             
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             # add to the dead carbon
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced))  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t]))  #(0.2) # would also have to reduce mnort prob here
             
             # subtract from the live carbon
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t]) #0.1
           }
           
         }else{
@@ -903,13 +903,13 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates full model")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic", parse.type = "full")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic", parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
     
     ####################################################
     #run SSM with an SDI effect of 0
     ####################################################
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort<- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAmort <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -996,8 +996,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced <- mort.prob/10
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t] <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
@@ -1007,14 +1007,14 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced)*2  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced[i,,t])*2  #(0.2) # would also have to reduce mnort prob here
             
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced)  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + (TPAmort[i,,t]* mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
             
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
           }
           
         }else{
@@ -1339,7 +1339,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates for no SDI")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI", mort.prob.reduced  = mort.prob.reduced)
     
     
     ####################################################
@@ -1392,7 +1392,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
 
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort<- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAmort <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -1479,8 +1479,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced <- mort.prob/10
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced)) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t] <- mort.prob/10
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
@@ -1490,12 +1490,12 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
-            TPAmort[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)  #(0.2) # would also have to reduce mnort prob here
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced)*2)
+            TPAmort[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)
             }else{
             #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob #0.1
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced) #0.1
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + ((TPAmort[i,,t]* mort.prob.reduced))
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]  + ((TPAmort[i,,t]* mort.prob.reduced[i,,t]))
           }
           
         }else{
@@ -1802,7 +1802,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates no precipitation")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noCC", parse.type = "detrendedCC")
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noCC", parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
     
     
   }   

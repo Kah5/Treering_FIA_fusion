@@ -1,3 +1,9 @@
+library(viridis)
+library(here)
+library(tidyverse)
+library(rFIA)
+library(sf)
+
 fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
 
 PLOT <- fiadb$PLOT
@@ -155,6 +161,20 @@ png(height = 10, width = 10, units = "in", res = 150, "/home/rstudio/data/output
 ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" & !is.na(SDIbin)), aes(x = DIA, fill = as.character(STATUSCD_CHANGE)), alpha = 0.5, position = "stack")+
   facet_wrap(~SDIbin)
 dev.off()
+
+# calculate the mortality rate for each plot:
+# could also classify forest type 
+prop.dead.plt <- TREE_remeas %>% filter(SPCD %in% 122) %>% group_by(PLT_CN,  STATUSCD_CHANGE, CENSUS_INTERVAL) %>% summarise(`n()` = sum(TPA_UNADJ_prev, na.rm = TRUE)) %>% 
+  ungroup() %>% group_by ( PLT_CN,  CENSUS_INTERVAL) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/(`0` + `2`)) %>% 
+  mutate(prop.dead.int = ifelse(is.na(prop.dead), 0, prop.dead), 
+         mortality.rate.int = prop.dead/CENSUS_INTERVAL) %>% ungroup() %>% group_by(PLT_CN)%>%
+  summarise(prop.dead.int1 = prop.dead.int,
+            prop.dead = sum(prop.dead.int), 
+            mortality.rate = sum(mortality.rate.int, na.rm = TRUE))# assuming a 10 year interval...need to calculate with survey year
+
+summary(prop.dead.plt$mortality.rate)
+hist(prop.dead.plt$mortality.rate)
+
 # calculate the proportion of dead trees in each sdi and dbh class?
 # this is binned across all the data so not exactly the mortality rate
 prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE, CENSUS_INTERVAL) %>% summarise(`n()` = sum(TPA_UNADJ_prev, na.rm = TRUE)) %>% 
