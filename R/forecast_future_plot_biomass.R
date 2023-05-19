@@ -581,6 +581,7 @@ ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
 
 plots <- unique(x.mat$plotid)
 
+saveRDS(x.mat,"outputs/x.mat.RDS")
 # #select the covvariate data for the cored and uncored trees:
 
 #select the outdata for the cored and uncored trees:
@@ -737,7 +738,7 @@ plot <- "2483452010690"
 scenario = "rcp45"
 
 # run all the plots for this scenario and 60% max SDI
-# started at 17:11 May 8
+# started at 12:18 May 16
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})

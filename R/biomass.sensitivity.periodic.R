@@ -548,8 +548,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t][i,,t] <- mort.prob/10 # check what the distribution is of this
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t][i,,t])) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t] <- mort.prob/(1000) # check what the distribution is of this
+          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
@@ -560,15 +560,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
           if(aggressiveCC == TRUE){
             
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
             
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
           }else{
             # add to the dead carbon
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t]))  #(0.2) # would also have to reduce mnort prob here
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + ((TPAmort[i,,t]* mort.prob.reduced[i,,t]))  #(0.2) # would also have to reduce mnort prob here
             
             # subtract from the live carbon
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t][i,,t]) #0.1
+            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
           }
           
         }else{
@@ -996,7 +996,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/10
+          mort.prob.reduced[i,,t] <- mort.prob/(1000)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -1479,7 +1479,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/10
+          mort.prob.reduced[i,,t] <- mort.prob/(1000)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -1809,3 +1809,4 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
 }  
 }
 }
+
