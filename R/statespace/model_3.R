@@ -99,6 +99,7 @@ fit.3 <- stan(file = 'model_3.stan' ,
                        "x", "inc")) # , init = initfun)
 
 saveRDS(fit.3, here(paste0("small_model_fits/", model.name, ".RDS")))
+fit.3 <- readRDS( here(paste0("small_model_fits/", model.name, ".RDS")))
 
 
 posterior <- as.array(fit.3 )
@@ -137,8 +138,22 @@ model.out <- cbind(x.pred, inc.pred) # get this to make plots
 source("plot_held_out_regional_STANfit.R") # make predicted vs obs plots
 
 
-# calculate loo:
+
+# get convergence statistics & save
 fit_ssm_df <- as.data.frame(fit.3) # takes awhile to convert to df
+Rhats <- apply(fit_ssm_df, 2, Rhat)
+hist(Rhats)
+ESS_bulks <- apply(fit_ssm_df, 2, ess_bulk)
+hist(ESS_bulks)
+ESS_tails <- apply(fit_ssm_df, 2, ess_tail)
+hist(ESS_tails)
+
+convergence.stats <- as.data.frame(rbind(Rhats, ESS_bulks, ESS_tails))
+convergence.stats$Statistic <- c("Rhat", "ESS_bulk", "ESS_tail")
+
+write.csv(convergence.stats, here("model_simple_run/convergence_stats", paste0(model.name, "_convergence_stats.csv")))
+
+
 covariates = c("betaX", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI")
 
 # note for model 0 there are no covariates
@@ -152,7 +167,39 @@ alpha_trees <- dplyr::select(fit_ssm_df, "alpha_TREE[1]":paste0("alpha_TREE[", m
 # Year-level random effects 
 beta_years <- dplyr::select(fit_ssm_df, "beta_YEAR[1]":paste0("beta_YEAR[", mod.data$Ncol, "]"))
 
-colnames(x.pred)
+# plot year and tree random effects:
+alpha_tree.m <- reshape2::melt(alpha_trees)
+tree.quant <- alpha_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+ggplot()+geom_point(data = tree.quant, aes(x = variable, y = median))+
+  geom_errorbar(data =tree.quant, aes(x = variable, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(here("model_simple_run/output", paste0("tree_random_", model.name, ".png")))
+
+
+beta_year.m <- reshape2::melt(beta_years )
+year.quant <- beta_year.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                               ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                               ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+year.quant$year <- 1966:2001
+
+ggplot()+geom_point(data = year.quant, aes(x = year, y = median))+
+  geom_errorbar(data =year.quant, aes(x = year, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("year_random_", model.name, ".png")))
+
+
+
+# calculate loo:
+
 # loop over trees to get an increment_mu, with random effects:
 # set up an array to do this on
 increment_mu <- array(NA, dim = c(mod.data$Nrow, length(alpha_trees[, 1]),ncol = mod.data$Ncol))

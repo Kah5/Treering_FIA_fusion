@@ -1,8 +1,9 @@
 library(rstan)
 library(MASS)
 options(mc.cores = parallel::detectCores())
+setwd("model_simple_run/")
 # revised model
-data <- readRDS("model_simple_run/jags.data.formatted.rds")
+data <- readRDS("jags.data.formatted.rds")
 data$tau_y_ic = 1/10
 
 # only one chain for testing
@@ -82,40 +83,50 @@ initfun(1)
 
 model.name <- "RE.MAP.MAT.X.timevaryingclimate.SDI.all.interactions.Xdecay_REX"
 
-setwd("model_simple_run/")
+
 # fit a bunch of models:
 
 # null model:
 fit.8 <- stan(file = 'model_8.stan' , 
               data = mod.data,
-              iter = 5000, 
+              iter = 3000, 
               chains = 3, 
               verbose=FALSE, 
               control =  list(max_treedepth = 15),#list(adapt_delta = 0.99, stepsize = 0.5, max_treedepth = 15),#, stepsize = 0.01, max_treedepth = 15),
               sample_file = model.name, 
               #adapt_delta = 0.99, 
               pars = c("mu", "sigma_inc", "sigma_add", "sigma_dbh","beta_YEAR", "alpha_TREE", 
-                       "betaMAP", "betaMAT", "betaX_TREE", "Xdecay","sigmaX_TREE","betaX","betaTmax", "betaPrecip","betaSDI",
+                       "betaMAP", "betaMAT", "betaX_TREE", "Xdecay","sigmaX_TREE","betaTmax", "betaPrecip","betaSDI",
                        "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                        "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
                        "betaX_Precip", "betaX_Tmax", "betaX_SDI", "betaMAP_MAT",
                        "betaX_MAP", "betaX_MAT",
                        "x", "inc")) # , init = initfun)
+
+# note that chain 1 didnt converge/or even start sampling after 24 hours. Chains 3 & 2 were done
+csvfiles <- here::here("model_simple_run", paste0(model.name, "_", 2:3, ".csv"))
+
+#if (all(file.exists(csvfiles))) {
+fit.8 <- read_stan_csv(csvfiles, col_major = TRUE) 
+
+saveRDS(fit.8, here(paste0("small_model_fits/", model.name, "2chains.RDS")))
 # starting worker pid=68668 on localhost:11514 at 15:24:24.155
 saveRDS(fit.8, here(paste0("small_model_fits/", model.name, ".RDS")))
 # Warning messages:
-#   1: There were 6994 divergent transitions after warmup. See
+#   1: There were 4455 divergent transitions after warmup. See
 # https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 # to find out why this is a problem and how to eliminate them. 
-# 2: Examine the pairs() plot to diagnose sampling problems
+# 2: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
 # 
-# 3: The largest R-hat is 2.72, indicating chains have not mixed.
+# 4: The largest R-hat is 3.19, indicating chains have not mixed.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#r-hat 
-# 4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
-# 5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#tail-ess 
 fit.8 <- readRDS( here(paste0("small_model_fits/", model.name, ".RDS")))
@@ -126,6 +137,7 @@ par.names = c("mu", "sigma_inc",
               "sigma_dbh", #)#, #)
               "alpha_TREE[1]", "beta_YEAR[1]",
               "betaX_TREE[1]", "Xdecay",
+              "sigmaX_TREE", "sigma_TREE",
               #"betaTmax", "betaPrecip", 
               "betaMAP", "betaMAT",
               "betaTmax", "betaPrecip", 
@@ -159,8 +171,24 @@ model.out <- cbind(x.pred, inc.pred) # get this to make plots
 source("plot_held_out_regional_STANfit.R") # make predicted vs obs plots
 
 
-# calculate loo:
+# get convergence statistics and save:
 fit_ssm_df <- as.data.frame(fit.8) # takes awhile to convert to df
+Rhats <- apply(fit_ssm_df, 2, Rhat)
+hist(Rhats)
+ESS_bulks <- apply(fit_ssm_df, 2, ess_bulk)
+hist(ESS_bulks)
+ESS_tails <- apply(fit_ssm_df, 2, ess_tail)
+hist(ESS_tails)
+
+convergence.stats <- as.data.frame(rbind(Rhats, ESS_bulks, ESS_tails))
+convergence.stats$Statistic <- c("Rhat", "ESS_bulk", "ESS_tail")
+
+write.csv(convergence.stats, here("model_simple_run/convergence_stats", paste0(model.name, "_convergence_stats.csv")))
+
+
+
+
+#fit_ssm_df <- as.data.frame(fit.8) # takes awhile to convert to df
 covariates = c("betaX","Xdecay", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI", 
                "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
@@ -179,7 +207,112 @@ betaX_trees <- dplyr::select(fit_ssm_df, "betaX_TREE[1]":paste0("betaX_TREE[", m
 # Year-level random effects 
 beta_years <- dplyr::select(fit_ssm_df, "beta_YEAR[1]":paste0("beta_YEAR[", mod.data$Ncol, "]"))
 
-colnames(x.pred)
+
+
+# plot year and tree random effects:
+alpha_tree.m <- reshape2::melt(alpha_trees)
+tree.quant <- alpha_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+ggplot()+geom_point(data = tree.quant, aes(x = variable, y = median))+
+  geom_errorbar(data =tree.quant, aes(x = variable, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(here("model_simple_run/output", paste0("tree_random_", model.name, ".png")))
+
+
+beta_year.m <- reshape2::melt(beta_years )
+year.quant <- beta_year.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                               ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                               ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+year.quant$year <- 1966:2001
+
+ggplot()+geom_point(data = year.quant, aes(x = year, y = median))+
+  geom_errorbar(data =year.quant, aes(x = year, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("year_random_", model.name, ".png")))
+
+
+
+# for tree size random effects
+betax_tree.m <- reshape2::melt(betaX_trees )
+betaX.quant <- betax_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                 ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                 ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+betaX.quant$tree <- 1:100
+
+ggplot()+geom_point(data = betaX.quant, aes(x = tree, y = median))+
+  geom_errorbar(data =betaX.quant, aes(x = tree, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")+xlab("betaX_TREE")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("betaX_random_", model.name, ".png")))
+
+
+# plot the betaX and decay function across tree size:
+
+exp.values <- cov.estimates %>% select("betaX", "Xdecay")
+
+dia <- 10:80
+effect <- matrix(NA, nrow = nrow(exp.values), ncol = length(dia))
+for(i in 1:length(dia)){
+  effect[,i]<- (exp.values$betaX*dia[i])^(-exp.values$Xdecay)
+}
+
+size_base_effect <- reshape2::melt(effect)
+
+size_effect <- size_base_effect %>% group_by(Var2) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                 ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                 ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+
+size.range = data.frame(Var2 = 1:71, 
+                        dia = dia)
+
+size.effects <- left_join(size_effect, size.range)
+
+ggplot(size.effects, aes(dia, median))+geom_line()
+
+
+# plot random size effects 
+
+dia <- 10:80
+effect <- array(NA, dim =c( nrow(exp.values),  length(dia), 100))
+#dimnames(effect) <- list("sample", "diameter", "TREE")
+for(i in 1:length(dia)){
+  for(j in 1:100){
+    effect[,i,j]<- ((exp.values$betaX + betaX_trees[, paste0("betaX_TREE[",j, "]")])*dia[i])^(-exp.values$Xdecay)
+  }
+}
+
+size_base_effect <- reshape2::melt(effect)
+unique(size_base_effect$Var1) # sample
+unique(size_base_effect$Var2) # diameter
+unique(size_base_effect$Var3) # tree random
+size_effect <- size_base_effect %>% group_by(Var2, Var3) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                       ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                       ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+
+size.range = data.frame(Var2 = 1:71, 
+                        dia = dia)
+
+size.effects <- left_join(size_effect, size.range)
+
+ggplot(size.effects, aes(dia, median, group = as.character(Var3), color = as.character(Var3)))+geom_line()
+
+# no real effect of Xdecay here
+
+# calculate loo:
 # loop over trees to get an increment_mu, with random effects:
 # set up an array to do this on
 increment_mu <- array(NA, dim = c(mod.data$Nrow, length(alpha_trees[, 1]),ncol = mod.data$Ncol))

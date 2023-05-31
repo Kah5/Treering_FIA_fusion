@@ -723,7 +723,7 @@ unique(plots)
 source("R/plot2AGB_kayeFVS.R")
 source("R/biomass.sensitivity.periodic.R")
 # run the function that makes all of the forecasts
-system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE))
+system.time(biomass.sensitivity.periodic( plot = '2533485010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE))
 system.time(biomass.sensitivity.periodic( plot = '3081205010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE))
@@ -734,16 +734,18 @@ lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot 
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-plot <- "2483452010690"
+plot <- "2533485010690"
 scenario = "rcp45"
 
 # run all the plots for this scenario and 60% max SDI
 # started at 12:18 May 16
+# running for the new scaling; started 11:47 on May 22
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
+
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE)})
-
+unique(plots) %in% 2533485010690
 
 # run these for No SDI mortality now:
 # started at 17:11 on 3/17/23- finished at 10:15 pm 3/17/23

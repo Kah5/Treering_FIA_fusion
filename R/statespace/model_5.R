@@ -88,7 +88,7 @@ model.name <- "RE.MAP.MAT.X.timevaryingclimate.SDI.all.interactions.REX"
 # null model:
 fit.5 <- stan(file = 'model_5.stan' , 
               data = mod.data,
-              iter = 5000, 
+              iter = 6000, 
               chains = 3, 
               verbose=FALSE, 
               control =  list(max_treedepth = 15),#list(adapt_delta = 0.99, stepsize = 0.5, max_treedepth = 15),#, stepsize = 0.01, max_treedepth = 15),
@@ -102,28 +102,37 @@ fit.5 <- stan(file = 'model_5.stan' ,
                        "betaX_MAP", "betaX_MAT",
                        "x", "inc")) # , init = initfun)
 
-saveRDS(fit.5, here(paste0("small_model_fits/", model.name, ".RDS")))
+# note that chain 3 didnt converge/or even start sampling after 24 hours. Chains 1 & 2 were done
+csvfiles <- here::here("model_simple_run", paste0(model.name, "_", 1:2, ".csv"))
+
+#if (all(file.exists(csvfiles))) {
+fit.5 <- read_stan_csv(csvfiles, col_major = TRUE) 
+
+saveRDS(fit.5, here(paste0("small_model_fits/", model.name, "2chains.RDS")))
 # Warning messages:
-#   1: There were 1 divergent transitions after warmup. See
+#   1: There were 7 divergent transitions after warmup. See
 # https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 # to find out why this is a problem and how to eliminate them. 
-# 2: Examine the pairs() plot to diagnose sampling problems
+# 2: There were 2 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 15. See
+# https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+# 3: Examine the pairs() plot to diagnose sampling problems
 # 
-# 3: The largest R-hat is 1.23, indicating chains have not mixed.
+# 4: The largest R-hat is 1.97, indicating chains have not mixed.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#r-hat 
-# 4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
-# 5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#tail-ess 
-
 posterior <- as.array(fit.5 )
 
 par.names = c("mu", "sigma_inc", 
               "sigma_add", 
               "sigma_dbh", #)#, #)
+              #"sigma_TREE", 
+              "sigmaX_TREE", 
               "alpha_TREE[1]", "beta_YEAR[1]","betaX_TREE[1]",
               "betaX",
               #"betaTmax", "betaPrecip", 
@@ -147,6 +156,8 @@ dev.off()
 
 pairs(fit.5, pars = c("mu", "sigma_inc", 
                       "sigma_add", 
+                      "sigma_TREE", 
+                      "sigmaX_TREE",
                       "sigma_dbh", 
                       "betaMAP", "betaMAT", "betaTmax", "betaPrecip","betaSDI"))
 
@@ -159,8 +170,21 @@ model.out <- cbind(x.pred, inc.pred) # get this to make plots
 source("plot_held_out_regional_STANfit.R") # run script to make predicted vs obs plots
 
 
-# calculate loo:
+# get convergence statistics & save
 fit_ssm_df <- as.data.frame(fit.5) # takes awhile to convert to df
+Rhats <- apply(fit_ssm_df, 2, Rhat)
+hist(Rhats)
+ESS_bulks <- apply(fit_ssm_df, 2, ess_bulk)
+hist(ESS_bulks)
+ESS_tails <- apply(fit_ssm_df, 2, ess_tail)
+hist(ESS_tails)
+
+convergence.stats <- as.data.frame(rbind(Rhats, ESS_bulks, ESS_tails))
+convergence.stats$Statistic <- c("Rhat", "ESS_bulk", "ESS_tail")
+
+write.csv(convergence.stats, here("model_simple_run/convergence_stats", paste0(model.name, "_convergence_stats.csv")))
+
+
 covariates = c("betaX", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI", 
                "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
@@ -179,6 +203,57 @@ betaX_trees <- dplyr::select(fit_ssm_df, "betaX_TREE[1]":paste0("betaX_TREE[", m
 # Year-level random effects 
 beta_years <- dplyr::select(fit_ssm_df, "beta_YEAR[1]":paste0("beta_YEAR[", mod.data$Ncol, "]"))
 
+
+
+# plot year and tree random effects:
+alpha_tree.m <- reshape2::melt(alpha_trees)
+tree.quant <- alpha_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+ggplot()+geom_point(data = tree.quant, aes(x = variable, y = median))+
+  geom_errorbar(data =tree.quant, aes(x = variable, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(here("model_simple_run/output", paste0("tree_random_", model.name, ".png")))
+
+
+beta_year.m <- reshape2::melt(beta_years )
+year.quant <- beta_year.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                               ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                               ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+year.quant$year <- 1966:2001
+
+ggplot()+geom_point(data = year.quant, aes(x = year, y = median))+
+  geom_errorbar(data =year.quant, aes(x = year, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("year_random_", model.name, ".png")))
+
+
+
+# for tree size random effects
+betax_tree.m <- reshape2::melt(betaX_trees )
+betaX.quant <- betax_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                 ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                 ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+betaX.quant$tree <- 1:100
+
+ggplot()+geom_point(data = betaX.quant, aes(x = tree, y = median))+
+  geom_errorbar(data =betaX.quant, aes(x = tree, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")+xlab("betaX_TREE")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("betaX_random_", model.name, ".png")))
+
+
+
+# calculate loo:
 colnames(x.pred)
 # loop over trees to get an increment_mu, with random effects:
 # set up an array to do this on

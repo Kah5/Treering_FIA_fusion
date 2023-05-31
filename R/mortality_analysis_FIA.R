@@ -173,7 +173,7 @@ prop.dead.plt <- TREE_remeas %>% filter(SPCD %in% 122) %>% group_by(PLT_CN,  STA
             mortality.rate = sum(mortality.rate.int, na.rm = TRUE))# assuming a 10 year interval...need to calculate with survey year
 
 summary(prop.dead.plt$mortality.rate)
-hist(prop.dead.plt$mortality.rate)
+hist(prop.dead.plt$mortality.rate,breaks = 50, main = "Observed PIPO annual mortality distribution", xlab = "annualized mortality rate")
 
 # calculate the proportion of dead trees in each sdi and dbh class?
 # this is binned across all the data so not exactly the mortality rate

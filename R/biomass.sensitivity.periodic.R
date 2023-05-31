@@ -548,7 +548,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(1000) # check what the distribution is of this
+          mort.prob.reduced[i,,t] <- mort.prob/(10) # check what the distribution is of this
+          #mort.prob^(1/10) 
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -996,7 +997,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(1000)
+          mort.prob.reduced[i,,t] <- mort.prob/(10)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -1479,7 +1480,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(1000)
+          mort.prob.reduced[i,,t] <- mort.prob/(10)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         

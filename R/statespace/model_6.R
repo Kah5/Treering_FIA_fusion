@@ -88,7 +88,7 @@ model.name <- "RE.MAP.MAT.X.timevaryingclimate.SDI.all.interactions.Xdecay"
 # null model:
 fit.6 <- stan(file = 'model_6.stan' , 
               data = mod.data,
-              iter = 3000, 
+              iter = 5000, 
               chains = 3, 
               verbose=FALSE, 
               control =  list(max_treedepth = 15),#list(adapt_delta = 0.99, stepsize = 0.5, max_treedepth = 15),#, stepsize = 0.01, max_treedepth = 15),
@@ -104,26 +104,32 @@ fit.6 <- stan(file = 'model_6.stan' ,
 # starting worker pid=68668 on localhost:11514 at 15:24:24.155
 saveRDS(fit.6, here(paste0("small_model_fits/", model.name, ".RDS")))
 # Warning messages:
-#   1: There were 169 divergent transitions after warmup. See
+#   1: There were 1791 divergent transitions after warmup. See
 # https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 # to find out why this is a problem and how to eliminate them. 
-# 2: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
-# https://mc-stan.org/misc/warnings.html#bfmi-low 
-# 3: Examine the pairs() plot to diagnose sampling problems
+# 2: Examine the pairs() plot to diagnose sampling problems
 # 
-# 4: The largest R-hat is 1.65, indicating chains have not mixed.
+# 3: The largest R-hat is 1.83, indicating chains have not mixed.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#r-hat 
-# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# 4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
-# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# 5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 # Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#tail-ess 
-# > 
+
 
 fit.6 <- readRDS( here(paste0("small_model_fits/", model.name, ".RDS")))
+summary(fit.6)
 posterior <- as.array(fit.6 )
+print(get_elapsed_time(fit.6))
+sampler_params <- get_sampler_params(fit.6, inc_warmup = FALSE)
+sampler_params_chain1 <- sampler_params[[1]]
+colnames(sampler_params_chain1)
+mean_accept_stat_by_chain <- sapply(sampler_params, function(x) mean(x[, "accept_stat__"]))
+sum_divergent_transitions_by_chain <- sapply(sampler_params, function(x) sum(x[, "divergent__"]))
+mcmc_rhat(fit.6)
 
 par.names = c("mu", "sigma_inc", 
               "sigma_add", 
@@ -163,8 +169,20 @@ model.out <- cbind(x.pred, inc.pred) # get this to make plots
 source("plot_held_out_regional_STANfit.R") # make predicted vs obs plots
 
 
-# calculate loo:
+# get convergence statistics and save:
 fit_ssm_df <- as.data.frame(fit.6) # takes awhile to convert to df
+Rhats <- apply(fit_ssm_df, 2, Rhat)
+hist(Rhats)
+ESS_bulks <- apply(fit_ssm_df, 2, ess_bulk)
+hist(ESS_bulks)
+ESS_tails <- apply(fit_ssm_df, 2, ess_tail)
+hist(ESS_tails)
+
+convergence.stats <- as.data.frame(rbind(Rhats, ESS_bulks, ESS_tails))
+convergence.stats$Statistic <- c("Rhat", "ESS_bulk", "ESS_tail")
+
+write.csv(convergence.stats, here("model_simple_run/convergence_stats", paste0(model.name, "_convergence_stats.csv")))
+
 covariates = c("betaX","Xdecay", "betaMAP","betaMAT",  "betaTmax", "betaPrecip","betaSDI", 
                "betaPrecip_MAP","betaPrecip_MAT","betaPrecip_Tmax",  "betaPrecip_SDI",
                "betaTmax_MAP", "betaTmax_MAT","betaTmax_SDI",
@@ -182,6 +200,42 @@ alpha_trees <- dplyr::select(fit_ssm_df, "alpha_TREE[1]":paste0("alpha_TREE[", m
 
 # Year-level random effects 
 beta_years <- dplyr::select(fit_ssm_df, "beta_YEAR[1]":paste0("beta_YEAR[", mod.data$Ncol, "]"))
+
+# plot year and tree random effects:
+alpha_tree.m <- reshape2::melt(alpha_trees)
+tree.quant <- alpha_tree.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                                ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                                ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+
+ggplot()+geom_point(data = tree.quant, aes(x = variable, y = median))+
+  geom_errorbar(data =tree.quant, aes(x = variable, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(here("model_simple_run/output", paste0("tree_random_", model.name, ".png")))
+
+
+beta_year.m <- reshape2::melt(beta_years )
+year.quant <- beta_year.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5, na.rm =TRUE),
+                                                               ci.lo = quantile(value, 0.025, na.rm =TRUE),
+                                                               ci.hi = quantile(value, 0.975, na.rm =TRUE))
+
+year.quant$year <- 1966:2001
+
+ggplot()+geom_point(data = year.quant, aes(x = year, y = median))+
+  geom_errorbar(data =year.quant, aes(x = year, ymin = ci.lo, ymax = ci.hi), linewidth = 0.1)+theme_bw()+
+  theme(axis.text = element_text(angle= 45, hjust = 1), panel.grid = element_blank())+
+  ylab("Estimated effect")
+
+ggsave(height = 3, width = 4, units = "in", here("model_simple_run/output", paste0("year_random_", model.name, ".png")))
+
+
+# plot the betaX and decay function across tree size:
+
+cov.estimates %>% select("betaX", "Xdecay")
+
+
 
 colnames(x.pred)
 # loop over trees to get an increment_mu, with random effects:

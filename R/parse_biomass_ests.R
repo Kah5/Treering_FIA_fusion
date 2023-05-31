@@ -1162,7 +1162,7 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax
 ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DD_total_parse_periodic.png"))
 
 
-#------------------------- Parse DI and DD mortality contributions for 80% max SDI threshold--------------------------------------
+#------------------------- Parse DI and DD mortality contributions for 60% max SDI threshold--------------------------------------
 
 mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
 mort.26 <- do.call(rbind, mort.26.list)
@@ -1231,7 +1231,7 @@ mort.test <- mort.all.parse.60 %>% group_by(plot, mort.scheme, rcp, year, parse)
   group_by(rcp, mort.scheme, year, parse) %>%
   summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
 
-
+summary(mort.test$mAGB.dead.di)
 
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
@@ -1576,11 +1576,6 @@ pct.mort.dbh.class <- left_join(pct.mort.dbh.class, parse.names)
 ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = dbh.class))+geom_line()+
   facet_grid(rows = vars(parse), cols = vars(rcp))
 
-ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.dd, color = dbh.class))+geom_line()+
-  facet_grid(rows = vars(parse), cols = vars(rcp))
-
-ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.di, color = dbh.class))+geom_line()+
-  facet_grid(rows = vars(parse), cols = vars(rcp))
 
 
 ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = scenario))+geom_line()+
