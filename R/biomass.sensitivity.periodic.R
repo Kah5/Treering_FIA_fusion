@@ -1,4 +1,4 @@
-biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.7, aggressiveCC = FALSE){
+biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.7, aggressiveCC = FALSE, scale.mort.prob = 1){
   
   #TPA_lookup <- TREE %>% filter(PLT_CN %in% plot) %>% dplyr::select(TPA_UNADJ, TPAMORT_UNADJ, PLOT, SUBP, TREE, MEASYR, DESIGNCD)
   # -------- get the diameter estimates for all trees on the plot: ------------------------
@@ -548,7 +548,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10) # check what the distribution is of this
+          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob) # check what the distribution is of this
           #mort.prob^(1/10) 
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
@@ -904,7 +904,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates full model")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic", parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
     
     ####################################################
     #run SSM with an SDI effect of 0
@@ -997,7 +997,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10)
+          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -1340,7 +1340,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates for no SDI")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noSDI", parse.type = "noSDI", mort.prob.reduced  = mort.prob.reduced)
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noSDI_", scale.mort.prob), parse.type = "noSDI", mort.prob.reduced  = mort.prob.reduced)
     
     
     ####################################################
@@ -1480,7 +1480,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             mort.prob <- mean(zero.df, na.rm =TRUE)
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10)
+          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob)
           mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
         
@@ -1803,7 +1803,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates no precipitation")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = "biomass_dataFIAperiodic_noCC", parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
+    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob), parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
     
     
   }   

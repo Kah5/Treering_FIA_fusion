@@ -61,6 +61,8 @@ TREE_remeas <- subset(TREE_remeas, !is.na(PREV_DRYBIO_AG))
 TREE_remeas$DRYBIO_AG_DIFF <- TREE_remeas$DRYBIO_AG - TREE_remeas$PREV_DRYBIO_AG
 TREE_remeas$DIA_DIFF <- TREE_remeas$DIA - TREE_remeas$PREVDIA
 
+summary(TREE_remeas$DIA_DIFF) # why are there so many negative values?
+
 # basal area increment
 TREE_remeas$BAt1 <- ((TREE_remeas$PREVDIA/2)^2)*3.14159
 TREE_remeas$BAt2 <- ((TREE_remeas$DIA/2)^2)*3.14159
@@ -121,6 +123,7 @@ TREE_remeas %>% dplyr::filter(SPCD %in% "122" & STATUSCD %in% c(1, 2)) %>% group
 ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(DIA))+facet_wrap(~STATUSCD_CHANGE)
 
 ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(HT))+facet_wrap(~STATUSCD_CHANGE)
+ggplot()+geom_violin(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" & !is.na(STATUSCD_CHANGE)), aes(x = as.character(STATUSCD_CHANGE), y = DIA_DIFF))+ ylab("Change in Diameter betwen T1 and T2")
 
 # goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
 # compare these to biomass estimates
@@ -173,6 +176,7 @@ prop.dead.plt <- TREE_remeas %>% filter(SPCD %in% 122) %>% group_by(PLT_CN,  STA
             mortality.rate = sum(mortality.rate.int, na.rm = TRUE))# assuming a 10 year interval...need to calculate with survey year
 
 summary(prop.dead.plt$mortality.rate)
+median(prop.dead.plt$mortality.rate)
 hist(prop.dead.plt$mortality.rate,breaks = 50, main = "Observed PIPO annual mortality distribution", xlab = "annualized mortality rate")
 
 # calculate the proportion of dead trees in each sdi and dbh class?
@@ -209,6 +213,10 @@ ggplot(prop.dead %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y
   geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))
 
 dev.off()
+
+
+# save TREE_REMEAS for a simple mortality model:
+saveRDS(TREE_remeas, "data/TREE_remeas_data.rds")
 
 
 # calculate plot-level mortality rates for size classes, then summarise across SDI:
