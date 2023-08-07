@@ -279,7 +279,7 @@ AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold.RDS")
 AGB.0.9 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_0.9.RDS")
 AGB.1.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.1.RDS")
 AGB = AGB.1
-AGB  =AGB.0.9
+AGB  = AGB.0.9
 scale.all.live.expns <- function(AGB, parse = "full") {
   
   AGB.live <- AGB %>% filter(parse == parse) # just get the full scernario
