@@ -98,7 +98,7 @@ plot2AGB <- function(combined, out, tpa , tpa.diff , tpa.di, tpa.dd, mort.scheme
     b.foliage <- mvtnorm::rmvnorm(1, B.foliage, Bcov.foliage)
     b.dead <- mvtnorm::rmvnorm(1, B.dead.stemwood, Bcov.dead.stemwood)
     
-    ## convert tree diameter to biomass
+    ## convert tree diameter to biomass in grams
     biomass.stemwood[g,,] <- matrix(exp(b.stemwood[1] + b.stemwood[2] * log(out[g, ])), ntree,nt,  byrow = FALSE)#nt)
     biomass.stembark[g,,] <- matrix(exp(b.stembark[1] + b.stembark[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
     biomass.branchlive[g,,] <- matrix(exp(b.branchlive[1] + b.branchlive[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
@@ -117,7 +117,7 @@ plot2AGB <- function(combined, out, tpa , tpa.diff , tpa.di, tpa.dd, mort.scheme
     # system.time(apply(apply(biomass.stemwood,2, as.numeric), 2, sum, na.rm = TRUE)*unit.conv)
     #system.time(colSums(apply(biomass.stemwood,2, as.numeric), na.rm = TRUE) * unit.conv)
     
-    ## aggregate to stand AGB
+    ## aggregate to stand AGB (grams/acre)
     
     AGB.stemwood[j, g, ] <- apply(biomass.stemwood[g,,]*tpa.live[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
     
