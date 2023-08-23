@@ -121,7 +121,7 @@ scale.mort.expns <- function(mort.df, parse = "full") {
     # scale up mortality in Tg/acre to Tg for each stand, then sum up
     # create function to scale biomass to C and convert to Tg
     # Cfraction
-    C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000}
+    C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000000}
     C.convert.deadwood(AGB.dead$mAGB.dead, C.frac = 0.4822)
     
     
@@ -290,7 +290,7 @@ scale.all.live.expns <- function(AGB, parse = "full") {
   # scale up mortality in Tg/acre to Tg for each stand, then sum up
   # create function to scale biomass to C and convert to Tg
   # Cfraction
-  C.convert.livewood <- function(x, C.frac = 0.501){(x*C.frac)/1000000}
+  C.convert.livewood <- function(x, C.frac = 0.501){(x*C.frac)/1000000000}
   #C.convert.livewood(parse.all.mort$mAGB.dead, C.frac = 0.501)
   
   
@@ -370,7 +370,7 @@ full.low.high.dead.live$mid.dead <- rowMeans(full.low.high.dead.live[,c("lowAGB.
 full.low.high.dead.live$mAGBtot <- full.low.high.dead.live$mAGB + full.low.high.dead.live$mid.dead
 
 low.high.dead <- full.low.high.dead.live %>% select(rcp, year, scaled.mortality, lowAGB.dead, hiAGB.dead, mAGB.dead)
-low.high.live <- full.low.high.dead.live %>% select(rcp, year, scaled.mortality, lowAGBtot, highAGBtot, mAGBtot)
+low.high.live <- full.low.high.dead.live %>% select(rcp, year, scaled.mortality, lowA, upA, mAGB)
 
 low.high.dead$`Carbon Pool` <- "Standing Dead C"
 low.high.live$`Carbon Pool` <- "Live Tree C"
@@ -383,11 +383,11 @@ low.high.Cpools$scaled.mortality <- factor(low.high.Cpools$scaled.mortality, lev
 totalC.barplot <- ggplot(data = low.high.Cpools, aes(x = interaction(rcp, scaled.mortality), y = mAGB, group = rcp, fill = `Carbon Pool`), alpha = 0.5)+
   geom_bar(stat = "identity", position = position_dodge(), width = 0.7)+
   scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
-   annotate("text", x = 1:12, y =  10000,
+   annotate("text", x = 1:12, y =  10,
             label = rep(c("rcp 2.6", "rcp 4.5", 
                           "rcp 6.0", "rcp 8.5"), 3), 
             angle = 90) +
-  annotate("text", c(2.5, 6.5, 10.5), y = - 2500, label = c("- 10%", "tuned to historic", "+ 10%"))+
+  annotate("text", c(2.5, 6.5, 10.5), y = - 5, label = c("- 10%", "tuned to historic", "+ 10%"))+
   geom_vline(aes(xintercept = c(4.5)))+
   geom_vline(aes(xintercept = c(8.5)))+
   ylab("Mean Total Aboveground C (Tg)")+
