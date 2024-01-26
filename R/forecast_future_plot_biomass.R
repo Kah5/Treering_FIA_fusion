@@ -3,6 +3,8 @@ library(reshape2)
 library(ggplot2)
 library(tidyverse)
 library(here)
+# make sure you run Format_TR_data_local.R first
+
 # code to just apply the posterior estimates of the model to the additional trees on these plots (and walk forward)
 # some functions:
 parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
@@ -25,8 +27,8 @@ cov.data.regional <- jags.data$cov.data.regional
 #--------------------------------------------------------------------------------------------- 
 # Read in the rest of the FIA tree data
 #--------------------------------------------------------------------------------------------- 
-#fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
-fiadb <- readRDS("data/InWeUS_FIAdb.rds")
+fiadb <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
+#fiadb <- readRDS("data/InWeUS_FIAdb.rds")
 PLOT <- fiadb$PLOT
 SUBPLOT <- fiadb$SUBPLOT
 STATECD <- fiadb$STATECD
@@ -115,7 +117,10 @@ m <- 1
 # get time series data:
 # read in the larger region climate data:
 #pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v5.csv")
-
+#pipo.clim <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/pipo_all_tmean_ppt_v5.csv"))
+#pipo.clim  <- readRDS("data/pipo.cores.with.downscaled.hydro.ppt.climatev4.rds")
+#pipo.clim$cov.data
+head(pipo.clim)
 # will need to match the core_CN from the plot
 pipo.climate.pltcn <- merge(pipo.clim, cov.data.regional[,c("CORE_CN", "PLT_CN", "STATECD", "COUNTYCD", "plotid", "PLOTSTATE")],by.x = "name", by.y = "CORE_CN")
 
@@ -138,16 +143,16 @@ get_ordered_climate <- function(x){
   climate.mat
 }
 
-tmax.fallspr <- get_ordered_climate("tmax.fallspr")
+#tmax.fallspr <- get_ordered_climate("Tmax_fallspr")
 wintP.wateryr <- get_ordered_climate("wintP.wateryr")
-tmax.AprMayJun <- get_ordered_climate("tmax.AprMayJun")
-tmax.monsoon <- get_ordered_climate("tmax.monsoon")
+tmax.AprMayJun <- get_ordered_climate("Tmax_AprMayJun")
+#tmax.monsoon <- get_ordered_climate("tmax.monsoon")
 TMAX <- get_ordered_climate("TMAX")
-
+TMEAN <- get_ordered_climate("TMEAN")
 # -------------------------------------------------------------------------------
 # read in the SDI time plot level data:
 #--------------------------------------------------------------------------------
-tv.sdi <- readRDS("data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v5.RDS")
+tv.sdi <- readRDS("data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v4.RDS")
 
 # get the tv.sdi estimates from just the x.mat plots and subplots?
 # reshape tv.sdi:
@@ -230,10 +235,16 @@ SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,
 
 # READ IN STAN OUTPUT SUMMARY
 #STAN.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
-#model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/model_simple_run/small_ssm_stan_sigma_dbh_normal_0.15_0.8_0_1constraint_parameter_summary.csv")
-model.params <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_parameter_summary.csv")
+model.params <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.betas.rds")
+colnames(model.params)[1] <- "L1"
 
-output.base.name <- "Regional_stan_model"
+# read in alphas
+alphas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.alpha_TREES.rds")
+colnames(alphas)[1] <- "L1"
+
+output.base.name <- "Regional_model_6"
+
+sigmas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.sigmas.rds")
 # out <- as.matrix(jags.comb)
 # summary(out)
 # betas <- out[,grep(pattern = "beta",colnames(out))]
@@ -261,26 +272,28 @@ output.base.name <- "Regional_stan_model"
 # alpha.summary <- alpha.m %>% group_by(Var2) %>% summarise(mean = mean(value, na.rm = TRUE), 
 #                                                           ci.lo = quantile(value, 0.025, na.rm =TRUE), 
 #                                                           ci.hi = quantile(value, 0.975, na.rm =TRUE))
-year.randoms <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_year_RE_summary.csv")
+#year.randoms <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_year_RE_summary.csv")
 
-mus <- model.params %>% filter(L1 %in% c("mu","sigma_TREE"))
-betas <- model.params
+mus <- model.params %>% filter(L1 %in% c("mutree","sigma_TREE"))
+betas <- model.params %>% filter(!L1%in% c("mutree","sigma_TREE"))
 # get year and tree random effects from STAN model
+sigma.INC <- sigmas %>% filter(variable %in% "sigma_inc")
+sigma.DBH <- sigmas %>% filter(variable %in% "sigma_dbh")
 
-
-iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEARid,  SDdbh = 0, SDinc = 0, covariates) {
+iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
   
+  xscaled <- (x - 31.63)/10.61
   
   
   # pseudocode for now
-  tree.growth <- betas.all$alpha + beta_YEARid +# sampled from tree level alpha randome effect
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
     # normal fixed effects
     betas.all$bMAP*covariates$MAP + 
     betas.all$bMAT*covariates$MAT +
     
     # size and SDI fixed
     betas.all$bSDI*covariates$SDI + 
-    betas.all$bX*(x) + 
+    betas.all$bX*(xscaled) + 
     
     # climate fixed effects
     betas.all$bppt*covariates$ppt + 
@@ -305,27 +318,92 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEAR
     
     # SDI interactions
     betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
-    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt  
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
     
     # X interactions
-    betas.all$bX_MAP*covariates$MAP*x + 
-    betas.all$bX_MAT*covariates$MAT*x + 
-    betas.all$bX_Precip*covariates$ppt*x + 
-    betas.all$bX_Tmax*covariates$tmax*x + 
-    betas.all$bX_SDI*covariates$SDI*x 
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled 
   
-  tree.growth <-  ifelse(tree.growth < 0, 0, tree.growth) # we shouldn't need this but keeping in
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+    
+  treegrowth  <-  ifelse( treegrowth  < 0.001, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 4, 4,  treegrowth ) # we shouldn't need this but keeping in
   
   # Stochastic process model
-  #incpred <- tree.growth
+  #incpred <- treegrowth
   
-  xpred <- rnorm(length(tree.growth), (tree.growth + x), SDdbh) 
+  xpred <- rnorm(length(treegrowth), (treegrowth + x), SDdbh)
   
   
   xpred
   
 }
+iterate_statespace.incpred <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
+  
+  xscaled <- (x - 31.63)/10.61
+  
+  
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
+    # normal fixed effects
+    betas.all$bMAP*covariates$MAP + 
+    betas.all$bMAT*covariates$MAT +
+    
+    # size and SDI fixed
+    betas.all$bSDI*covariates$SDI + 
+    betas.all$bX*(xscaled) + 
+    
+    # climate fixed effects
+    betas.all$bppt*covariates$ppt + 
+    betas.all$btmax*covariates$tmax + 
+    
+    # MAP interactions
+    betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
+    #betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
+    
+    betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
+    betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
+    
+    # MAT interactions
+    #betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
+    betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
+    
+    betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
+    
+    
+    # tmax and precip interactions
+    betas.all$btmax_ppt*covariates$tmax*covariates$ppt +
+    
+    # SDI interactions
+    betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
+    
+    # X interactions
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled
+  
+  # Stochastic process model
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+  
+  treegrowth  <-  ifelse( treegrowth  <= 0.02, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 4, 4,  treegrowth ) # we shouldn't need this but keeping in
+  
+  
+  #xpred
+  treegrowth
+}
 
+
+#iterate_statespace.incpred(x = 45, betas.all= betas.all, alpha = 0, SDinc = sigma.INC$median, covariates = data.frame(SDI = 2, 
+                                                                                                                                    # ppt = -8, 
+                                                                                                                                    # tmax = -8, 
+                                                                                                                                    # MAP = -1,
+                                                                                                                                    # MAT = -1.5))
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
 simulate.xvals.from.model.oos <- function(m, nsamps = 100){
@@ -364,7 +442,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
   # sample from the population mean (mu) for the trees that dont have RE
   
-  alpha <- get_mcmc_samples(x = "mu", betas = mus, nsamps = nsamps)
+  alpha <- get_mcmc_samples(x = "mutree", betas = mus, nsamps = nsamps)
   
   # if(length(alphatreeids)>1){
   #   
@@ -478,12 +556,12 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
   # generate samples from the yearly random effects
   
-  betayrVEC <- matrix(NA, ncol = time_steps, nrow = nMCMC)
-  
-  for(t in 1:time_steps){
-    betayrVEC[,t] <- get_mcmc_samples(paste0("beta_YEAR[", t, "]"), betas = year.randoms, nsamps = nsamps)
-  }
-  
+  # betayrVEC <- matrix(NA, ncol = time_steps, nrow = nMCMC)
+  # 
+  # for(t in 1:time_steps){
+  #   betayrVEC[,t] <- get_mcmc_samples(paste0("beta_YEAR[", t, "]"), betas = year.randoms, nsamps = nsamps)
+  # }
+  # 
   for(t in 1:time_steps){
     if(t < which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if t is less than the measureyr assign NA (fo now)
       dbh.pred <- rep(NA, nMCMC)
@@ -491,7 +569,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
       inc[,t] <- dbh.pred
     }else{
       if(t == which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if the time step is the measuryr use the measureed DBH
-        dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, alpha = betas.all$alpha, SDinc = sigma.INC$median, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
@@ -500,7 +578,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
         inc[,t]<- forecast[,t]-x.mat[m,1]
         
       }else{
-        dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all,beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all, alpha = betas.all$alpha, SDinc =  sigma.INC$median, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
@@ -524,10 +602,11 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 }
 
 
-
+#x <- 4203
+simulate.xvals.from.model.oos(m = 4203, nsamps = 100)
 
 # see how long this will take:
-#system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
+system.time(sims.x.forecast <- lapply(11:20, simulate.xvals.from.model.oos))
 #3.8 user time multiplied by ~1500 =95 mintues 
 
 if(file.exists(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))){
@@ -542,19 +621,20 @@ saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 #--------------------------------------------------------------------------------------------- 
 # forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
+x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 
 # get the estimated x values for each tree/plot (need to calculate SDI and make forecasts from 2001-2018)
 #out.cored <- as.matrix(readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/increment_ifelse_constraint-2022-07-20-15-30-47.9/Xvals_Regional_incifelse_T0.RDS")))
-out.cored <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/xcored_estimated_full.ssm.working.model.rds")
+out.cored <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/xcored_model_6_estimates.rds")
 #head(out.cored)
 #out.cored <- as.matrix(x.mat2)
-x.ci      <- apply(out.cored  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
+x.ci      <- apply(out.cored[3000:4500,]  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
 #    <- as.matrix(Xests) ### LOADS MCMC OUTPUT INTO OBJECT "OUT"
 x.cols   <- which(substr(colnames(out.cored), 1, 1) == "x") # grab the state variable columns
 # 
 # # generate 95% CI of the DBH
-ci      <- apply(out.cored[, x.cols], 2, quantile, c(0.025, 0.5, 0.975))
-mean.pred.cored       <- apply(out.cored[, x.cols], 2, mean) # get the var.pred for the last 800 samples
+ci      <- apply(out.cored[3000:4500, x.cols], 2, quantile, c(0.025, 0.5, 0.975))
+mean.pred.cored       <- apply(out.cored[3000:4500, x.cols], 2, mean) # get the var.pred for the last 800 samples
 # 
 # 
 ci.names <- parse.MatrixNames(colnames(ci), numeric = TRUE)
@@ -615,7 +695,7 @@ plots <- unique(x.mat$PLT_CN)#[1]
 # note that these functions are from the PEcAn.allometry package, but I saved them locally because pecan library stopped playing nice here
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
-source("R/Allom_Ave.R")
+source("R/AllomAve.R")
 source("R/read.allom.data.R")
 source("R/query.allom.data.R")
 source("R/allom.BayesFit.R")
@@ -658,8 +738,8 @@ rcp <- "rcp26"
 # read in future climate, which has been mean corrected and downscaled:
 #-----------------------------------------------------------------------
 
-#full.clim <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/future_climate_extraction-2022-08-12-23-22-14.1/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
-full.clim <- readRDS(here("data/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
+full.clim <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/future_climate_extraction-2022-08-12-23-22-14.1/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
+#full.clim <- readRDS(here("data/full_time_mean_corrected_CMIP5_model_timeseriesIW.RDS"))
 
 #-----------------------------------------------------------------------
 # need to scale future climate data on the same scale as the past climate
@@ -718,7 +798,7 @@ scale.fut.clim.by.plt <- function(x, future.clim.subset){
 #                    n = n()) 
 
 set.seed(22)
-plot <- "2904285010690"
+plot <- "2456382010690"
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
 source("R/plot2AGB_kayeFVS.R")
@@ -735,34 +815,47 @@ system.time(biomass.sensitivity.periodic( plot ='2511127010690', density.depende
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-plot <- "2533485010690"
-scenario = "rcp45"
+plot <- unique(plots)[675]
+scenario = "rcp26"
 
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+
+unique(plots) %in% 2469188010690
+
+#lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+
+
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+lapply(unique(plots)[218:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+unique(plots) %in% 2536419010690
+
+
+plot = 2536419010690
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1.1)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1.1)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1.1)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1.1)})
 
 
-# run all the plots for this scenario and 60% max SDI
-# started at 12:18 May 16
-# running for the new scaling; started 11:47 on May 22
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-lapply(unique(plots)[191:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-unique(plots) %in% 2511127010690
-
-# run these for No SDI mortality now:
-# started at 17:11 on 3/17/23- finished at 10:15 pm 3/17/23
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-# started around 6:22 am on 3/18/22 ended at 12:30 pm 3/18/23
-lapply(unique(plots)[65:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-#unique(plots) %in% 2471324010690
-# started at 14:45 pm 2/18/23
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# # run all the plots for this scenario and 60% max SDI
+# # started at 12:18 May 16
+# # running for the new scaling; started 11:47 on May 22
+# unique(plots) %in% 2511127010690
+# 
+# # run these for No SDI mortality now:
+# # started at 17:11 on 3/17/23- finished at 10:15 pm 3/17/23
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# # started around 6:22 am on 3/18/22 ended at 12:30 pm 3/18/23
+# lapply(unique(plots)[65:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# #unique(plots) %in% 2471324010690
+# # started at 14:45 pm 2/18/23
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 
 
 # run these for No density independent mortality now:
@@ -791,6 +884,7 @@ plot <- "3215491010690"
 unique(plots) %in% 3215491010690
 # Error in `$<-.data.frame`(`*tmp*`, "TPA_UNADJ", value = c(6.01805, 6.01805 : 
 #                                                             replacement has 2 rows, data has 3
+biomass.changingsdi.zeroinc.SDIscaled.future(plot = unique(plots)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")
 lapply(unique(plots)[600:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
 # stopped wtih plot "plot2874190010690" # plot 383..384...with this error...Skip for now
 unique(plots) %in% "3170850010690" # plot 578
@@ -866,7 +960,7 @@ scenario <- "rcp26"
 
 get_biomass_ests <- function(plot, mort.scheme, scenario){
   
-  load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+  load(paste0("biomass_dataFIAperiodic_1/plot2AGB_",mort.scheme,".", plot,".",scenario,".0.6.singleCC.full", ".Rdata"))
   
   # objects
   # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
@@ -1315,10 +1409,10 @@ get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
                            low.foliage = low.foliage[2:length(low.stemwood)])  
   total.plot
 }
-get_biomass_ests(plot = "2447353010690", mort.scheme = "DIDD",scenario = "rcp85")
+get_biomass_ests(plot = unique(plots)[1], mort.scheme = "DIDD",scenario = "rcp85")
 
 
-
+unique(plots)[1]
 
 # RCP8.5
 normort.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")

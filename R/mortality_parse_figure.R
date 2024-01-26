@@ -2,6 +2,7 @@ library(here)
 library(tidyverse)
 library(rFIA)
 library(sf)
+db <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
 
 db <- readRDS("data/InWeUS_FIAdb.rds")
 db$PLOT <- db$PLOT %>% filter(STATECD %in% c(4, 8, 35, 49, 56, 16, 30))#& CN %in% unique(AGB$CN))

@@ -58,10 +58,11 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names$row == x & ci.names$col %in% 33:36)}) # select just the years 1994:2010 to match the plot level data:
   i.cored <- do.call(rbind, tree.ind.cored )
   
-  if(class(out.noncored.plt)== "numeric"){
-    nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt))
-  }else{
+  if(class(data.frame(out.noncored.plt))== "numeric"){
     nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt[,1]))
+   
+  }else{
+    nmcmc <- min(length(out.cored[,1]),length(out.noncored.plt))
   }
   
   out.cored.plt <-  out.cored[(length(out.cored[,1])-nmcmc + 1):length(out.cored[,1]),i.cored] 
@@ -131,11 +132,15 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   # write a function to get the MCMC samples
   
+  # get_mcmc_samples <- function(x, betas, nsamps){
+  #   
+  #   rnorm(nsamps, mean = mean(betas[,x]), sd = sd(betas[,x]))
+  # }
+  
   get_mcmc_samples <- function(x, betas, nsamps){
     
-    rnorm(nsamps, mean = mean(betas[,x]), sd = sd(betas[,x]))
+    rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>% select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>% select(sd)))
   }
-  
   nsamps <- nMCMC
   #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = 1000)
   # for each tree generate a random sample for the tree-level intercept:
@@ -152,7 +157,7 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   }
   
   
-  alpha <- get_mcmc_samples("mu", betas = mus, nsamps = nsamps)
+  alpha <- get_mcmc_samples("mutree", betas = mus, nsamps = nsamps)
   
   
   
@@ -184,36 +189,36 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
   
   # need to fix the alpha...now just taking the global intercept
   # if the tree is a cored tree, include plot random effect, but if it is not, then 
-  alpha <- get_mcmc_samples("mu", betas = mus, nsamps = nmcmc)
+  alpha <- get_mcmc_samples("mutree", betas = mus, nsamps = nmcmc)
   
   
   bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nmcmc)
   bMAT <- get_mcmc_samples("betaMAT", betas = betas, nsamps = nmcmc)
   bMAP_MAT <- get_mcmc_samples("betaMAP_MAT", betas = betas, nsamps = nmcmc)
   
-  bSDI <- get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = nmcmc)
-  bSDI_ppt <- get_mcmc_samples("betawateryrscaled_SDIscaled", betas = betas, nsamps = nmcmc)
-  bSDI_tmax <- get_mcmc_samples("betatmaxAprMayJunscaled_SDIscaled", betas = betas, nsamps = nmcmc)
+  bSDI <- get_mcmc_samples("betaSDI", betas = betas, nsamps = nmcmc)
+  bSDI_ppt <- get_mcmc_samples("betaPrecip_SDI", betas = betas, nsamps = nmcmc)
+  bSDI_tmax <- get_mcmc_samples("betaTmax_SDI", betas = betas, nsamps = nmcmc)
   
   
   
   #MAP interactions:
-  bMAP_ppt <- get_mcmc_samples("betaMAP_wateryrscaled", betas = betas, nsamps = nmcmc)
-  bMAP_tmax <- get_mcmc_samples("betaMAP_tmaxAprMayJunscaled", betas = betas, nsamps = nmcmc)
-  bMAP_SDI <- get_mcmc_samples("betaMAP_SDIscaled", betas = betas, nsamps = nmcmc)
+  bMAP_ppt <- get_mcmc_samples("betaPrecip_MAP", betas = betas, nsamps = nmcmc)
+  bMAP_tmax <- get_mcmc_samples("betaTmax_MAP", betas = betas, nsamps = nmcmc)
+  #bMAP_SDI <- get_mcmc_samples("betaSDI_MAP", betas = betas, nsamps = nmcmc)
   
   #MAT interactions:
-  bMAT_ppt <- get_mcmc_samples("betaMAT_wateryrscaled", betas = betas, nsamps = nmcmc)
-  bMAT_tmax <- get_mcmc_samples("betaMAT_tmaxAprMayJunscaled", betas = betas, nsamps = nmcmc)
-  bMAT_SDI <- get_mcmc_samples("betaMAT_SDIscaled", betas = betas, nsamps = nmcmc)
+  bMAT_ppt <- get_mcmc_samples("betaPreip_MAT", betas = betas, nsamps = nmcmc)
+  bMAT_tmax <- get_mcmc_samples("betaTmax_MAT", betas = betas, nsamps = nmcmc)
+  #bMAT_SDI <- get_mcmc_samples("betaMAT_SDIscaled", betas = betas, nsamps = nmcmc)
   
   
   bX <-  get_mcmc_samples("betaX", betas = betas, nsamps = nmcmc)
   
   
-  bppt <- get_mcmc_samples("betawateryrscaled", betas = betas, nsamps = nmcmc)
-  btmax <- get_mcmc_samples("betatmaxAprMayJunscaled", betas = betas, nsamps = nmcmc)
-  btmax_ppt <- get_mcmc_samples("betatmaxAprMayJunscaled_wateryrscaled", betas = betas, nsamps = nmcmc)
+  bppt <- get_mcmc_samples("betaPrecip", betas = betas, nsamps = nmcmc)
+  btmax <- get_mcmc_samples("betaTmax", betas = betas, nsamps = nmcmc)
+  btmax_ppt <- get_mcmc_samples("betaPrecip_Tmax", betas = betas, nsamps = nmcmc)
   
   
   betas.all <- data.frame(  alpha ,
@@ -227,11 +232,11 @@ biomass.changingsdi.zeroinc.SDIscaled.future <- function(plot, density.dependent
                             #MAP interactions:
                             bMAP_ppt,
                             bMAP_tmax,
-                            bMAP_SDI,
+                           # bMAP_SDI,
                             #MAT interactions:
                             bMAT_ppt,
                             bMAT_tmax,
-                            bMAT_SDI,
+                            #bMAT_SDI,
                             
                             bX,
                             bppt,

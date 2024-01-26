@@ -152,9 +152,11 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         alphatreeids[i]<- paste0("alpha_TREE[", treeids[i], "]")
         
       }
+      alpha <- get_mcmc_samples("mutree", betas = mus, nsamps = nsamps)
       
     }else{ # if there is just one cored tree per plot
       alphatreeids <- paste0("alpha_TREE[", treeids, "]")
+      alpha <- get_mcmc_samples(alphatreeids, betas = alphas, nsamps = nsamps)
     }
     
     
@@ -190,8 +192,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     # need to fix the alpha...now just taking the global intercept
     # if the tree is a cored tree, include plot random effect, but if it is not, then 
-    alpha <- get_mcmc_samples("mu", betas = betas, nsamps = nsamps)
-    
+   
+    #alpha.trees <- get_mcmc_samples(alphatreeids[2], betas =alphas, nsamps = nsamps)
+    #mean(alphas$median)
     
     bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nsamps)
     bMAT <- get_mcmc_samples("betaMAT", betas = betas, nsamps = nsamps)
@@ -265,9 +268,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # get the scaled SDI for the PLT:
     
     # get the unique SUBPLOTS in the plot
-    subplots <- unique(SDI.mat.PLT.subp %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
+    subplots <- unique(SDIscaled %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
     
-    SDI.PLT <- SDI.mat.PLT.subp %>% filter(PLT_CN %in% PLT_CNint)
+    SDI.PLT <- SDIscaled %>% filter(PLT_CN %in% PLT_CNint)
     
     SDI.PLT.SCALED <- SDI.PLT # get the SDI values
     
@@ -338,14 +341,19 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         
         ens.samps <- lapply(1:length(models), get.ens.df)
         ens.samps.df <- do.call(rbind, ens.samps)
+        ggplot(ens.samps.df, aes(x = year, y = ppt, group = model))+geom_line()
+        ggplot(ens.samps.df, aes(x = year, y = tmax, group = model))+geom_line()
+        ggplot(ens.samps.df, aes(x = year, y = diff.ppt, group = model))+geom_line()
+        ggplot(ens.samps.df, aes(x = year, y = diff.tmax, group = model))+geom_line()
         # detrend the future climate using differences
         #unique(duplicated(ens.samps.df)) # no duplicates
         #unique(duplicated(ens.samps.df[,c("model", "year")]))
-        detrend.samps.df  <- ens.samps.df %>% dplyr::select(diff.ppt, diff.tmax, model, year)
+        detrend.samps.df  <- ens.samps.df %>% dplyr::select(diff.ppt, diff.tmax, model, year)# %>%
         colnames(detrend.samps.df) <- c("ppt", "tmax", "model", "year")
         
         
         samps.df  <- ens.samps.df %>% dplyr::select(ppt, tmax, model, year)
+        detrend.samps.df  <- detrend.samps.df %>% dplyr::select(ppt, tmax, model, year)
         
         
         
@@ -506,16 +514,25 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
-                                                                                                                                                                   MAP = MAP,
-                                                                                                                                                                   MAT= MAT,
-                                                                                                                                                                   ppt = covariates$ppt[,t], 
-                                                                                                                                                                   tmax = covariates$tmax[,t]))
+          # dbh.pred[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
+          #                                                                                                                                                          MAP = MAP,
+          #                                                                                                                                                          MAT= MAT,
+          #                                                                                                                                                          ppt = covariates$ppt[,t],
+          #                                                                                                                                                          tmax = covariates$tmax[,t]))
+          # 
+          increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
+                                                                                                                                                                       MAP = MAP,
+                                                                                                                                                                       MAT= MAT,
+                                                                                                                                                                       ppt = covariates$ppt[,t],
+                                                                                                                                                                       tmax = covariates$tmax[,t]))
           
-        }
-        increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
+          #sd(increment[i,,2:20])
+          #rel.inc <- increment[i,,t]-mean(increment[i,,2:20])
+           dbh.pred[i,,t+1] <-  increment[i,,t+1]+dbh.pred[i,,t] # calculate new dbh
+          }
         
-        # if increment is < 0, assign as 0 & keep dbh.pred at previous value
+        
+        # if increment is less than 0, assign inc as 0 & keep dbh.pred at previous value
         
         zeros <- increment[i,,t+1] <= 0 #| is.na(increment[i,,t=1])
         
@@ -537,21 +554,30 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           
           if(density.independent == TRUE){
             
-            tindex <- ifelse(t >=6, t-5, 
-                             ifelse(t == 5, t-4, 
-                                    ifelse(t ==4, t-3, 
-                                           ifelse(t==3, t-2, 
+            tindex <- ifelse(t >=6, t-5,
+                             ifelse(t == 5, t-4,
+                                    ifelse(t ==4, t-3,
+                                           ifelse(t==3, t-2,
                                                   ifelse(t == 2, t-1, t)))))
-            
-            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
+
+            #tindex <- t-1
+            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
+            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+            
+            mort.prob <-  pmort
+            #hist(rbinom(n = 100, prob = pmort, size = 1))
+            
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob) # check what the distribution is of this
+         mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
           #mort.prob^(1/10) 
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
-        }
+          mort.code <- rbinom(1,1, prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+          #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*10) # to tone down, reduce mort.prob 
+          
+          }
         
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
           
@@ -767,10 +793,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     dbh.means.index <- left_join(dbh.quants.spread , index.df, by = "treeno")
     
-    # p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) + 
-    #   geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-    #   theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
-    # 
+    p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
+      geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+      theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+   p
     # TPA mortality
     TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
@@ -830,14 +856,14 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     inc.means.index <- left_join(inc.quants.spread , index.df, by = "treeno")
     
-    # p.inc <- ggplot() +
-    # geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`, fill = as.character(SUBP), group = treeno), alpha = 0.25)+
-    #  geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
-    # theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")
+    p.inc <- ggplot() +
+    geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`, fill = as.character(SUBP), group = treeno), alpha = 0.25)+
+     geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
+    theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")
 
     #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
     
-    #p.inc
+    p.inc
     
     
     combined <- index.df
@@ -904,8 +930,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates full model")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
-    
+    full <- plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
+   # plot(test$year, test$mAGB)
     ####################################################
     #run SSM with an SDI effect of 0
     ####################################################
@@ -955,14 +981,21 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          # dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          #                                                                                                                                                          MAP = MAP,
+          #                                                                                                                                                          MAT= MAT,
+          #                                                                                                                                                          ppt = covariates$ppt[,t], 
+          #                                                                                                                                                          tmax = covariates$tmax[,t]))
+          # 
+           increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0, #sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
                                                                                                                                                                    ppt = covariates$ppt[,t], 
                                                                                                                                                                    tmax = covariates$tmax[,t]))
           
-        }
-        increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
+           dbh.pred[i,,t+1] <- increment[i,,t+1] + dbh.pred[i,,t] # calculate increment
+          }
+    
         
         # if increment is < 0, assign as 0 & keep dbh.pred at previous value
         
@@ -986,21 +1019,28 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           
           if(density.independent == TRUE){
             
-            tindex <- ifelse(t >=6, t-5, 
-                             ifelse(t == 5, t-4, 
-                                    ifelse(t ==4, t-3, 
-                                           ifelse(t==3, t-2, 
+            tindex <- ifelse(t >=6, t-5,
+                             ifelse(t == 5, t-4,
+                                    ifelse(t ==4, t-3,
+                                           ifelse(t==3, t-2,
                                                   ifelse(t == 2, t-1, t)))))
             
+            #tindex <- t-1
             zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
+            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+            
+            mort.prob <-  pmort
+            #hist(rbinom(n = 100, prob = pmort, size = 1))
+            
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob)
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
+          #mort.prob^(1/10) 
+          mort.code <- rbinom(1,1, prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
-        
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
           
           
@@ -1193,7 +1233,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) + 
       geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
       theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
-    
+    p
     # TPA mortality
     TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
@@ -1212,10 +1252,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     dbh.means.TPA.index$hi.scaled.DBH <- dbh.means.TPA.index$`97.5%`*dbh.means.TPA.index$TPA
     dbh.means.TPA.index$lo.scaled.DBH <- dbh.means.TPA.index$`2.5%`*dbh.means.TPA.index$TPA
     
-    # p <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) + 
-    #   geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-    #   theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
-    # #p
+    p <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) +
+      geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+      theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+    p
     
     # make a plot of all the increment forecasts:
     
@@ -1230,14 +1270,14 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     inc.means.index <- left_join(inc.quants.spread , index.df, by = "treeno")
     
-    # p.inc <- ggplot() + 
-    #   geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
-    #   geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
-    #   theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number") 
-    # 
+    p.inc <- ggplot() +
+      geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
+      geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
+      theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")
+
     #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
-    
-    #p.inc
+
+    p.inc
     
     
     combined <- index.df
@@ -1340,7 +1380,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates for no SDI")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noSDI_", scale.mort.prob), parse.type = "noSDI", mort.prob.reduced  = mort.prob.reduced)
+    noSDI <- plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.dd = tpa.DD.means.index, tpa.di = tpa.DI.means.index, tpa.diff = tpa.diff.mean, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noSDI_", scale.mort.prob), parse.type = "noSDI", mort.prob.reduced  = mort.prob.reduced)
     
     
     ####################################################
@@ -1351,10 +1391,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
     
     tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
-    hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
-                                tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
-                                model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
-                                year = rep(2001:2018, length(unique(ens.samps.df$model))))
+    hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(detrend.samps.df$model))), 
+                                tmax = rep(as.numeric(tmax.hist) , length(unique(detrend.samps.df$model))), 
+                                model = rep(1:length(unique(detrend.samps.df$model)), each = length(as.numeric(ppt.hist))), 
+                                year = rep(2001:2018, length(unique(detrend.samps.df$model))))
     
     full.df <- rbind(hist.samps.df, detrend.samps.df %>% filter(!year %in% 2018))
     full.df.nodups <- full.df[!duplicated(full.df),]
@@ -1438,14 +1478,21 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
           
         }else{
-          dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          # dbh.pred[i,,t+1] <- iterate_statespace.inc(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
+          #                                                                                                                                                          MAP = MAP,
+          #                                                                                                                                                          MAT= MAT,
+          #                                                                                                                                                          ppt = 0, #covariates$ppt[,t], 
+          #                                                                                                                                                          tmax = covariates$tmax[,t]))
+          # 
+           increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1], 
                                                                                                                                                                    MAP = MAP,
                                                                                                                                                                    MAT= MAT,
-                                                                                                                                                                   ppt = 0, #covariates$ppt[,t], 
+                                                                                                                                                                   ppt = covariates$ppt[,t], 
                                                                                                                                                                    tmax = covariates$tmax[,t]))
           
-        }
-        increment[i,,t+1] <- dbh.pred[i,,t+1]-dbh.pred[i,,t] # calculate increment
+           dbh.pred[i,,t+1] <-increment[i,,t+1] + dbh.pred[i,,t] # calculate increment
+           
+          }
         
         # if increment is < 0, assign as 0 & keep dbh.pred at previous value
         
@@ -1469,21 +1516,28 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           
           if(density.independent == TRUE){
             
-            tindex <- ifelse(t >=6, t-5, 
-                             ifelse(t == 5, t-4, 
-                                    ifelse(t ==4, t-3, 
-                                           ifelse(t==3, t-2, 
+            tindex <- ifelse(t >=6, t-5,
+                             ifelse(t == 5, t-4,
+                                    ifelse(t ==4, t-3,
+                                           ifelse(t==3, t-2,
                                                   ifelse(t == 2, t-1, t)))))
             
+            #tindex <- t-1
             zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0 
             zero.df <- ifelse(zero.means == FALSE, 0, 1)
             mort.prob <- mean(zero.df, na.rm =TRUE)
+            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+            
+            mort.prob <-  pmort
+            #hist(rbinom(n = 100, prob = pmort, size = 1))
+            
             
           }
-          mort.prob.reduced[i,,t] <- mort.prob/(10*scale.mort.prob)
-          mort.code <- rbinom(1,1, prob = (mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+          mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
+          #mort.prob^(1/10) 
+          mort.code <- rbinom(1,1,  prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         }
-        
         if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(dbh.pred[i,,t])>0){
           
           
@@ -1669,9 +1723,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     dbh.means.index <- left_join(dbh.quants.spread , index.df, by = "treeno")
     
-    # p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) + 
-    #   geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-    #   theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+    p <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
+      geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+      theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+    p
     # 
     # TPA mortality
     TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
@@ -1709,14 +1764,14 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     inc.means.index <- left_join(inc.quants.spread , index.df, by = "treeno")
     
-    # p.inc <- ggplot() + 
-    #   geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
-    #   geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
-    #   theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number") 
-    # 
+    p.inc <- ggplot() +
+      geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.25)+
+      geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
+      theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")
+
     #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
     
-    #p.inc
+    p.inc
     
     
     combined <- index.df
@@ -1803,7 +1858,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # biomass estimation
     
     cat("start biomass estimates no precipitation")
-    plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob), parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
+    noClim <- plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob), parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
     
     
   }   
@@ -1811,3 +1866,12 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
 }
 }
 
+# #ggplot(full, aes(x = year, y = mAGB.dead))+geom_line()
+# ggplot()+geom_line(data = noClim, aes(x = year, y = mAGB), color = "red")+
+#   geom_line(data = full, aes(x = year, y = mAGB))
+# 
+# ggplot()+geom_line(data = noClim, aes(x = year, y = mAGB.dead), color = "red")+
+  geom_line(data = full, aes(x = year, y = mAGB.dead))
+#ggplot(noClim, aes(x = year, y = mAGB.dead))+geom_line()
+# ggplot(noSDI, aes(x = year, y = mAGB))+geom_line()
+# ggplot(noSDI, aes(x = year, y = mAGB.dead))+geom_line()
