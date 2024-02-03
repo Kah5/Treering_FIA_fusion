@@ -671,7 +671,7 @@ sel.noncored <- which(ci.names.noncored $row %in% y)
 
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
-plot<- cov.data.regional$PLT_CN[1]
+plot <- cov.data.regional$PLT_CN[1]
 
 
 all.noncored <- x.mat # x.mat from dbh.spread above
@@ -776,26 +776,12 @@ scale.fut.clim.by.plt <- function(x, future.clim.subset){
 
 
 
-#system.time(scale.fut.clim.by.plt(1))
-
-# if we looped over all plots this would take 7 hours!
-# 40.75*length(unique(cov.data.regional$PLT_CN))
-# [1] 27669.25
-# > (40.75*length(unique(cov.data.regional$PLT_CN)))/60
-# [1] 461.1542
-# > 461.15/60
-# [1] 7.685833
-
-# Need to find a faster way of doing this
-
-# 
-# rm(tmax.fallspr)
-# climate.ensemble.means <- clim.ts.df %>% group_by(lat, lon, year, rcp) %>% 
-#   dplyr::summarise(mean.tmax.fs = mean(tmax.scaled, na.rm = TRUE), 
-#                    SD.tmax = var(tmax.scaled, na.rm = TRUE),
-#                    mean.ppt = mean(ppt.scale, na.rm = TRUE), 
-#                    SD.ppt = sd(ppt.scale, na.rm = TRUE),
-#                    n = n()) 
+# read in model estimated with mortality from all trees
+m2 <- readRDS("m2_pipo_mort_year.rds") # from mortality_analysis_FVSmrt.R
+alpha.mort <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+library(boot) # for the inv.logit function in R/biomass.sensitivity.periodic.R
 
 set.seed(22)
 plot <- "2456382010690"
@@ -815,12 +801,25 @@ system.time(biomass.sensitivity.periodic( plot ='2511127010690', density.depende
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-plot <- unique(plots)[675]
+plot <- unique(plots)[310]
 scenario = "rcp26"
+biomass.sensitviity.periodic (plot = 2973464010690, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
 
-unique(plots) %in% 2469188010690
+lapply(unique(plots)[26:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# plot 378, 382 had an error:
+plot = 3011083010690
+unique(plots) %in% 2876512010690
+unique(plots) %in% 2848844010690
+unique(plots) %in% 2873938010690
+unique(plots) %in%2903677010690
+unique(plots)%in% 2972633010690
+unique(plots)%in% 2973412010690
+unique(plots)%in%2973464010690 # 436
+unique(plots)%in%2997648010690
+unique(plots)%in%2998708010690
+unique(plots)%in%3087822010690
+unique(plots) %in% 2456172010690
 
 #lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
 lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
