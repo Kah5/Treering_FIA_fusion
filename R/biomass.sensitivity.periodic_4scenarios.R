@@ -8,24 +8,16 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   cored.in.plt <- cov.data.regional %>% dplyr::filter (PLT_CN %in% plot)
   cored.in.plt <- cored.in.plt[!duplicated(cored.in.plt$TRE_CN),]
   cored.in.plt$TPA_UNADJ <- TREE[which(TREE$CN %in% unique(cored.in.plt$TRE_CN)),]$TPA_UNADJ
-  #cored.in.plt$DESIGNCD <- TREE[which(TREE$CN %in% unique(cored.in.plt$TRE_CN)),]$DESIGNCD
   
   # get id of trees with out cores:
   trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plot)
   trees.in.plt$TPA_UNADJ <- TREE[which(TREE$CN %in% trees.in.plt$CN),]$TPA_UNADJ
-  #trees.in.plt$DESIGNCD <- TREE[which(TREE$CN %in% trees.in.plt$CN),]$DESIGNCD
-  #trees.in.plt <- trees.in.plt %>% filter(TPA_UNADJ > 0)
- unique(trees.in.plt$SUBP)
-  
-trees.in.plt
-  #trees.in.plt$DESIGNCD
-  
- # View(TREE[which(TREE$CN %in% trees.in.plt$CN),c("TPA_UNADJ", "CN", "CONDID", "SUBP", "STATUSCD", "DIA", "SPCD")])
-  
+ 
+ # if there are no other trees on the plot just don't run the forecats
   if(length(trees.in.plt$PLOT) == 0){
     cat("no other trees on plot")
   }else{
-  #cored.treeid <- cored.in.plt$treeid
+ 
   
   x <- cored.in.plt$treeid
   y <- trees.in.plt$treeid
@@ -93,15 +85,15 @@ trees.in.plt
   index.df$CN <- index.df$treeid
   
   all.dbh.means <- colMeans(all.dbh) %>% reshape2::melt(.)
-  #separate(reshape2::melt(rownames(all.dbh.means)), col =value, into = c("x[", "tree", "year", "]"))[,"tree"]
   
   all.dbh.means$treeid <- separate(reshape2::melt(rownames(all.dbh.means)), col =value, into = c("x[", "tree", "year", "]"))[,"tree"]
   all.dbh.means$DBH_in <- all.dbh.means$value/2.54
+  
   # get the design codes
   # get the updated TPA factors for trees in variable radius plots
   DESIGNCD.plt <- unique(TREE[which(TREE$CN %in% trees.in.plt$CN),]$DESIGNCD)
   all.dbh.means$DBH_in
-  #DESIGNCD.table <- TPA.designcd.table %>% filter(DESIGNCD %in% DESIGNCD.plt)
+  
   DESIGNCD.table <- TPA.designcd.table %>% filter(DESIGNCD == unique(DESIGNCD.plt))
   
   calcTPA_unadj <- function(DBH_in, DESIGN.tb = DESIGNCD.table){
@@ -171,10 +163,11 @@ trees.in.plt
       #   TPA.microplot <- 1/(0.003334877*3)
       # 
       # }else{
-      TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
-      TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
+      TPAlive[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # live TPA trees
+      TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # TPAsize 
       TPADI[i,,1:(ntfull + 1)] <- 0
       TPADD[i,,1:(ntfull + 1)] <- 0
+      TPAmort[i,,1:(ntfull + 1)] <- 0 # dead TPA total
      
       #}
     }
@@ -444,13 +437,6 @@ trees.in.plt
     MAP <- x.mat[m,]$MAP
     MAT <- x.mat[m,]$MAT
     
-    #if(length(SDI) <=36){
-    # newsdivals <- rep(SDI[36], 17)
-    #  names(newsdivals)  <- 2002:2018
-    #  SDI.new <- cbind(SDI, newsdivals)
-    #}
-    #SICOND <- cov.data[m, ]$SICOND
-    #}
     
     covariates <- list()
     covariates$SDI <- as.matrix(SDI)
@@ -472,61 +458,6 @@ trees.in.plt
     
     sdi.subp.raw <-  matrix(data = NA, nrow = nrow(subplots), ncol = nt + 2)
     sdi.subp.raw[,1] <- covariates$SDI[,1]
-    
-    # need to fix the SDI scaling function to make it global scaling....
-    
-    # function to calculate SDI from the diameters:
-    # calc.sdi.subp <- function(x, j = PLT_CNint, a = s, TPAcalc){
-    #   
-    #   #SDI.mat.PLT <-  SDI.PLT %>% filter(PLT_CN %in% PLT_CNint)%>% ungroup() %>% select(`1966`:`2001`)
-    #   subplot.sel<- SDI.PLT %>% filter(PLT_CN %in% j & SUBP %in% a)%>% ungroup() %>% dplyr::select(`1966`:`2001`)
-    #   
-    #   if(nrow(subplot.sel)>0 ){ 
-    #     if(!subplot.sel$`2001` == 0){# have one instance where we are missing subplot info
-    #       SDI.mat.PLT.subp.sel <-  SDI.PLT %>% filter(PLT_CN %in% j & SUBP %in% a)%>% ungroup() %>% dplyr::select(`1966`:`2001`)
-    #     }}else{
-    #       SDI.mat.PLT.subp.sel <-  colMeans(SDI.PLT %>% filter(PLT_CN %in% j )%>% ungroup() %>% dplyr::select(`1966`:`2001`))
-    #       
-    #     }
-    #   # if only one tree is on the plot
-    #   if(is.null(dim(x))){
-    #     avg.dbh <- mean(x, na.rm=TRUE)
-    #   }else{
-    #     avg.dbh <- apply(x, 1, mean, na.rm = TRUE) # get mean of the MCMCs for each tree
-    #   }
-    #   # note that any dead trees will have dbh == 0, which won't add to the sum of trees in the following line
-    #   
-    #   SDI.new <- sum(TPAcalc*(((avg.dbh/2.54)/10)^1.6)) # calculate SDI, convert to inches
-    #   
-    #   
-    #   #SDI.mat.PLT.subp
-    #   
-    #   SDIscaled <-   (SDI.new - mean(as.matrix(SDI.mat.PLT.subp[,3:20]),na.rm=TRUE))/sd(as.matrix(SDI.mat.PLT.subp[,3:20]),na.rm=TRUE)
-    #   SDIscaled
-    # }
-    # 
-    # 
-    # old calculation of raw SDI--very confusing
-    # rescale.sdi.raw <- function(SDIscaled, j = PLT_CNint, a = SUBPPLT_CNint){
-    #   
-    #   subplot.sel <- SDI.PLT %>% filter(PLT_CN %in% j & SUBP %in% a)%>% ungroup() %>% dplyr::select(`1966`:`2001`)
-    #   
-    #   if(nrow(subplot.sel)>0 ){
-    #     if(!subplot.sel$`2001` == 0){ # have one instance where we are missing subplot info
-    #       SDI.mat.PLT.subp.sel <-  SDI.PLT %>% filter(PLT_CN %in% j & SUBP %in% a)%>% ungroup() %>% dplyr::select(`1966`:`2001`)
-    #     } }else{
-    #       SDI.mat.PLT.subp.sel <-  colMeans(SDI.PLT %>% filter(PLT_CN %in% j )%>% ungroup() %>% dplyr::select(`1966`:`2001`))
-    #       
-    #     }
-    #   
-    #   
-    #   #SDI.new <- sum(6.01*(((avg.dbh/2.54)/10)^1.6)) # calculate SDI
-    #   SDI.raw <-   mean(as.matrix(SDI.mat.PLT.subp[,3:20]), na.rm = TRUE)+(sd(as.matrix(SDI.mat.PLT.subp[,3:20]), na.rm = TRUE)*SDIscaled)
-    #   #SDI.raw <-   mean(as.numeric(SDI.PLT), na.rm = TRUE)*sd(as.numeric(SDI.mat.PLT.subp.sel), na.rm = TRUE)+SDIscaled
-    #   
-    #   SDI.raw
-    # }
-    # 
     
   # note that these are subplot SDI values that we are scaling by!
    SDI.mean.all <- mean(time_data$SDI, na.rm =TRUE)
@@ -585,10 +516,10 @@ trees.in.plt
         SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
         
         # just changed this....
-        if(mean(TPAmort[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
+        if(mean(TPAlive[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
           dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
           mort.code <- 0
-          TPAmort[i,,(t+1):nt] <- 0
+          TPAlive[i,,(t+1):nt] <- 0
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
@@ -606,7 +537,7 @@ trees.in.plt
             TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table ), length(TPAsize[i,,t+1]))
             
             # adjust TPA mort by size if there is a difference
-            TPAmort[i,,t] <- TPAmort[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
+            TPAlive[i,,t] <- TPAlive[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
         
             # TPAsize for a given tree and year is the tree-level mortality maximum in that year et up mortality maximums:
             
@@ -639,9 +570,9 @@ trees.in.plt
           
           trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
           if(length(trees.subplot)<=1){
-            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
           }else{
-            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
           }
           sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
           SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
@@ -668,14 +599,14 @@ trees.in.plt
             #combined[trees.subplot,]
             rownames(DBH) <- 1:nrow(DBH)
             
-            TPA.all <- TPAmort[trees.subplot,,t]
+            TPA.all <- TPAlive[trees.subplot,,t]
             # get all the trees where there are still TPAlive
             live.trees <- rowSums(TPA.all) > 0
             
             if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
               cat("only <=1 trees on the subplot are alive ")
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }else{
               
               DBH.live  <- DBH[live.trees,]
@@ -709,22 +640,27 @@ trees.in.plt
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              #TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
-              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
+              #TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t+1)]-(TPAlive[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAlive[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               # need to put in a max mortality so assign TPADD for all the live trees on the plot to the starting TPA
-              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAmort
+              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAlive
               
-                TPADD[trees.subplot[live.trees],,t+1] [ TPADD[trees.subplot[live.trees],,(t+1)] > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]
+              # TPADD if the total of TPADD and TPADI for each tree is greater than TPAsize
+              TPADD[trees.subplot[live.trees],,t+1] [ (TPADI[trees.subplot[live.trees],,(t)]+TPADD[trees.subplot[live.trees],,(t+1)]) > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]-(TPADI[trees.subplot[live.trees],,(t)])
                 
-                TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              # this makes sense as long as TPADD or TPADI isn't maxed out
+              TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              # if the sum of TPADD + TPADI is maxed out, set TPAlive to zero
+              TPAlive[trees.subplot[live.trees],,(t+1)][(TPADI[trees.subplot[live.trees],,(t+1)]+TPADD[trees.subplot[live.trees],,(t+1)]) > TPAsize[trees.subplot[live.trees],,t]] <- 0
               
-                # for trees that are already dead:
-                TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
+              # for trees that are already dead:
+              TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
               
-         }}else{
+              
+              }}else{
           TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-          TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+          TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
         }
       }
       }
@@ -771,37 +707,40 @@ trees.in.plt
           
           # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
           if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
-             mean(TPAmort[i,,t], na.rm = TRUE)>0){
+             mean(TPAlive[i,,t], na.rm = TRUE)>0){
             
             
             if(aggressiveCC == TRUE){
               
               TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
-              TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-              TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+              # the combined DI and DD mortality can't be more than TPAsize
+              TPADI[i,,(t+1)][(TPADI[i,,(t+1)]+TPADD[i,,(t+1)]) > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
+              
+              TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+              TPAlive[i,,(t+1)][(TPADI[i,,(t+1)]+TPADD[i,,(t+1)]) > TPAsize[i,,t]] <- 0
               
             }else{
-              # add to the dead carbon
+              # add to the dead carbon to the DI tracking pool
               TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
-              TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
+              # the combined DI and DD mortality can't be more than TPAsize
+              TPADI[i,,(t+1)][(TPADI[i,,(t+1)]+TPADD[i,,(t+1)]) > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
               
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
-              TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+              TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
+              TPAlive[i,,(t+1)][(TPADI[i,,(t+1)]+TPADD[i,,(t+1)]) > TPAsize[i,,t]] <- 0
               
             }
             
           }else{
             TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-            TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+            TPAlive[i,,(t+1)] <- TPAlive[i,,(t)]
           }
           
-          if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-            TPAmort[i,,(t+1):nt] <- 0
+          if(mean(TPAlive[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+            TPAlive[i,,(t+1):nt] <- 0
             # set TPADI as equal to the the max value :
             
-            TPADI[i,,(t+1):nt] <- TPAsize[i,,t]
-            TPADD[i,,(t):nt] <- TPAsize[i,,t]
+            TPADI[i,,(t+1):nt] <- TPADI[i,,t]
+            TPADD[i,,(t):nt] <- TPADI[i,,t]
             # set DBH == 0? Or keep DBH == the last living value?
             
             dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
@@ -815,9 +754,9 @@ trees.in.plt
         # need to index dbh.pred trees by by the subplot:
         trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
         if(length(trees.subplot)<=1){
-          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
         }else{
-          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
         }
         # recalculated scaled SDI
         sdi.subp[which(sdi.subp[,1]==s),t+2] <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
@@ -852,7 +791,7 @@ trees.in.plt
     # save the plot-level arrays:
     # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAlive, paste0("diam_forecastsFIAannual_full/PLT.TPAlive.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # 
     # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
@@ -874,7 +813,7 @@ trees.in.plt
       theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
     p.dbh
     # TPA mortality
-    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
     
     ggplot(TPA.quants, aes(x = time, y = TPA, group = treeno, color = treeno))+geom_line()
@@ -976,7 +915,7 @@ trees.in.plt
     out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
     # get a TPA out:
-    tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
+    tpa.m <- reshape2::melt(TPAlive, id.vars = dim(TPAlive)[2])
     #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
     
     # var1 os the tree Var 2 is the samples and Var3 is the year
@@ -1016,14 +955,14 @@ trees.in.plt
                      plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, 
                      SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", 
                      folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
-    plot(full$year, full$mAGB)
-    plot(full$year, full$mAGB.dead)
+    plot(full$year, full$mAGB/1000)
+    plot(full$year, full$mAGB.dead/1000)
     
     ####################################################
     #run SSM by only ramping up growth dependent climate changes
     ####################################################
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort <-TPAsize<- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAlive <-TPAsize<- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -1046,7 +985,7 @@ trees.in.plt
     
     for(i in 1:ni){
       
-      TPAmort[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
+      TPAlive[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
       TPADD[i,,1:(ntfull+1)] <- 0
       TPADI[i,,1:(ntfull+1)] <- 0
@@ -1067,10 +1006,10 @@ trees.in.plt
         SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
         
         # just changed this....
-        if(mean(TPAmort[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
+        if(mean(TPAlive[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
           dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
           mort.code <- 0
-          TPAmort[i,,(t+1):nt] <- 0
+          TPAlive[i,,(t+1):nt] <- 0
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
@@ -1088,7 +1027,7 @@ trees.in.plt
           TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table ), length(TPAsize[i,,t+1]))
           
           # adjust TPA mort by size if there is a difference
-          TPAmort[i,,t] <- TPAmort[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
+          TPAlive[i,,t] <- TPAlive[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
           
           # TPAsize for a given tree and year is the tree-level mortality maximum in that year et up mortality maximums:
           
@@ -1121,9 +1060,9 @@ trees.in.plt
           
           trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
           if(length(trees.subplot)<=1){
-            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
           }else{
-            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
           }
           sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
           SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
@@ -1150,14 +1089,14 @@ trees.in.plt
             #combined[trees.subplot,]
             rownames(DBH) <- 1:nrow(DBH)
             
-            TPA.all <- TPAmort[trees.subplot,,t]
+            TPA.all <- TPAlive[trees.subplot,,t]
             # get all the trees where there are still TPAlive
             live.trees <- rowSums(TPA.all) > 0
             
             if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
               cat("only <=1 trees on the subplot are alive ")
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }else{
               
               DBH.live  <- DBH[live.trees,]
@@ -1191,22 +1130,22 @@ trees.in.plt
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              #TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
-              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
+              #TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t+1)]-(TPAlive[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAlive[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               # need to put in a max mortality so assign TPADD for all the live trees on the plot to the starting TPA
-              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAmort
+              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAlive
               
               TPADD[trees.subplot[live.trees],,t+1] [ TPADD[trees.subplot[live.trees],,(t+1)] > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
               
               # for trees that are already dead:
               TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
               
             }}else{
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }
         }
       }
@@ -1253,33 +1192,33 @@ trees.in.plt
             
             # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
             if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
-               mean(TPAmort[i,,t], na.rm = TRUE)>0){
+               mean(TPAlive[i,,t], na.rm = TRUE)>0){
               
               
               if(aggressiveCC == TRUE){
                 
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }else{
                 # add to the dead carbon
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
                 
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }
               
             }else{
               TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+              TPAlive[i,,(t+1)] <- TPAlive[i,,(t)]
             }
             
-            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-              TPAmort[i,,(t+1):nt] <- 0
+            if(mean(TPAlive[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAlive[i,,(t+1):nt] <- 0
               # set TPADI as equal to the the max value :
               
               TPADI[i,,(t+1):nt] <- TPAsize[i,,t]
@@ -1297,9 +1236,9 @@ trees.in.plt
         # need to index dbh.pred trees by by the subplot:
         trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
         if(length(trees.subplot)<=1){
-          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
         }else{
-          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
         }
         # recalculated scaled SDI
         sdi.subp[which(sdi.subp[,1]==s),t+2] <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
@@ -1318,7 +1257,7 @@ trees.in.plt
     # save the plot-level arrays:
     # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAlive, paste0("diam_forecastsFIAannual_full/PLT.TPAlive.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # 
     # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
@@ -1340,7 +1279,7 @@ trees.in.plt
       theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
     p.dbh.GD.20
     # TPA mortality
-    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
     
     ggplot(TPA.quants, aes(x = time, y = TPA, group = treeno, color = treeno))+geom_line()
@@ -1443,7 +1382,7 @@ trees.in.plt
     out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
     # get a TPA out:
-    tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
+    tpa.m <- reshape2::melt(TPAlive, id.vars = dim(TPAlive)[2])
     #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
     
     tpa.m <- tpa.m %>% filter(Var3 %in% 1:99)
@@ -1488,7 +1427,7 @@ trees.in.plt
     #run SSM by only ramping up growth dependent climate changes
     ####################################################
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort <- TPAsize <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAlive <- TPAsize <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -1511,7 +1450,7 @@ trees.in.plt
     
     for(i in 1:ni){
       
-      TPAmort[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
+      TPAlive[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       TPAsize[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       TPADD[i,,1:(ntfull+1)] <- 0
       TPADI[i,,1:(ntfull+1)] <- 0
@@ -1532,10 +1471,10 @@ trees.in.plt
         SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
         
         # just changed this....
-        if(mean(TPAmort[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
+        if(mean(TPAlive[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
           dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
           mort.code <- 0
-          TPAmort[i,,(t+1):nt] <- 0
+          TPAlive[i,,(t+1):nt] <- 0
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
@@ -1553,7 +1492,7 @@ trees.in.plt
           TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table ), length(TPAsize[i,,t+1]))
           
           # adjust TPA mort by size if there is a difference
-          TPAmort[i,,t] <- TPAmort[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
+          TPAlive[i,,t] <- TPAlive[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
           
           # TPAsize for a given tree and year is the tree-level mortality maximum in that year et up mortality maximums:
           
@@ -1586,9 +1525,9 @@ trees.in.plt
           
           trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
           if(length(trees.subplot)<=1){
-            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
           }else{
-            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
           }
           sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
           SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
@@ -1615,14 +1554,14 @@ trees.in.plt
             #combined[trees.subplot,]
             rownames(DBH) <- 1:nrow(DBH)
             
-            TPA.all <- TPAmort[trees.subplot,,t]
+            TPA.all <- TPAlive[trees.subplot,,t]
             # get all the trees where there are still TPAlive
             live.trees <- rowSums(TPA.all) > 0
             
             if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
               cat("only <=1 trees on the subplot are alive ")
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }else{
               
               DBH.live  <- DBH[live.trees,]
@@ -1656,22 +1595,22 @@ trees.in.plt
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              #TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
-              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
+              #TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t+1)]-(TPAlive[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAlive[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               # need to put in a max mortality so assign TPADD for all the live trees on the plot to the starting TPA
-              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAmort
+              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAlive
               
               TPADD[trees.subplot[live.trees],,t+1] [ TPADD[trees.subplot[live.trees],,(t+1)] > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
               
               # for trees that are already dead:
               TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
               
             }}else{
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }
         }
       }
@@ -1718,33 +1657,33 @@ trees.in.plt
             
             # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
             if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
-               mean(TPAmort[i,,t], na.rm = TRUE)>0){
+               mean(TPAlive[i,,t], na.rm = TRUE)>0){
               
               
               if(aggressiveCC == TRUE){
                 
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }else{
                 # add to the dead carbon
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
                 
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }
               
             }else{
               TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+              TPAlive[i,,(t+1)] <- TPAlive[i,,(t)]
             }
             
-            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-              TPAmort[i,,(t+1):nt] <- 0
+            if(mean(TPAlive[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAlive[i,,(t+1):nt] <- 0
               # set TPADI as equal to the the max value :
               
               TPADI[i,,(t+1):nt] <- TPAsize[i,,t]
@@ -1762,9 +1701,9 @@ trees.in.plt
         # need to index dbh.pred trees by by the subplot:
         trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
         if(length(trees.subplot)<=1){
-          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
         }else{
-          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
         }
         # recalculated scaled SDI
         sdi.subp[which(sdi.subp[,1]==s),t+2] <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
@@ -1783,7 +1722,7 @@ trees.in.plt
     # save the plot-level arrays:
     # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAlive, paste0("diam_forecastsFIAannual_full/PLT.TPAlive.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # 
     # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
@@ -1805,7 +1744,7 @@ trees.in.plt
       theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
     p.dbh.GD.10
     # TPA mortality
-    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
     
     ggplot(TPA.quants, aes(x = time, y = TPA, group = treeno, color = treeno))+geom_line()
@@ -1907,7 +1846,7 @@ trees.in.plt
     out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
     # get a TPA out:
-    tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
+    tpa.m <- reshape2::melt(TPAlive, id.vars = dim(TPAlive)[2])
     #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
     
     tpa.m <- tpa.m %>% filter(Var3 %in% 1:99)
@@ -1952,7 +1891,7 @@ trees.in.plt
     #run SSM by only ramping up density dependent climate changes
     ####################################################
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort <-TPAsize <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAlive <-TPAsize <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -1975,7 +1914,7 @@ trees.in.plt
     
     for(i in 1:ni){
       
-      TPAmort[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
+      TPAlive[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       TPAsize[i,,1:(ntfull+1)] <- index.df[i, "TPA_UNADJ"]
       TPADD[i,,1:(ntfull+1)] <- 0
       TPADI[i,,1:(ntfull+1)] <- 0
@@ -1995,10 +1934,10 @@ trees.in.plt
         SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
         
         # just changed this....
-        if(mean(TPAmort[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
+        if(mean(TPAlive[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
           dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
           mort.code <- 0
-          TPAmort[i,,(t+1):nt] <- 0
+          TPAlive[i,,(t+1):nt] <- 0
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
@@ -2016,7 +1955,7 @@ trees.in.plt
           TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table ), length(TPAsize[i,,t+1]))
           
           # adjust TPA mort by size if there is a difference
-          TPAmort[i,,t] <- TPAmort[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
+          TPAlive[i,,t] <- TPAlive[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
           
           # TPAsize for a given tree and year is the tree-level mortality maximum in that year et up mortality maximums:
           
@@ -2049,9 +1988,9 @@ trees.in.plt
           
           trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
           if(length(trees.subplot)<=1){
-            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
           }else{
-            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
           }
           sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
           SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
@@ -2078,14 +2017,14 @@ trees.in.plt
             #combined[trees.subplot,]
             rownames(DBH) <- 1:nrow(DBH)
             
-            TPA.all <- TPAmort[trees.subplot,,t]
+            TPA.all <- TPAlive[trees.subplot,,t]
             # get all the trees where there are still TPAlive
             live.trees <- rowSums(TPA.all) > 0
             
             if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
               cat("only <=1 trees on the subplot are alive ")
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }else{
               
               DBH.live  <- DBH[live.trees,]
@@ -2119,22 +2058,22 @@ trees.in.plt
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              #TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
-              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
+              #TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t+1)]-(TPAlive[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAlive[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               # need to put in a max mortality so assign TPADD for all the live trees on the plot to the starting TPA
-              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAmort
+              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAlive
               
               TPADD[trees.subplot[live.trees],,t+1] [ TPADD[trees.subplot[live.trees],,(t+1)] > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
               
               # for trees that are already dead:
               TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
               
             }}else{
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }
         }
       }
@@ -2181,33 +2120,33 @@ trees.in.plt
             
             # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
             if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
-               mean(TPAmort[i,,t], na.rm = TRUE)>0){
+               mean(TPAlive[i,,t], na.rm = TRUE)>0){
               
               
               if(aggressiveCC == TRUE){
                 
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }else{
                 # add to the dead carbon
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
                 
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }
               
             }else{
               TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+              TPAlive[i,,(t+1)] <- TPAlive[i,,(t)]
             }
             
-            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-              TPAmort[i,,(t+1):nt] <- 0
+            if(mean(TPAlive[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAlive[i,,(t+1):nt] <- 0
               # set TPADI as equal to the the max value :
               
               TPADI[i,,(t+1):nt] <- TPAsize[i,,t]
@@ -2225,9 +2164,9 @@ trees.in.plt
         # need to index dbh.pred trees by by the subplot:
         trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
         if(length(trees.subplot)<=1){
-          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
         }else{
-          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
         }
         # recalculated scaled SDI
         sdi.subp[which(sdi.subp[,1]==s),t+2] <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
@@ -2246,7 +2185,7 @@ trees.in.plt
     # save the plot-level arrays:
     # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_full/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_full/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_full/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAlive, paste0("diam_forecastsFIAannual_full/PLT.TPAlive.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # 
     # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_full/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(index.df, paste0("diam_forecastsFIAannual_full/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
@@ -2268,7 +2207,7 @@ trees.in.plt
       theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
     p.dbh.dd.ramp
     # TPA mortality
-    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
     
     ggplot(TPA.quants, aes(x = time, y = TPA, group = treeno, color = treeno))+geom_line()
@@ -2370,7 +2309,7 @@ trees.in.plt
     out.mean <- apply(out, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
     # get a TPA out:
-    tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
+    tpa.m <- reshape2::melt(TPAlive, id.vars = dim(TPAlive)[2])
     #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
     
     tpa.m <- tpa.m %>% filter(Var3 %in% 1:99)
@@ -2436,8 +2375,7 @@ trees.in.plt
       summarise(tmax.m = mean(tmax, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(tmax.m, year, model) %>%group_by(year)%>%
       spread(year, value = tmax.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
     
-    #ppt <- cbind(ppt.hist, ppt.fut)
-    #tmax <- cbind(tmax.hist, tmax.fut)
+  
     SDI <- SDI.PLT.SCALED %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint ) %>% dplyr::select(SUBP,`2001`)
     
     cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plot) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
@@ -2462,7 +2400,7 @@ trees.in.plt
     
 
     # for each tree get the next statespace time step:
-    dbh.pred <- increment <- TPAmort <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    dbh.pred <- increment <- TPAlive <- mort.prob.reduced <- array(NA, dim = c(ni, nsamps, ntfull + 1))
     # dbh.dead:
     dbh.dead <- dbh.pred
     
@@ -2488,7 +2426,7 @@ trees.in.plt
       #   TPA.microplot <- 1/(0.003334877*3)
       # 
       # }else{
-      TPAmort[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
+      TPAlive[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
       TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"]
       TPADI[i,,1:(ntfull + 1)] <- 0
       TPADD[i,,1:(ntfull + 1)] <- 0
@@ -2506,10 +2444,10 @@ trees.in.plt
         SUBPLOT.index <- index.df[ni,]$SUBP # select the subplot for the tree:
         
         # just changed this....
-        if(mean(TPAmort[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
+        if(mean(TPAlive[i,,t], na.rm =TRUE) == 0){ # if the tree was killed off assign dbh.pred to be the previous years prediction will be zero
           dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
           mort.code <- 0
-          TPAmort[i,,(t+1):nt] <- 0
+          TPAlive[i,,(t+1):nt] <- 0
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
@@ -2527,7 +2465,7 @@ trees.in.plt
           TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table ), length(TPAsize[i,,t+1]))
           
           # adjust TPA mort by size if there is a difference
-          TPAmort[i,,t] <- TPAmort[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
+          TPAlive[i,,t] <- TPAlive[i,,t] - (TPAsize[i,,t] - TPAsize[i,,t+1])
           
           # TPAsize for a given tree and year is the tree-level mortality maximum in that year et up mortality maximums:
           
@@ -2560,9 +2498,9 @@ trees.in.plt
           
           trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
           if(length(trees.subplot)<=1){
-            TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
           }else{
-            TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+            TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
           }
           sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
           SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
@@ -2589,14 +2527,14 @@ trees.in.plt
             #combined[trees.subplot,]
             rownames(DBH) <- 1:nrow(DBH)
             
-            TPA.all <- TPAmort[trees.subplot,,t]
+            TPA.all <- TPAlive[trees.subplot,,t]
             # get all the trees where there are still TPAlive
             live.trees <- rowSums(TPA.all) > 0
             
             if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
               cat("only <=1 trees on the subplot are alive ")
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }else{
               
               DBH.live  <- DBH[live.trees,]
@@ -2630,22 +2568,22 @@ trees.in.plt
               # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
               # Also need to use this TPA to calculate SDI as we move forward...
               
-              #TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t+1)]-(TPAmort[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
-              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAmort[trees.subplot[live.trees],,(t)]*mort.per.tree
+              #TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t+1)]-(TPAlive[trees.subplot[live.trees],,(t+1)]*mort.per.tree)
+              TPADD[trees.subplot[live.trees],,t+1] <- TPADD[trees.subplot[live.trees],,t] + TPAlive[trees.subplot[live.trees],,(t)]*mort.per.tree
               
               # need to put in a max mortality so assign TPADD for all the live trees on the plot to the starting TPA
-              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAmort
+              # for trees where all the TPA trees are also dead set TPADD to the previous years TPAlive
               
               TPADD[trees.subplot[live.trees],,t+1] [ TPADD[trees.subplot[live.trees],,(t+1)] > TPAsize[trees.subplot[live.trees],,t]] <-  TPAsize[trees.subplot[live.trees],,t]
               
-              TPAmort[trees.subplot[live.trees],,t+1] <- TPAmort[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
+              TPAlive[trees.subplot[live.trees],,t+1] <- TPAlive[trees.subplot[live.trees],,(t)]-TPADD[trees.subplot[live.trees],,t+1] 
               
               # for trees that are already dead:
               TPADD[trees.subplot[!live.trees],,t+1] <- TPADD[trees.subplot[!live.trees],,t]#TPAsize[trees.subplot[!live.trees],,t] #TPADD[trees.subplot[!live.trees],,t] # keep tracker for dead trees
               
             }}else{
               TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-              TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
+              TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
             }
         }
       }
@@ -2692,33 +2630,33 @@ trees.in.plt
             
             # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
             if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
-               mean(TPAmort[i,,t], na.rm = TRUE)>0){
+               mean(TPAlive[i,,t], na.rm = TRUE)>0){
               
               
               if(aggressiveCC == TRUE){
                 
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }else{
                 # add to the dead carbon
                 TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
                 TPADI[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- TPAsize[i,,t] # cap at TPA size
                 
-                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
-                TPAmort[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
+                TPAlive[i,,(t+1)] <- TPAlive[i,,t]-mort.prob.reduced[i,,t]  #(0.2) # would also have to reduce mnort prob here
+                TPAlive[i,,(t+1)][TPADI[i,,(t+1)] > TPAsize[i,,t]] <- 0
                 
               }
               
             }else{
               TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+              TPAlive[i,,(t+1)] <- TPAlive[i,,(t)]
             }
             
-            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-              TPAmort[i,,(t+1):nt] <- 0
+            if(mean(TPAlive[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAlive[i,,(t+1):nt] <- 0
               # set TPADI as equal to the the max value :
               
               TPADI[i,,(t+1):nt] <- TPAsize[i,,t]
@@ -2736,9 +2674,9 @@ trees.in.plt
         # need to index dbh.pred trees by by the subplot:
         trees.subplot <- as.numeric(rownames(index.df[index.df$SUBP == s,]))
         if(length(trees.subplot)<=1){
-          TPAcalc <- mean(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- mean(TPAlive[trees.subplot,,(t+1)])
         }else{
-          TPAcalc <- rowMeans(TPAmort[trees.subplot,,(t+1)])
+          TPAcalc <- rowMeans(TPAlive[trees.subplot,,(t+1)])
         }
         # recalculated scaled SDI
         sdi.subp[which(sdi.subp[,1]==s),t+2] <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
@@ -2755,7 +2693,7 @@ trees.in.plt
     # save the run with no SDI effect here:
     # saveRDS(dbh.pred, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(dbh.dead, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.dead.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
-    # saveRDS(TPAmort, paste0("diam_forecastsFIAannual_noclimate/PLT.tpamort.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
+    # saveRDS(TPAlive, paste0("diam_forecastsFIAannual_noclimate/PLT.TPAlive.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
     # 
     # saveRDS(sdi.subp, paste0("diam_forecastsFIAannual_noclimate/PLT.sdi.",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.SUBP.fixed.mort.rate.2001.2018.RDS"))
     # saveRDS(index.df, paste0("diam_forecastsFIAannual_noclimate/PLT.dbh.combined",mort.scheme,".", plot,".", scenario,".", SDI.ratio.DD,".", cc.scenario,".mort.prob.fixed.mort.rate.2001.2018.RDS"))
@@ -2778,7 +2716,7 @@ trees.in.plt
     p.noclim
     # 
     # TPA mortality
-    TPA.quants <- reshape2::melt(apply(TPAmort, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
+    TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
     colnames(TPA.quants) <- c("treeno","time", "TPA")
     
     ggplot(TPA.quants, aes(x = time, y = TPA, color = treeno, group = treeno))+geom_line()
@@ -2859,7 +2797,7 @@ trees.in.plt
     
     
     # get a TPA out:
-    tpa.m <- reshape2::melt(TPAmort, id.vars = dim(TPAmort)[2])
+    tpa.m <- reshape2::melt(TPAlive, id.vars = dim(TPAlive)[2])
     #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
     
     tpa.m <- tpa.m %>% filter(Var3 %in% 1:99)
