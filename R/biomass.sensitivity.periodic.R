@@ -357,23 +357,6 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         detrend.samps.df  <- detrend.samps.df %>% dplyr::select(ppt, tmax, model, year)
         
         
-        
-        # get.ens.df <- function(i){
-        #   
-        #   ens.proj.yr <- fut.clim.scen %>% filter(model %in% sample.model[i])
-        #   ens.proj.yr <- ens.proj.yr [!duplicated(ens.proj.yr),]
-        #   
-        #   
-        #   df <- data.frame(ppt = ens.proj.yr$ppt.scale, 
-        #                    tmax = ens.proj.yr$tmax.scale, 
-        #                    model = i, 
-        #                    year = ens.proj.yr$year)
-        #   df
-        # }
-        # 
-        # 
-        # ens.samps <- lapply(1:length(models), get.ens.df)
-        # ens.samps.df <- do.call(rbind, ens.samps)
         ens.samps.df <- samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
         #             tmax.mean = mean(tmax, na.rm = TRUE))
         
@@ -518,6 +501,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
+          increment[i,,(t+1):nt ] <- 0
           
         }else{
            increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
@@ -543,84 +527,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         }
         
         # if after 1st years of forecast the median increment <0 for 3 years in a row, kill off the tree:
-        if(t >= 2 ){
-          
-          # default is that mort.prob == 0 (i.e. no mortality)
-          
-          mort.prob <- 0
-          
-          
-          if(density.independent == TRUE){
-            
-            tindex <- ifelse(t >=6, t-5,
-                             ifelse(t == 5, t-4,
-                                    ifelse(t ==4, t-3,
-                                           ifelse(t==3, t-2,
-                                                  ifelse(t == 2, t-1, t)))))
-
-            #tindex <- t-1
-            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
-            zero.df <- ifelse(zero.means == FALSE, 0, 1)
-            mort.prob <- mean(zero.df, na.rm =TRUE)
-            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
-            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
-            
-            mort.prob <-  pmort
-            #hist(rbinom(n = 100, prob = pmort, size = 1))
-            
-            
-          }
-         mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
-          #mort.prob^(1/10) 
-          mort.code <- rbinom(1,1, prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
-          #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*10) # to tone down, reduce mort.prob 
-          
-          }
         
-        if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(TPAmort[i,,t], na.rm = TRUE)>0){
-          
-          
-          #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
-          #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
-          #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
-          if(aggressiveCC == TRUE){
-            
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
-            
-            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-            
-          }else{
-            # add to the dead carbon
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
-            
-            # subtract from the live carbon
-            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
-            TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
-            
-          }
-          
-        }else{
-          TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-          TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
         }
-        
-        if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-          TPAmort[i,,(t+1):nt] <- 0
-          # set TPADI as equal to the past value 
-          TPADI[i,,(t+1):nt] <- TPADI[i,,t]
-          TPADD[i,,(t):nt] <- TPADD[i,,t-1]
-          # set DBH == 0? Or keep DBH == the last living value?
-          
-          dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
-        }
-        
-        # check to make sure TPA is working properly
-       #  if(mean(TPAmort[i,,t+1], na.rm =TRUE) > mean(TPAmort[i,,t], na.rm =TRUE)){
-       #    cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
-       # TPAmort[i,,t+1] <- 0
-       #  }
-      }
       }
       # use the current SDI to determine density dependnt mortality at the stand scale, then distribute to trees:
       # my attempt to reflect what FVS is doing
@@ -642,10 +550,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           SDI.raw <- rescale.sdi.raw(SDIscaled =  sdi.temp, j = unique(as.character(trees.in.plt$PLT_CN)), a = s)
           
           
-          
+          SDI.ratio.DD.progression <- ifelse(t < 30, SDI.ratio.DD, 
+                                             ifelse(t >= 30, 0.55, 
+                                             ifelse(t >= 40, 0.5, 
+                                                    ifelse(t >= 50, 0.45, 
+                                                           ifelse(t >=60, 0.4, 
+                                                                  ifelse(t>=70, 0.38))))))
           # if the stand is above 70% of SDI and mort probability is not already 1, increase mortality probability
           # this should increase mortality liklihood across all the trees, but mostly larger trees
-          if( SDI.raw > (450/nrow(sdi.subp))*SDI.ratio.DD & length(trees.subplot) > 1){
+          if( SDI.raw > (450/nrow(sdi.subp))*SDI.ratio.DD.progression & length(trees.subplot) > 1){
             
             # loosly basing on FVS mortality:
             # calculate an RI for each tree:
@@ -746,8 +659,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
           TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
         }
-        #TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-        #TPAmort[TPAmort[,1,t+1]<= 0, ,t+1] <- 0
+       
       }
       # before moving onto the next year, calculate the SDI
       # calculate SDI by the subplot
@@ -761,7 +673,83 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         }
         sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(x = dbh.pred[trees.subplot,,t], j = unique(as.character(trees.in.plt$PLT_CN)), a = s, TPAcalc = TPAcalc)
       }
-    }
+      }
+      
+      
+      if(t >= 2 ){
+        
+        # default is that mort.prob == 0 (i.e. no mortality)
+        
+        mort.prob <- 0
+        
+        
+        if(density.independent == TRUE){
+          
+          tindex <- ifelse(t >=6, t-5,
+                           ifelse(t == 5, t-4,
+                                  ifelse(t ==4, t-3,
+                                         ifelse(t==3, t-2,
+                                                ifelse(t == 2, t-1, t)))))
+          
+      for(i in 1:ni){
+          zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
+          zero.df <- ifelse(zero.means == FALSE, 0, 1)
+          mort.prob <- mean(zero.df, na.rm =TRUE)
+          #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+          # updating pmort to reflect the mean of the last ~5 years
+          pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+          
+          mort.prob <-  pmort
+          #hist(rbinom(n = 100, prob = pmort, size = 1))
+          
+          
+          
+          mort.prob.reduced[i,,t] <- mort.prob*20/(scale.mort.prob) # check what the distribution is of this
+          #mort.prob^(1/10) 
+          mort.code <- rbinom(1,1, prob = min(1, pmort*20))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+          #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*20) # to tone down, reduce mort.prob 
+          
+          
+          
+          # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
+          if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
+             mean(TPAmort[i,,t], na.rm = TRUE)>0){
+            
+            
+            if(aggressiveCC == TRUE){
+              
+              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
+              
+              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+              
+            }else{
+              # add to the dead carbon
+              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
+              
+              # subtract from the live carbon
+              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
+              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
+              
+            }
+            
+          }else{
+            TPADI[i,,(t+1)] <- TPADI[i,,(t)]
+            TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+          }
+          
+          if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+            TPAmort[i,,(t+1):nt] <- 0
+            # set TPADI as equal to the past value 
+            TPADI[i,,(t+1):nt] <- TPADI[i,,t]
+            TPADD[i,,(t):nt] <- TPADD[i,,t-1]
+            # set DBH == 0? Or keep DBH == the last living value?
+            
+            dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
+          }
+          }
+        } 
+      }
     
     }
     # not sure what is happening with the TPA reducing and then going up again...]
@@ -932,23 +920,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     tpa.diff.mean <- apply(out.tpa.diff, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
     
     # 
-    # out.dead <- out.mean*tpa.diff.mean
-    
-    # tpa.diff.df %>% filter(Var3 %in% 99)
-    # TPA.DD.quants %>% filter(time %in% 99)
-    # TPA.DI.quants %>% filter(time %in% 99)
-    # dead.m <- melt(dbh.dead, id.vars = dim(dbh.dead)[2])
-    # dead.m$newVar3 <- rep(4:102, each = 100*ni)
-    # tpa.m$id <- paste0("x[",tpa.m$Var1, ",", tpa.m$newVar3,"]")
-    # 
-    # TPA.ordered <- tpa.m$id
-    # test.m.time.dead <- test.m %>% dplyr::select(-Var1, -Var3) %>% group_by(Var2) %>%  %>% spread(key = id, value = value)
-    # out.dead <- test.m.time.dead %>% ungroup()%>% dplyr::select(-Var2) %>% dplyr::select(colid.ordered)
-    # # #out <- out[1:50,]
-    # out.mean.dead <- apply(out.dead, MARGIN = 2, function(x){quantile(x, c(0.025, 0.5, 0.975), na.rm =TRUE)})
-    # 
-    
-    
+   
     # biomass estimation
     
     cat("start biomass estimates full model")
@@ -958,6 +930,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                      folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), parse.type = "full", mort.prob.reduced  = mort.prob.reduced)
     plot(full$year, full$mAGB)
     plot(full$year, full$mAGB.dead)
+    
     ####################################################
     #run SSM with an SDI effect of 0
     ####################################################
@@ -1010,9 +983,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
+          increment[i,,(t+1):nt ] <- 0
           
         }else{
-          increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0,#sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
+          increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0,
                                                                                                                                                                         MAP = MAP,
                                                                                                                                                                         MAT= MAT,
                                                                                                                                                                         ppt = covariates$ppt[,t],
@@ -1035,83 +1009,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           }
           
           # if after 1st years of forecast the median increment <0 for 3 years in a row, kill off the tree:
-          if(t >= 2 ){
-            
-            # default is that mort.prob == 0 (i.e. no mortality)
-            
-            mort.prob <- 0
-            
-            
-            if(density.independent == TRUE){
-              
-              tindex <- ifelse(t >=6, t-5,
-                               ifelse(t == 5, t-4,
-                                      ifelse(t ==4, t-3,
-                                             ifelse(t==3, t-2,
-                                                    ifelse(t == 2, t-1, t)))))
-              
-              #tindex <- t-1
-              zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
-              zero.df <- ifelse(zero.means == FALSE, 0, 1)
-              mort.prob <- mean(zero.df, na.rm =TRUE)
-              #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
-              pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
-              
-              mort.prob <-  pmort
-              #hist(rbinom(n = 100, prob = pmort, size = 1))
-              
-              
-            }
-            mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
-            #mort.prob^(1/10) 
-            mort.code <- rbinom(1,1, prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
-            #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*10) # to tone down, reduce mort.prob 
-            
-          }
           
-          if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(TPAmort[i,,t], na.rm = TRUE)>0){
-            
-            
-            #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
-            #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
-            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
-            if(aggressiveCC == TRUE){
-              
-              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
-              
-              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-              
-            }else{
-              # add to the dead carbon
-              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
-              
-              # subtract from the live carbon
-              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
-              
-            }
-            
-          }else{
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-            TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
-          }
-          
-          if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-            TPAmort[i,,(t+1):nt] <- 0
-            # set TPADI as equal to the past value 
-            TPADI[i,,(t+1):nt] <- TPADI[i,,t]
-            TPADD[i,,(t):nt] <- TPADD[i,,t-1]
-            # set DBH == 0? Or keep DBH == the last living value?
-            
-            dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
-          }
-          
-          # check to make sure TPA is working properly
-          #  if(mean(TPAmort[i,,t+1], na.rm =TRUE) > mean(TPAmort[i,,t], na.rm =TRUE)){
-          #    cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
-          # TPAmort[i,,t+1] <- 0
-          #  }
         }
       }
       # use the current SDI to determine density dependnt mortality at the stand scale, then distribute to trees:
@@ -1134,7 +1032,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           SDI.raw <- rescale.sdi.raw(SDIscaled =  sdi.temp, j = unique(as.character(trees.in.plt$PLT_CN)), a = s)
           
           
-          
+        
           # if the stand is above 70% of SDI and mort probability is not already 1, increase mortality probability
           # this should increase mortality liklihood across all the trees, but mostly larger trees
           if( SDI.raw > (450/nrow(sdi.subp))*SDI.ratio.DD & length(trees.subplot) > 1){
@@ -1238,8 +1136,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
             TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
           }
-          #TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-          #TPAmort[TPAmort[,1,t+1]<= 0, ,t+1] <- 0
+          
         }
         # before moving onto the next year, calculate the SDI
         # calculate SDI by the subplot
@@ -1253,6 +1150,82 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           }
           sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(x = dbh.pred[trees.subplot,,t], j = unique(as.character(trees.in.plt$PLT_CN)), a = s, TPAcalc = TPAcalc)
         }
+      }
+      
+      
+      if(t >= 2 ){
+        
+        # default is that mort.prob == 0 (i.e. no mortality)
+        
+        mort.prob <- 0
+        
+        
+        if(density.independent == TRUE){
+          
+          tindex <- ifelse(t >=6, t-5,
+                           ifelse(t == 5, t-4,
+                                  ifelse(t ==4, t-3,
+                                         ifelse(t==3, t-2,
+                                                ifelse(t == 2, t-1, t)))))
+          
+          for(i in 1:ni){
+            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
+            zero.df <- ifelse(zero.means == FALSE, 0, 1)
+            mort.prob <- mean(zero.df, na.rm =TRUE)
+            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+            # updating pmort to reflect the mean of the last ~5 years
+            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+            
+            mort.prob <-  pmort
+            #hist(rbinom(n = 100, prob = pmort, size = 1))
+            
+            
+            
+            mort.prob.reduced[i,,t] <- mort.prob*20/(scale.mort.prob) # check what the distribution is of this
+            #mort.prob^(1/10) 
+            mort.code <- rbinom(1,1, prob = min(1, pmort*20))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+            #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*20) # to tone down, reduce mort.prob 
+            
+            
+            
+            # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
+            if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
+               mean(TPAmort[i,,t], na.rm = TRUE)>0 ){
+              
+              
+              if(aggressiveCC == TRUE){
+                
+                TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
+                
+                #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                
+              }else{
+                # add to the dead carbon
+                TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
+                
+                # subtract from the live carbon
+                #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
+                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
+                
+              }
+              
+            }else{
+              TPADI[i,,(t+1)] <- TPADI[i,,(t)]
+              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+            }
+            
+            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAmort[i,,(t+1):nt] <- 0
+              # set TPADI as equal to the past value 
+              TPADI[i,,(t+1):nt] <- TPADI[i,,t]
+              TPADD[i,,(t):nt] <- TPADD[i,,t-1]
+              # set DBH == 0? Or keep DBH == the last living value?
+              
+              dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
+            }
+          }
+        } 
       }
       
     }
@@ -1451,11 +1424,11 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     full.df <- rbind(hist.samps.df, detrend.samps.df %>% filter(!year %in% 2018))
     full.df.nodups <- full.df[!duplicated(full.df),]
     #full.df.nodups$rowid <- 1:length(full.df.nodups$ppt)
-    full.ens.ppt <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>% group_by(model, year)%>% 
+    full.ens.ppt.detrend <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>% group_by(model, year)%>% 
       summarise(ppt.m = mean(ppt, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(ppt.m, year, model) %>%group_by(year)%>%
       spread(year, value = ppt.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
     
-    full.ens.tmax <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model, year)%>% 
+    full.ens.tmax.detrend <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model, year)%>% 
       summarise(tmax.m = mean(tmax, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(tmax.m, year, model) %>%group_by(year)%>%
       spread(year, value = tmax.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
     
@@ -1479,7 +1452,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     covariates <- list()
     covariates$SDI <- as.matrix(SDI)
     covariates$ppt <- as.matrix(full.ens.ppt)
-    covariates$tmax <- as.matrix(full.ens.tmax) 
+    covariates$tmax <-  as.matrix(full.ens.tmax.detrend) 
     covariates$MAP <- MAP
     covariates$MAT <- MAT
     
@@ -1533,9 +1506,10 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           TPADI[i,,(t+1):nt] <- TPADI[i,,t]
           TPADD[i,,(t+1):nt] <- TPADD[i,,t]
           #dbh.dead[i,,3+t+1] <- dbh.dead[i,,3+t]
+          increment[i,,(t+1):nt ] <- 0
           
         }else{
-          increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = 0,#sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
+          increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subp[which(sdi.subp[,1]==SUBPLOT.index),t+1],
                                                                                                                                                                         MAP = MAP,
                                                                                                                                                                         MAT= MAT,
                                                                                                                                                                         ppt = covariates$ppt[,t],
@@ -1558,83 +1532,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           }
           
           # if after 1st years of forecast the median increment <0 for 3 years in a row, kill off the tree:
-          if(t >= 2 ){
-            
-            # default is that mort.prob == 0 (i.e. no mortality)
-            
-            mort.prob <- 0
-            
-            
-            if(density.independent == TRUE){
-              
-              tindex <- ifelse(t >=6, t-5,
-                               ifelse(t == 5, t-4,
-                                      ifelse(t ==4, t-3,
-                                             ifelse(t==3, t-2,
-                                                    ifelse(t == 2, t-1, t)))))
-              
-              #tindex <- t-1
-              zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
-              zero.df <- ifelse(zero.means == FALSE, 0, 1)
-              mort.prob <- mean(zero.df, na.rm =TRUE)
-              #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
-              pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
-              
-              mort.prob <-  pmort
-              #hist(rbinom(n = 100, prob = pmort, size = 1))
-              
-              
-            }
-            mort.prob.reduced[i,,t] <- mort.prob/(scale.mort.prob) # check what the distribution is of this
-            #mort.prob^(1/10) 
-            mort.code <- rbinom(1,1, prob = max(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
-            #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*10) # to tone down, reduce mort.prob 
-            
-          }
           
-          if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & mean(TPAmort[i,,t], na.rm = TRUE)>0){
-            
-            
-            #dbh.dead[i,,(3+t+1):(3+nt)] <- dbh.pred[i,,3+t] # set dead diameter to the last live estimated diameter for the tree
-            #dbh.pred[i,,(3+t+1):(3+nt)] <- 0 # set live diameter to zero
-            #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob # if the three has a high probability of dying, reduce TPA by 1
-            if(aggressiveCC == TRUE){
-              
-              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
-              
-              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
-              
-            }else{
-              # add to the dead carbon
-              TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
-              
-              # subtract from the live carbon
-              #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
-              TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
-              
-            }
-            
-          }else{
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)]
-            TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
-          }
-          
-          if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
-            TPAmort[i,,(t+1):nt] <- 0
-            # set TPADI as equal to the past value 
-            TPADI[i,,(t+1):nt] <- TPADI[i,,t]
-            TPADD[i,,(t):nt] <- TPADD[i,,t-1]
-            # set DBH == 0? Or keep DBH == the last living value?
-            
-            dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
-          }
-          
-          # check to make sure TPA is working properly
-          #  if(mean(TPAmort[i,,t+1], na.rm =TRUE) > mean(TPAmort[i,,t], na.rm =TRUE)){
-          #    cat(paste0("TPA at time ", t+1, "is greater than at time ",t, "for tree ", i))
-          # TPAmort[i,,t+1] <- 0
-          #  }
         }
       }
       # use the current SDI to determine density dependnt mortality at the stand scale, then distribute to trees:
@@ -1761,8 +1659,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
             TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
             TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
           }
-          #TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
-          #TPAmort[TPAmort[,1,t+1]<= 0, ,t+1] <- 0
+          
         }
         # before moving onto the next year, calculate the SDI
         # calculate SDI by the subplot
@@ -1776,6 +1673,82 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
           }
           sdi.subp[which(sdi.subp[,1]==s),t+2] <- calc.sdi.subp(x = dbh.pred[trees.subplot,,t], j = unique(as.character(trees.in.plt$PLT_CN)), a = s, TPAcalc = TPAcalc)
         }
+      }
+      
+      
+      if(t >= 2 ){
+        
+        # default is that mort.prob == 0 (i.e. no mortality)
+        
+        mort.prob <- 0
+        
+        
+        if(density.independent == TRUE){
+          
+          tindex <- ifelse(t >=6, t-5,
+                           ifelse(t == 5, t-4,
+                                  ifelse(t ==4, t-3,
+                                         ifelse(t==3, t-2,
+                                                ifelse(t == 2, t-1, t)))))
+          
+          for(i in 1:ni){
+            zero.means <-  colMeans(increment[i,,(tindex):(t)], na.rm = TRUE) <= 0.01 
+            zero.df <- ifelse(zero.means == FALSE, 0, 1)
+            mort.prob <- mean(zero.df, na.rm =TRUE)
+            #pmort <-  as.vector(inv.logit(alpha + (b.growth * increment[i,,tindex+1:t])))
+            # updating pmort to reflect the mean of the last ~5 years
+            pmort <-  as.vector(inv.logit(alpha.mort + (b.growth * increment[i,,t]) + (b.dbh*dbh.pred[i,,t]) ))
+            
+            mort.prob <-  pmort
+            #hist(rbinom(n = 100, prob = pmort, size = 1))
+            
+            
+            
+            mort.prob.reduced[i,,t] <- mort.prob*10/(scale.mort.prob) # check what the distribution is of this
+            #mort.prob^(1/10) 
+            mort.code <- rbinom(1,1, prob = min(1, pmort*10))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
+            #mort.code <- rbinom(1,1, prob = mort.prob.reduced[i,,t]*20) # to tone down, reduce mort.prob 
+            
+            
+            
+            # if the mort code is one, and the tree is not already dead-dead, and it was not already killed in density dependent mortality
+            if(mort.code == 1 & is.na(mean(dbh.dead[i,,t])) & 
+               mean(TPAmort[i,,t], na.rm = TRUE)>0 ){
+              
+              
+              if(aggressiveCC == TRUE){
+                
+                TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
+                
+                #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-((TPAmort[i,,t]* mort.prob.reduced[i,,t])*2)  #(0.2) # would also have to reduce mnort prob here
+                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]*2  #(0.2) # would also have to reduce mnort prob here
+                
+              }else{
+                # add to the dead carbon
+                TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
+                
+                # subtract from the live carbon
+                #TPAmort[i,,(t+1)] <- TPAmort[i,,t]-(TPAmort[i,,t]* mort.prob.reduced[i,,t]) #0.1
+                TPAmort[i,,(t+1)] <- TPAmort[i,,t]-mort.prob.reduced[i,,t]#TPADI[i,,(t+1)] #0.1
+                
+              }
+              
+            }else{
+              TPADI[i,,(t+1)] <- TPADI[i,,(t)]
+              TPAmort[i,,(t+1)] <- TPAmort[i,,(t)]
+            }
+            
+            if(mean(TPAmort[i,,t+1], na.rm =TRUE) <= 0){ # if all the representative trees are dead, 
+              TPAmort[i,,(t+1):nt] <- 0
+              # set TPADI as equal to the past value 
+              TPADI[i,,(t+1):nt] <- TPADI[i,,t]
+              TPADD[i,,(t):nt] <- TPADD[i,,t-1]
+              # set DBH == 0? Or keep DBH == the last living value?
+              
+              dbh.pred[i,,(t+1):nt] <- dbh.pred[i,,t]
+            }
+          }
+        } 
       }
       
     }
@@ -1941,12 +1914,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     cat("start biomass estimates no precipitation")
     noClim <- plot2AGB(combined = combined, out = out.mean, tpa = tpa.mean, tpa.diff = tpa.diff.mean, tpa.di = tpa.DI.means.index, tpa.DD.means.index, mort.scheme = mort.scheme, allom.stats = kaye_pipo, unit.conv = 0, plot = plot, yrvec = 2001:2098, scenario = scenario,cc.scenario = cc.scenario, p = NULL, p.inc = NULL, SDI.ratio.DD = SDI.ratio.DD, plt.design = "periodic", folder.name = paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob), parse.type = "detrendedCC", mort.prob.reduced  = mort.prob.reduced)
     
-    
-    }   
-    
     inc.plts <- cowplot::plot_grid(p.inc, p.inc.noclim+ggtitle("no climate change"), align="hv")
     
-    cowplot::save_plot(inc.plts, base_height = 5,device = "png",filename=  paste0("plot_level_images/increments_",plot, "_", rcp, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(inc.plts, base_height = 5,device = "png",filename=  paste0("plot_level_images/increments_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     #png(height = 8.5, width = 8.5, units = "in", res = 200, paste0("plot_level_images/diameters_",plot, "_", rcp, "_", scale.mort.prob, ".png"))
@@ -1954,7 +1924,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    p.diam.tpa, p.diam.tpa.noclim+ggtitle("no climate change"), align="hv")
     
     
-    cowplot::save_plot(dia.plts,base_height = 5, device = "png", filename= paste0("plot_level_images/diameter_",plot, "_", rcp, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(dia.plts,base_height = 5, device = "png", filename= paste0("plot_level_images/diameter_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     full$forecast.type <- "full"
@@ -1969,8 +1939,12 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
       theme_bw()
     
     abg.plt <- cowplot::plot_grid(AGB.plt, AGB.ded.plot, align="hv")
-    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images/agb_",plot, "_", rcp, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images/agb_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
     
+    
+    }   
+    
+
 }  
 }
 }
