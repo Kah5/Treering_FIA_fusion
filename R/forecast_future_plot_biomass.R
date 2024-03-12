@@ -500,7 +500,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
  if(length(alphatreeid)>1){
 
-   treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
+   treealphas <- lapply(alphatreeid, get_mcmc_samples, betas = alphas, nsamps = nsamps)
    treealphas <- do.call(cbind, treealphas)
    colnames(treealphas)<- alphatreeid
    treealphas <- rowMeans(treealphas)
@@ -652,7 +652,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 
 
 #x <- 4203
-simulate.xvals.from.model.oos(m = 326, nsamps = 100)
+simulate.xvals.from.model.oos(m = 260, nsamps = 100)
 
 # see how long this will take:
 system.time(sims.x.forecast <- lapply(11:20, simulate.xvals.from.model.oos))
