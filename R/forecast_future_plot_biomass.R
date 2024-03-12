@@ -469,11 +469,12 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   for(i in 1:length(treeids$treeid)){
     alphatreeid[i]<- paste0("alpha_TREE[", treeids[i,], "]")
 
-  }}
+  }
+  }else{
   # 
   # sample 
   alphatreeid <- paste0("alpha_TREE[", treeids, "]")
-  
+  }
   #model.covs <- substring(colnames(betas), 5)
   
   
@@ -502,6 +503,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
    treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
    treealphas <- do.call(cbind, treealphas)
    colnames(treealphas)<- alphatreeid
+   treealphas <- rowMeans(treealphas)
    
  }else{
    treealphas <- get_mcmc_samples(x = alphatreeid, betas = alphas , nsamps = nsamps)
@@ -650,7 +652,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 
 
 #x <- 4203
-simulate.xvals.from.model.oos(m = 4203, nsamps = 100)
+simulate.xvals.from.model.oos(m = 326, nsamps = 100)
 
 # see how long this will take:
 system.time(sims.x.forecast <- lapply(11:20, simulate.xvals.from.model.oos))
@@ -659,10 +661,10 @@ system.time(sims.x.forecast <- lapply(11:20, simulate.xvals.from.model.oos))
 if(file.exists(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))){
   x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 }else{
-  sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
-x.mat2 <- do.call(cbind, sims.x.forecast)
+ sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
+ x.mat2 <- do.call(cbind, sims.x.forecast)
 
-saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
+ saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 }
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
 #--------------------------------------------------------------------------------------------- 
@@ -786,10 +788,10 @@ dbh = 1:50 # vector of DBH values to predict over
 # and the diameter estimates for all the trees:
 plot = unique(plots)[22]
 
-plot = '2482066010690'
-density.dependent = FALSE
-density.independent = FALSE
-rcp <- "rcp26"
+# plot = '2482066010690'
+# density.dependent = TRUE
+# density.independent = TRUE
+# rcp <- "rcp26"
 
 #-----------------------------------------------------------------------
 # read in future climate, which has been mean corrected and downscaled:
@@ -807,8 +809,7 @@ clim.data <- time_data
 x <- plot
 
 library(data.table)
-# full.clim.dt <- as.data.table(full.clim)     # data.table
-# microbenchmark(DT[age > 5],times=10)
+
 full.clim$ppt.scale <- NA
 full.clim$tmax.scale <- NA
 
@@ -831,10 +832,10 @@ scale.fut.clim.by.plt <- function(x, future.clim.subset){
 
 
 
-variable.rad.411 <- TREEinPLOTS  %>% filter(DESIGNCD == 411) %>% select(PLT_CN)%>% distinct()
-annual.design.plots <- TREEinPLOTS  %>% filter(DESIGNCD == 1) %>% select(PLT_CN)%>% distinct()
-TREEinPLOTS  %>% group_by(TPA_UNADJ > 6.02) %>% summarise(n())
-TREEinPLOTS  %>% group_by(DESIGNCD) %>% summarise(n())
+# variable.rad.411 <- TREEinPLOTS  %>% filter(DESIGNCD == 411) %>% select(PLT_CN)%>% distinct()
+# annual.design.plots <- TREEinPLOTS  %>% filter(DESIGNCD == 1) %>% select(PLT_CN)%>% distinct()
+# TREEinPLOTS  %>% group_by(TPA_UNADJ > 6.02) %>% summarise(n())
+# TREEinPLOTS  %>% group_by(DESIGNCD) %>% summarise(n())
 
 # read in model estimated with mortality from all trees
 m2 <- readRDS("m2_pipo_mort_year.rds") # from mortality_analysis_FVSmrt.R
@@ -848,13 +849,14 @@ plot <- variable.rad.411[1,]
 unique(plots)
 source("R/plot2AGB_kayeFVS.R")
 source("R/biomass.sensitivity.periodic_4scenarios.R")
+source("R/generate_forecast.R")
 # run the function that makes all of the forecasts
 # system.time(biomass.sensitivity.periodic( plot = '2533485010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
 # system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
 
-odd.plots <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
-system.time(biomass.sensitivity.periodic( plot =variable.rad.411[1,], density.dependent = TRUE, density.independent = TRUE, scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
-plot <- unique(odd.plots$plot)[1]
+#odd.plots <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
+#system.time(biomass.sensitivity.periodic( plot =variable.rad.411[1,], density.dependent = TRUE, density.independent = TRUE, scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
+#plot <- unique(odd.plots$plot)[1]
 
 # run all the plots for this scenario and 80% max SDI
 # started at 13:48pm 4/27/23
@@ -862,11 +864,11 @@ plot <- unique(odd.plots$plot)[1]
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
 # lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-plot <- annual.design.plots[1,]
-scenario = "rcp26"
-biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
+#plot <- annual.design.plots[1,]
+#scenario = "rcp26"
+#biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 
-biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
+#biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 biomass.sensitivity.periodic(plot = 2451953010690, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 2567114010690
 plot <- 2447900010690 # vector memory limit exhausted
