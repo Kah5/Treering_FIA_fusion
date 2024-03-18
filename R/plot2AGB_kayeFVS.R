@@ -56,7 +56,7 @@ plot2AGB <- function(combined, out, tpa , tpa.diff , tpa.di, tpa.dd, mort.scheme
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >6){
+  if(length(combined) >7){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
