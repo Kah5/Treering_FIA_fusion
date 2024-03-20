@@ -4,6 +4,8 @@
 generate.plot.forecast <- function(index.df, covariates, all.dbh, betas.all,
                                    sdi.subp, 
                                    sdi.subp.raw,
+                                   # read in designCD.table
+                                   DESIGNCD.table = DESIGNCD.table,
                                    ramp.density = TRUE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 10, # scaler to multiply DI mortality by
                                    # keep these set to true
@@ -129,7 +131,7 @@ for(t in 1:nt){ # for each year t in the # of trees
       sdi.temp <-  calc.sdi.subp.simple(x = dbh.pred[trees.subplot,,t], scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all, TPAcalc = TPAcalc)
       SDI.raw <- rescale.sdi(SDIscaled =  sdi.temp, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all)
       
-      if(ramp.density ==TRUE){
+      if(ramp.density == TRUE){
         # when set to true, this ramps up the density dependent mortality by reducing the SDImax that is needed to turn DD mort on
       SDI.ratio.DD.progression <- ifelse(t < 30, SDI.ratio.DD, 
                                          ifelse(t >= 30, 0.55, 
@@ -142,7 +144,7 @@ for(t in 1:nt){ # for each year t in the # of trees
       }
       # if the stand is above 70% of SDI and mort probability is not already 1, increase mortality probability
       # this should increase mortality liklihood across all the trees, but mostly larger trees
-      if( SDI.raw > (450/4)*SDI.ratio.DD.progression & length(trees.subplot) > 1){
+      if( SDI.raw > (450/DESIGNCD.table$N.subplots.points)*SDI.ratio.DD.progression & length(trees.subplot) > 1){
         
         # loosly basing on FVS mortality:
         # calculate an RI for each tree:
@@ -272,16 +274,11 @@ for(t in 1:nt){ # for each year t in the # of trees
         if(mort.code == 1  &  mean(TPAlive[i,,t], na.rm = TRUE)>0){
           
           
-          if(aggressiveCC == TRUE){
-            
-            TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t]*2)  #(0.2) # would also have to reduce mnort prob here
-        
-          }else{
-            
+  
             # if the cc is not mulitplied by 2
             TPADI[i,,(t+1)] <- TPADI[i,,(t)] + (mort.prob.reduced[i,,t])  #(0.2) # would also have to reduce mnort prob here
             
-          }
+          
           
         }else{
           # just carry over the values from the previous year
@@ -300,6 +297,8 @@ for(t in 1:nt){ # for each year t in the # of trees
         # if the total dead is greater than the total possible dead, 
         # reconcile the values reduce DD and DI
         # the combined DI and DD mortality can't be more than TPAsize
+        # this might need to be TPAlive instead of TPAsize??
+        
         if(mean(TPAmort[i,,t+1], na.rm =TRUE) > mean(TPAsize[i,,t])){
           
           over.by <- ( TPAmort[i,,t+1] - TPAsize[i,,t] )
@@ -427,7 +426,7 @@ colnames(TPA.DI.quants) <- c("treeno","time", "TPA")
 #ggplot(TPA.DI.quants, aes(x = time, y = TPA, group = treeno, color = treeno))+geom_line()
 
 
-TPA.DI.quants %>% filter(time %in% 99)
+#TPA.DI.quants %>% filter(time %in% 99)
 # tpa.quants.spread <- TPA.quants %>% group_by(treeno, time) %>% spread(quantile, TPA)
 # dbh.means <- reshape2::melt(apply(dbh.pred, c(1,3), function(x){mean(x, na.rm = TRUE)}))
 # colnames(dbh.means) <- c("treeno","time", "diameter")
@@ -479,10 +478,39 @@ if(nrow(sdi.subp.raw) == 1){
                            value = SDI.values$value, 
                            Var1 = 1)
 }
+if(ramp.density == TRUE){
+  
+  SDI.ratio.df <- data.frame(SDI.ratio = c(rep(SDI.ratio.DD, 29), 
+                         rep( 0.55, 10), 
+                         rep( 0.5, 10), 
+                         rep(0.45, 10), 
+                         rep( 0.4, 10), 
+                         rep(0.38, 30)), 
+                         year = 1:99, 
+                         SDI.max = 450/DESIGNCD.table$N.subplots.points) %>% 
+    group_by(year)%>%
+    mutate(ramped.SDI = (SDI.max)*SDI.ratio)
+  
+
 p.SDI <- ggplot() +
   geom_line(data = SDI.values, aes(x = Var2, y = value, color = as.character(Var1)))+
   theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")+
-  geom_hline(yintercept = (450/4)*0.6, color = "darkgrey", linetype = "dashed")
+  geom_line(data = SDI.ratio.df, aes(x = year, y = ramped.SDI), color = "darkgrey", linetype = "dashed")
+
+}else{
+  
+  SDI.ratio.DD.progression <- SDI.ratio.DD
+  p.SDI <- ggplot() +
+    geom_line(data = SDI.values, aes(x = Var2, y = value, color = as.character(Var1)))+
+    theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")+
+    geom_hline(yintercept = ((450/DESIGNCD.table$N.subplots.points)*SDI.ratio.DD.progression), color = "darkgrey", linetype = "dashed")
+  
+}
+
+# p.SDI <- ggplot() +
+#   geom_line(data = SDI.values, aes(x = Var2, y = value, color = as.character(Var1)))+
+#   theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")+
+#   geom_hline(yintercept = ((450/DESIGNCD.table$N.subplots.points)*SDI.ratio.DD.progression), color = "darkgrey", linetype = "dashed")
 
 #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
 
@@ -567,7 +595,7 @@ full <- plot2AGB(combined = combined,
                  p.inc = NULL, 
                  SDI.ratio.DD = SDI.ratio.DD, 
                  plt.design = "periodic", 
-                 folder.name = paste0("biomass_dataFIAperiodic_",scale.mort.prob), 
+                 folder.name = paste0("biomass_dataFIAperiodic_", scale.mort.prob), 
                  parse.type = "full", 
                  mort.prob.reduced  = mort.prob.reduced)
 
