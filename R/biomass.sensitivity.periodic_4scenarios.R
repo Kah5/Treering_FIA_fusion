@@ -124,7 +124,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
 
   # make a big array with all the DBH estimates:
   
-    ni <- ncol(all.dbh)#/4 # number of individuals per plot (divide by 4 because its the #years in the data)
+    ni <- ncol(all.dbh)
   
     
     nsamps <- length(all.dbh[,1])
@@ -427,6 +427,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
 
   rescale.sdi(SDIscaled = SDI$`2001`) 
   
+  # get the first years SDI (raw) based on the PIPO trees
   sdi.subp.raw[,2] <- rescale.sdi(covariates$SDI[,2])
   
   # simpler SDI calculation
@@ -467,6 +468,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    sdi.subp = sdi.subp, 
                                    sdi.subp.raw = sdi.subp.raw,
                                    all.dbh = all.dbh, betas.all = betas.all, 
+                                   DESIGNCD.table = DESIGNCD.table,
                                    ramp.density = TRUE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 20, # scaler to multiply DI mortality by
                                    # keep these set to true
@@ -488,6 +490,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    all.dbh = all.dbh, betas.all = betas.all, 
                                    sdi.subp = sdi.subp, 
                                    sdi.subp.raw = sdi.subp.raw,
+                                   DESIGNCD.table = DESIGNCD.table,
                                    ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 20, # scaler to multiply DI mortality by
                                    # keep these set to true
@@ -508,6 +511,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     GD.10 <- generate.plot.forecast(index.df = index.df, 
                                     covariates = covariates, 
                                     all.dbh = all.dbh, betas.all = betas.all, 
+                                    DESIGNCD.table = DESIGNCD.table,
                                     sdi.subp = sdi.subp, 
                                     sdi.subp.raw = sdi.subp.raw,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
@@ -528,6 +532,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     DD.ramp <- generate.plot.forecast(index.df = index.df, 
                                     covariates = covariates, 
                                     all.dbh = all.dbh, betas.all = betas.all, 
+                                    DESIGNCD.table = DESIGNCD.table,
                                     sdi.subp = sdi.subp, 
                                     sdi.subp.raw = sdi.subp.raw,
                                     ramp.density = TRUE, # if true, will decrease the SDImax threshold 
@@ -557,7 +562,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     full.df <- rbind(hist.samps.df, detrend.samps.df %>% filter(!year %in% 2018))
     full.df.nodups <- full.df[!duplicated(full.df),]
-    #full.df.nodups$rowid <- 1:length(full.df.nodups$ppt)
+   
     full.ens.ppt.detrend <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>% group_by(model, year)%>% 
       summarise(ppt.m = mean(ppt, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(ppt.m, year, model) %>%group_by(year)%>%
       spread(year, value = ppt.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
@@ -586,6 +591,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     noClim <- generate.plot.forecast(index.df = index.df, 
                                     covariates = covariates, 
                                     all.dbh = all.dbh, betas.all = betas.all, 
+                                    DESIGNCD.table = DESIGNCD.table,
                                     sdi.subp = sdi.subp, 
                                     sdi.subp.raw = sdi.subp.raw,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
