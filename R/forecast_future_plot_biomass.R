@@ -886,33 +886,71 @@ biomass.sensitivity.periodic(plt.num = 3250176010690, #2469918010690 ,
                              #xmat2 = xmat2, 
                              SDIscaled.matrix = SDIscaled,
                              time_data_list = time_data)
-plot <- unique(highAGBplots)[1,]
+plt.num <- unique(highAGBplots)[1,]
 plot <- 3250176010690 # vector memeory limit reached
 # plot <- 2567114010690
 # plot <- 2447900010690 # vector memory limit exhausted
 unique(plots)[1:675] %in% 2972526010690
 # fixed the plotting issue for SDI with only 1 subplot:
 
-lapply(unique(plots)[1:10],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+system.time(lapply(unique(plots)[1:2],
+                   FUN = function(x){biomass.sensitivity.periodic(plt.num = x, #2469918010690 , 
+                                                                  density.dependent = TRUE, 
+                                                                  density.independent = TRUE, 
+                                                                  scenario = "rcp26", 
+                                                                  SDI.ratio.DD = 0.7, 
+                                                                  aggressiveCC = FALSE, 
+                                                                  scale.mort.prob = 1, 
+                                                                  cov.data.regional.df = cov.data.regional, 
+                                                                  TREE.FIA = TREE, 
+                                                                  ci.names.df = ci.names, 
+                                                                  ci.names.noncored.df = ci.names.noncored, 
+                                                                  mean.pred.cored.df = mean.pred.cored,
+                                                                  #xmat2 = xmat2, 
+                                                                  SDIscaled.matrix = SDIscaled,
+                                                                  time_data_list = time_data)}))
 
-lapply(unique(plots)[429:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# for 2 plots!
+# user  system elapsed 
+# 136.527  41.239 182.824
+system.time(
+  mclapply(unique(plots)[1:2],
+           FUN = function(x){biomass.sensitivity.periodic(plt.num = x, #2469918010690 , 
+                                                          density.dependent = TRUE, 
+                                                          density.independent = TRUE, 
+                                                          scenario = "rcp26", 
+                                                          SDI.ratio.DD = 0.7, 
+                                                          aggressiveCC = FALSE, 
+                                                          scale.mort.prob = 1, 
+                                                          cov.data.regional.df = cov.data.regional, 
+                                                          TREE.FIA = TREE, 
+                                                          ci.names.df = ci.names, 
+                                                          ci.names.noncored.df = ci.names.noncored, 
+                                                          mean.pred.cored.df = mean.pred.cored,
+                                                          #xmat2 = xmat2, 
+                                                          SDIscaled.matrix = SDIscaled,
+                                                          time_data_list = time_data)}, 
+            mc.cores = 4)
+  )
 
-# plot 378, 382 had an error:
-plot = 2448987010690
-unique(plots) %in% 3133791010690
+#lapply(unique(plots)[429:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)}
 
-
-#lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
-
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
-
-
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-lapply(unique(plots)[218:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
-unique(plots) %in% 2536419010690
-
-
+# # plot 378, 382 had an error:
+# plot = 2448987010690
+# unique(plots) %in% 3133791010690
+# 
+# 
+# #lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# 
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+# 
+# 
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+# lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+# lapply(unique(plots)[218:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9)})
+# unique(plots) %in% 2536419010690
+# 
+# 

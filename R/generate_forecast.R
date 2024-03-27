@@ -56,7 +56,7 @@ generate.plot.forecast <- function(index.trees.df,
                                    # keep these set to true
                                    density.dependent = TRUE, 
                                    density.independent = TRUE, 
-                                   
+                                   plt.number, 
                                    # other information
                                    scenario = "rcp26", 
                                    SDI.ratio.DD = 0.6, 
@@ -459,7 +459,7 @@ dbh.means.index <- left_join(dbh.quants.spread , index.trees.df, by = "treeno")
 
 p.dbh <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
   geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-  theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+  theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plt.number))
 #p.dbh
 # TPA of live trees
 TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
@@ -514,7 +514,7 @@ dbh.means.TPA.index$lo.scaled.DBH <- dbh.means.TPA.index$`2.5%`*dbh.means.TPA.in
 
 p.diam.tpa <- ggplot()+geom_line(data = dbh.means.TPA.index, aes(x = time, y = med.scaled.DBH, color = as.character(SUBP), group = treeno)) +
   geom_ribbon(data = dbh.means.TPA.index, aes(x = time, ymin = lo.scaled.DBH, ymax = hi.scaled.DBH,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
-  theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plot))
+  theme_bw() + ylab("Diameters (cm)*TPA")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plt.number))
 #p.diam.tpa
 
 
@@ -532,7 +532,7 @@ inc.means.index <- left_join(inc.quants.spread , index.trees.df, by = "treeno")
 p.inc <- ggplot() +
   geom_ribbon(data = inc.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`, fill = as.character(SUBP), group = treeno), alpha = 0.25)+
   geom_line(data = inc.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno))+
-  theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")
+  theme_bw() + ylab("Increments (cm)")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plt.number))+ labs(fill = "Subplot Number", color = "Subplot Number")
 
 #ggsave(paste0("data/output/plotDBHforecasts_zeroinc_stochastic_sdimort/plot/PLT.increment.",mort.scheme,".", plot,".", scenario,".2001.2018.png"), p.inc)
 
@@ -562,7 +562,7 @@ if(ramp.density == TRUE){
 
 p.SDI <- ggplot() +
   geom_line(data = SDI.values, aes(x = Var2, y = value, color = as.character(Var1)))+
-  theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")+
+  theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plt.number))+ labs(fill = "Subplot Number", color = "Subplot Number")+
   geom_line(data = SDI.ratio.df, aes(x = year, y = ramped.SDI), color = "darkgrey", linetype = "dashed")
 
 }else{
@@ -570,7 +570,7 @@ p.SDI <- ggplot() +
   SDI.ratio.DD.progression <- SDI.ratio.DD
   p.SDI <- ggplot() +
     geom_line(data = SDI.values, aes(x = Var2, y = value, color = as.character(Var1)))+
-    theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plot))+ labs(fill = "Subplot Number", color = "Subplot Number")+
+    theme_bw() + ylab("Subplot SDI")+xlab("years after 2018") + ggtitle(paste0("Increment forecasts (means) for plot ", plt.number))+ labs(fill = "Subplot Number", color = "Subplot Number")+
     geom_hline(yintercept = ((450/DESIGNCD.table.plot$N.subplots.points)*SDI.ratio.DD.progression), color = "darkgrey", linetype = "dashed")
   
 }
@@ -655,7 +655,7 @@ forecast.combined <- plot2AGB(combined = combined,
                  mort.scheme = mort.scheme, 
                  allom.stats = kaye_pipo, 
                  unit.conv = 0, 
-                 plot = plot, 
+                 plot.id = plt.number, 
                  yrvec = 2001:2098, 
                  scenario = scenario,
                  cc.scenario = cc.scenario, 

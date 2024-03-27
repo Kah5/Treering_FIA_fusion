@@ -496,7 +496,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # keep these set to true
                                    density.dependent = TRUE, 
                                    density.independent = TRUE, 
-                                   
+                                   plt.number = plt.num, 
                                    # other information
                                    scenario = "rcp26", 
                                    SDI.ratio.DD = 0.6, 
@@ -515,7 +515,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     betas.all.df = betas.all, 
                                     sdi.subplot.df = sdi.subp, 
                                     sdi.subplot.df.raw = sdi.subp.raw,
-                                    
+                                    plt.number = plt.num, 
                                     DESIGNCD.table.plot = DESIGNCD.table,
                                    ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 20, # scaler to multiply DI mortality by
@@ -542,7 +542,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     betas.all.df = betas.all, 
                                     sdi.subplot.df = sdi.subp, 
                                     sdi.subplot.df.raw = sdi.subp.raw,
-                                    
+                                    plt.number = plt.num, 
                                     DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
@@ -567,7 +567,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                       betas.all.df = betas.all, 
                                       sdi.subplot.df = sdi.subp, 
                                       sdi.subplot.df.raw = sdi.subp.raw,
-                                      
+                                      plt.number = plt.num, 
                                       DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = TRUE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
@@ -630,8 +630,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                      betas.all.df = betas.all, 
                                      sdi.subplot.df = sdi.subp, 
                                      sdi.subplot.df.raw = sdi.subp.raw,
+                                     plt.number = plt.num, 
                                      
-                                     DESIGNCD.table.plot = DESIGNCD.table,
+                                    DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
                                     # keep these set to true
@@ -692,7 +693,8 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     all.scen <- rbind(full$forecast, GD.10$forecast, GD.20$forecast, DD.ramp$forecast, noClim$forecast)
     
     #ggplot(full, aes(x = year, y = mAGB.dead))+geom_line()
-    AGB.plt <- ggplot()+geom_line(data = all.scen, aes(x = year, y = mAGB*0.001, group = forecast.type, color = forecast.type))+geom_ribbon(data = all.scen, aes(x = year, ymin = lowA*0.001, ymax = upA*0.001, fill = forecast.type),  alpha = 0.5)+
+    AGB.plt <- ggplot()+geom_line(data = all.scen, aes(x = year, y = mAGB*0.001, group = forecast.type, color = forecast.type))+
+      geom_ribbon(data = all.scen, aes(x = year, ymin = lowA*0.001, ymax = upA*0.001, fill = forecast.type),  alpha = 0.5)+
       ylab("AGB (Mg)")+theme_bw()
     AGB.ded.plot <- ggplot()+geom_line(data = all.scen, aes(x = year, y = mAGB.dead*0.001, group = forecast.type, color = forecast.type))+
       geom_ribbon(data = all.scen, aes(x = year, ymin = lowA.dead*0.001, ymax = upA.dead*0.001, fill = forecast.type),  alpha = 0.5)+  ylab("Dead AGB (Mg)")+
