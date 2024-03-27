@@ -72,7 +72,7 @@ hist(tp.ratio$PIPO.ratio)
 saveRDS(tp.ratio, "outputs/PIPO_nonPIPO_plotratios.rds")
 
 TREEinPLOTS %>% select(DESIGNCD) %>% distinct()
-TPA.designcd.table <- data.frame(DESIGNCD = unique(TREEinPLOTS$DESIGNCD),
+TPA.designcd.table <- data.frame(DESIGNCD = c(1, 410, 411, 413, 424, 425, 423, 412), #unique(TREEinPLOTS$DESIGNCD),
                                   RADIUS = c("24 ft", 
                                              "Variable", 
                                              "Variable", 
@@ -93,9 +93,9 @@ TPA.designcd.table <- data.frame(DESIGNCD = unique(TREEinPLOTS$DESIGNCD),
                                                        7,#  maybe 5?
                                                        10, 
                                                        5, 
-                                                       1, 
-                                                       1, 
-                                                       1, 
+                                                       4, 
+                                                       4, 
+                                                       4, 
                                                        5), 
                                  N.microplots = c(1, 
                                                   7, 
@@ -844,12 +844,14 @@ b.growth <- m2$coefficients[2]
 b.dbh <- m2$coefficients[3]
 
 set.seed(22)
-plot <- variable.rad.411[1,]
+#plot <- variable.rad.411[1,]
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
 source("R/plot2AGB_kayeFVS.R")
-source("R/biomass.sensitivity.periodic_4scenarios.R")
+source("R/get_objects.R")
 source("R/generate_forecast.R")
+source("R/biomass.sensitivity.periodic_4scenarios.R")
+
 # run the function that makes all of the forecasts
 # system.time(biomass.sensitivity.periodic( plot = '2533485010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
 # system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
@@ -869,17 +871,31 @@ scenario = "rcp26"
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 3125031010690
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plot = 3192936010690, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-plot <- 3137008010690
-3250176010690
+biomass.sensitivity.periodic(plt.num = 3250176010690, #2469918010690 , 
+                             density.dependent = TRUE, 
+                             density.independent = TRUE, 
+                             scenario = "rcp26", 
+                             SDI.ratio.DD = 0.7, 
+                             aggressiveCC = FALSE, 
+                             scale.mort.prob = 1, 
+                             cov.data.regional.df = cov.data.regional, 
+                             TREE.FIA = TREE, 
+                             ci.names.df = ci.names, 
+                             ci.names.noncored.df = ci.names.noncored, 
+                             mean.pred.cored.df = mean.pred.cored,
+                             #xmat2 = xmat2, 
+                             SDIscaled.matrix = SDIscaled,
+                             time_data_list = time_data)
+plot <- unique(highAGBplots)[1,]
+plot <- 3250176010690 # vector memeory limit reached
 # plot <- 2567114010690
 # plot <- 2447900010690 # vector memory limit exhausted
-# unique(plots)[1:675] %in% 2567114010690
+unique(plots)[1:675] %in% 2972526010690
 # fixed the plotting issue for SDI with only 1 subplot:
 
-lapply(unique(plots)[101:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+lapply(unique(plots)[1:10],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
 
-lapply(unique(plots)[101:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
+lapply(unique(plots)[429:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)})
 
 # plot 378, 382 had an error:
 plot = 2448987010690

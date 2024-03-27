@@ -1,18 +1,33 @@
-biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.7, aggressiveCC = FALSE, scale.mort.prob = 1){
+biomass.sensitivity.periodic <- function(plt.num, # = plot, 
+                                         density.dependent = TRUE, 
+                                         density.independent = TRUE, 
+                                         scenario = "rcp26", 
+                                         SDI.ratio.DD = 0.7, 
+                                         aggressiveCC = FALSE, 
+                                         scale.mort.prob = 1, 
+                                         cov.data.regional.df, # = cov.data.regional, 
+                                         TREE.FIA, # = TREE, 
+                                         ci.names.df, # = ci.names, 
+                                         ci.names.noncored.df, # = ci.names.noncored, 
+                                         mean.pred.cored.df, # = mean.pred.cored,
+                                         #xmat2 = xmat2, 
+                                         SDIscaled.matrix, # = SDIscaled,
+                                         time_data_list # = time_data
+                                         ){
   
-  #TPA_lookup <- TREE %>% filter(PLT_CN %in% plot) %>% dplyr::select(TPA_UNADJ, TPAMORT_UNADJ, PLOT, SUBP, TREE, MEASYR, DESIGNCD)
+  #TPA_lookup <- TREE.FIA %>% filter(PLT_CN %in% plot) %>% dplyr::select(TPA_UNADJ, TPAMORT_UNADJ, PLOT, SUBP, TREE, MEASYR, DESIGNCD)
   # -------- get the diameter estimates for all trees on the plot: ------------------------
-  print(as.character(plot))
+  print(as.character(plt.num))
    
   # get id of trees with cores:
-  cored.in.plt <- cov.data.regional %>% dplyr::filter (PLT_CN %in% plot)
+  cored.in.plt <- cov.data.regional.df %>% dplyr::filter (PLT_CN %in% plt.num)
   cored.in.plt <- cored.in.plt[!duplicated(cored.in.plt$TRE_CN),]
-  cored.in.plt$TPA_UNADJ <- TREE[which(TREE$CN %in% unique(cored.in.plt$TRE_CN)),]$TPA_UNADJ
+  cored.in.plt$TPA_UNADJ <- TREE.FIA[which(TREE.FIA$CN %in% unique(cored.in.plt$TRE_CN)),]$TPA_UNADJ
   
   # get id of trees with out cores:
-  trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plot)
-  trees.in.plt$TPA_UNADJ <- TREE[which(TREE$CN %in% trees.in.plt$CN),]$TPA_UNADJ
- 
+  trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plt.num)
+  trees.in.plt$TPA_UNADJ <- TREE.FIA[which(TREE.FIA$CN %in% trees.in.plt$CN),]$TPA_UNADJ
+  
  # if there are no other trees on the plot just don't run the forecats
   if(length(trees.in.plt$PLOT) == 0){
     cat("no other trees on plot")
@@ -32,21 +47,22 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   
    m <- x[1] # since all cored trees will have the same plot information this is okay
   
+   print("get starting DBH")
   # read in xvalues from cored
-  selx <- which(ci.names.noncored$row %in%  y) 
+  selx <- which(ci.names.noncored.df$row %in%  y) 
   
   # plot the posterior predictions of DBH for a single tree:
-  sel <- which(ci.names$row %in%  x) # use sel to subset the data for the 415th tree
-  mean.cored <- mean.pred.cored[sel]
+  sel <- which(ci.names.df$row %in%  x) # use sel to subset the data for the 415th tree
+  mean.cored <- mean.pred.cored.df[sel]
  
   # for noncored trees: just seelct the 36 year time point
-  tree.ind.noncrored <- lapply(X = y, FUN= function(x){which(ci.names.noncored$row == x & ci.names.noncored$col == 33:36)})
+  tree.ind.noncrored <- lapply(X = y, FUN= function(x){which(ci.names.noncored.df$row == x & ci.names.noncored.df$col == 33:36)})
   i <- do.call(cbind, tree.ind.noncrored )
   out.noncored.plt <-  x.mat2[, i] 
   
   # for cored trees:
   #yrs <- 31:135
-  tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names$row == x & ci.names$col %in% 33:36)}) # select just the years 1994:2010 to match the plot level data:
+  tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names.df$row == x & ci.names.df$col %in% 33:36)}) # select just the years 1994:2010 to match the plot level data:
   i.cored <- do.call(rbind, tree.ind.cored )
   
   if(class(out.noncored.plt)[1] == "vector"){
@@ -91,13 +107,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   
   # get the design codes
   # get the updated TPA factors for trees in variable radius plots
-  DESIGNCD.plt <- unique(TREE[which(TREE$CN %in% trees.in.plt$CN),]$DESIGNCD)
+  DESIGNCD.plt <- unique(TREE.FIA[which(TREE.FIA$CN %in% trees.in.plt$CN),]$DESIGNCD)
   all.dbh.means$DBH_in
   
+  cat("get DESIGNCD")
   DESIGNCD.table <- TPA.designcd.table %>% filter(DESIGNCD == unique(DESIGNCD.plt))
   
   calcTPA_unadj <- function(DBH_in, DESIGN.tb = DESIGNCD.table){
-    if(DESIGN.tb$DESIGNCD %in% c(1, 423, 424, 425, 1)){
+    if(DESIGN.tb$DESIGNCD %in% c(1, 423, 424, 425)){
+      
       # all fixed area plots, but with different # of microplots
       if(DBH_in > 5){ # for macroplot
         PROB = 1/(DESIGN.tb$N.subplots.points*DESIGN.tb$AREA.acr)
@@ -140,39 +158,39 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     # set up empty matrices for dbh, increment, TPA projections
     id.ni <- rep(1:ni, each = 1)
     
-    for(i in 1:length(id.ni)){
-      
-      dbh.pred[id.ni[i],,1] <- all.dbh[,i]
-      
-    }
-    
-    # get the increments
-    for(i in 1:ni){
-      for(t in 2:4){
-        increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
-      }
-    }
-    
-    
-    # get the tree diameter means
-    dbh.pred.means <- apply(dbh.pred, 1, FUN = mean, na.rm=TRUE)
-    
-    for(i in 1:ni){
-      # TPA expansion factors for live trees
-      TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # TPAlive adjusted for SIZE
-      TPAlive[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # live TPA trees (will be reduced by TPAmort)
-      # TPA for tracking mortality
-      TPADI[i,,1:(ntfull + 1)] <- 0 # total dead due to DI mortality
-      TPADD[i,,1:(ntfull + 1)] <- 0 # total dead due to DD mortality 
-      TPAmort[i,,1:(ntfull + 1)] <- 0 # dead TPA total
-    
-    }
-    
+    # for(i in 1:length(id.ni)){
+    #   
+    #   dbh.pred[id.ni[i],,1] <- all.dbh[,i]
+    #   
+    # }
+    # 
+    # # get the increments
+    # for(i in 1:ni){
+    #   for(t in 2:4){
+    #     increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
+    #   }
+    # }
+    # 
+    # 
+    # # get the tree diameter means
+    # dbh.pred.means <- apply(dbh.pred, 1, FUN = mean, na.rm=TRUE)
+    # 
+    # for(i in 1:ni){
+    #   # TPA expansion factors for live trees
+    #   TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # TPAlive adjusted for SIZE
+    #   TPAlive[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # live TPA trees (will be reduced by TPAmort)
+    #   # TPA for tracking mortality
+    #   TPADI[i,,1:(ntfull + 1)] <- 0 # total dead due to DI mortality
+    #   TPADD[i,,1:(ntfull + 1)] <- 0 # total dead due to DD mortality 
+    #   TPAmort[i,,1:(ntfull + 1)] <- 0 # dead TPA total
+    # 
+    # }
+    # 
     
     #---------------------------------------------------------------------------
     ##  get all the paramter estimates + uncertainty
     #---------------------------------------------------------------------------
-    
+    cat("set up the beta values")
     nsamps1 <- nsamps-1 # need to subtract for the DBH mcmcs and parameter mcmcs used to make the forecast matches
     
     treeids <- cored.in.plt$treeid
@@ -267,16 +285,16 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                               bX_SDI)
     
     
-    
+    cat ("set up SDI")
     # get PLT_CN
-    PLT_CNint <- as.character(plot)
+    PLT_CNint <- as.character(plt.num)
     
     # get the scaled SDI for the PLT:
     
     # get the unique SUBPLOTS in the plot
-    subplots <- unique(SDIscaled %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
+    subplots <- unique(SDIscaled.matrix %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
     
-    SDI.PLT <- SDIscaled %>% filter(PLT_CN %in% PLT_CNint)
+    SDI.PLT <- SDIscaled.matrix %>% filter(PLT_CN %in% PLT_CNint)
     
     SDI.PLT.SCALED <- SDI.PLT # get the SDI values
     
@@ -300,7 +318,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     scale.fut.clim.by.plt <- function(x, future.clim.subset){
       cat(x)
       full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
-      rowid <- which(cov.data.regional$PLT_CN %in%  x ) # get the row for the climate data
+      rowid <- which(cov.data.regional.df$PLT_CN %in%  x ) # get the row for the climate data
       full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE)
       full.clim.plt$tmax.scale <- ( full.clim.plt$tmax.corrected-mean(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE))/sd(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE)
       full.clim.plt
@@ -317,7 +335,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         #scenario <- "rcp26"
         
         #fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
-        
+        cat("sampling by model")
         models <- unique(fut.clim.scen$model) # 21 models
         sample.model <- sample(models, size = length(models), replace= FALSE)
         
@@ -389,11 +407,12 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
         #tmax <- cbind(tmax.hist, tmax.fut)
     SDI <- SDI.PLT.SCALED %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint ) %>% dplyr::select(SUBP,`2001`)
     
-    cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plot) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
+    cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
     
     MAP <- x.mat[m,]$MAP
     MAT <- x.mat[m,]$MAT
     
+    cat("assembling covariate data ")
     
     covariates <- list()
     covariates$SDI <- as.matrix(SDI)
@@ -417,15 +436,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     sdi.subp.raw[,1] <- covariates$SDI[,1]
     
   # note that these are subplot SDI values that we are scaling by!
-   SDI.mean.all <- mean(time_data$SDI, na.rm =TRUE)
-   SDI.sd.all <- sd(time_data$SDI, na.rm =TRUE)
+   SDI.mean.all <- mean(time_data_list$SDI, na.rm =TRUE)
+   SDI.sd.all <- sd(time_data_list$SDI, na.rm =TRUE)
    
-  rescale.sdi <- function(SDIscaled, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all){
-    SDI.raw <-   scale.by.mean + (scale.by.sd*SDIscaled)
+  rescale.sdi <- function(SDIscaled.val, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all){
+    SDI.raw <-   scale.by.mean + (scale.by.sd*SDIscaled.val)
     SDI.raw
   }
 
-  rescale.sdi(SDIscaled = SDI$`2001`) 
+  rescale.sdi(SDIscaled.val = SDI$`2001`) 
   
   # get the first years SDI (raw) based on the PIPO trees
   sdi.subp.raw[,2] <- rescale.sdi(covariates$SDI[,2])
@@ -443,8 +462,8 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     
     SDI.new <- sum(TPAcalc*(((avg.dbh/2.54)/10)^1.6)) # calculate SDI, convert to inches
     
-    SDIscaled <- (SDI.new - scale.by.mean)/scale.by.sd
-    SDIscaled
+    SDIscaled.val <- (SDI.new - scale.by.mean)/scale.by.sd
+    SDIscaled.val
   }
   
   
@@ -463,12 +482,15 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     ### Run for the full model     
     #------------------------------------------------------------------    
     source("R/generate_forecast.R")
-    full <- generate.plot.forecast(index.df = index.df, 
-                                   covariates = covariates, 
-                                   sdi.subp = sdi.subp, 
-                                   sdi.subp.raw = sdi.subp.raw,
-                                   all.dbh = all.dbh, betas.all = betas.all, 
-                                   DESIGNCD.table = DESIGNCD.table,
+    cat("running full scenario")
+    full <- generate.plot.forecast(index.trees.df = index.df, 
+                                   covariates.list = covariates, 
+                                   all.dbh.df = all.dbh , 
+                                   betas.all.df = betas.all, 
+                                   sdi.subplot.df = sdi.subp, 
+                                   sdi.subplot.df.raw = sdi.subp.raw,
+                                    
+                                   DESIGNCD.table.plot = DESIGNCD.table,
                                    ramp.density = TRUE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 20, # scaler to multiply DI mortality by
                                    # keep these set to true
@@ -480,17 +502,21 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    SDI.ratio.DD = 0.6, 
                                    scale.mort.prob = 1, 
                                    # set to true for the no climate change scenario
-                                   detrended.clim = FALSE)
+                                   detrended.clim = FALSE, 
+                                   SDI.mean.scale = SDI.mean.all, 
+                                   SDI.sd.scale = SDI.sd.all)
     
     ####################################################
     #run SSM by scaling growth dependent climate changes by 2
     ####################################################
-    GD.20 <- generate.plot.forecast(index.df = index.df, 
-                                   covariates = covariates, 
-                                   all.dbh = all.dbh, betas.all = betas.all, 
-                                   sdi.subp = sdi.subp, 
-                                   sdi.subp.raw = sdi.subp.raw,
-                                   DESIGNCD.table = DESIGNCD.table,
+    GD.20 <- generate.plot.forecast(index.trees.df = index.df, 
+                                    covariates.list = covariates, 
+                                    all.dbh.df = all.dbh , 
+                                    betas.all.df = betas.all, 
+                                    sdi.subplot.df = sdi.subp, 
+                                    sdi.subplot.df.raw = sdi.subp.raw,
+                                    
+                                    DESIGNCD.table.plot = DESIGNCD.table,
                                    ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                    scale.DImort = 20, # scaler to multiply DI mortality by
                                    # keep these set to true
@@ -502,18 +528,22 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    SDI.ratio.DD = 0.6, 
                                    scale.mort.prob = 1, 
                                    # set to true for the no climate change scenario
-                                   detrended.clim = FALSE)
+                                   detrended.clim = FALSE, 
+                                   SDI.mean.scale = SDI.mean.all, 
+                                   SDI.sd.scale = SDI.sd.all)
     
     
     ####################################################
     #run SSM by only ramping up growth dependent climate changes (GD1-)
     ####################################################
-    GD.10 <- generate.plot.forecast(index.df = index.df, 
-                                    covariates = covariates, 
-                                    all.dbh = all.dbh, betas.all = betas.all, 
-                                    DESIGNCD.table = DESIGNCD.table,
-                                    sdi.subp = sdi.subp, 
-                                    sdi.subp.raw = sdi.subp.raw,
+    GD.10 <- generate.plot.forecast(index.trees.df = index.df, 
+                                    covariates.list = covariates, 
+                                    all.dbh.df = all.dbh , 
+                                    betas.all.df = betas.all, 
+                                    sdi.subplot.df = sdi.subp, 
+                                    sdi.subplot.df.raw = sdi.subp.raw,
+                                    
+                                    DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
                                     # keep these set to true
@@ -525,16 +555,20 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario
-                                    detrended.clim = FALSE)
+                                    detrended.clim = FALSE, 
+                                    SDI.mean.scale = SDI.mean.all, 
+                                    SDI.sd.scale = SDI.sd.all)
     ####################################################
     #run SSM by only ramping up density dependent climate changes (DD.ramp)
     ####################################################
-    DD.ramp <- generate.plot.forecast(index.df = index.df, 
-                                    covariates = covariates, 
-                                    all.dbh = all.dbh, betas.all = betas.all, 
-                                    DESIGNCD.table = DESIGNCD.table,
-                                    sdi.subp = sdi.subp, 
-                                    sdi.subp.raw = sdi.subp.raw,
+    DD.ramp <- generate.plot.forecast(index.trees.df = index.df, 
+                                      covariates.list = covariates, 
+                                      all.dbh.df = all.dbh , 
+                                      betas.all.df = betas.all, 
+                                      sdi.subplot.df = sdi.subp, 
+                                      sdi.subplot.df.raw = sdi.subp.raw,
+                                      
+                                      DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = TRUE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
                                     # keep these set to true
@@ -546,7 +580,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario
-                                    detrended.clim = FALSE)
+                                    detrended.clim = FALSE, 
+                                    SDI.mean.scale = SDI.mean.all, 
+                                    SDI.sd.scale = SDI.sd.all)
     ####################################################
     #run SSM with detrended climate impacts
     ####################################################
@@ -574,7 +610,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
   
     SDI <- SDI.PLT.SCALED %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint ) %>% dplyr::select(SUBP,`2001`)
     
-    cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plot) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
+    cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
     
     MAP <- x.mat[m,]$MAP
     MAT <- x.mat[m,]$MAT
@@ -588,12 +624,14 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
     covariates$MAT <- MAT
     
 
-    noClim <- generate.plot.forecast(index.df = index.df, 
-                                    covariates = covariates, 
-                                    all.dbh = all.dbh, betas.all = betas.all, 
-                                    DESIGNCD.table = DESIGNCD.table,
-                                    sdi.subp = sdi.subp, 
-                                    sdi.subp.raw = sdi.subp.raw,
+    noClim <- generate.plot.forecast(index.trees.df = index.df, 
+                                     covariates.list = covariates, 
+                                     all.dbh.df = all.dbh , 
+                                     betas.all.df = betas.all, 
+                                     sdi.subplot.df = sdi.subp, 
+                                     sdi.subplot.df.raw = sdi.subp.raw,
+                                     
+                                     DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
                                     scale.DImort = 10, # scaler to multiply DI mortality by
                                     # keep these set to true
@@ -605,7 +643,9 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario
-                                    detrended.clim = TRUE)
+                                    detrended.clim = TRUE, 
+                                    SDI.mean.scale = SDI.mean.all, 
+                                    SDI.sd.scale = SDI.sd.all)
     
    ################################################################################
    # SAVE THE PLOT level figures
@@ -615,7 +655,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    DD.ramp$p.inc + ggtitle("ramping DD only"), 
                                    noClim$p.inc+ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/increments_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/increments_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     # SDI tracking plots
@@ -625,7 +665,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    DD.ramp$p.SDI + ggtitle("ramping DD only"), 
                                    noClim$p.SDI +ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/SUBPLOT_SDI_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
      dia.plts <- cowplot::plot_grid(full$p.dbh, 
@@ -641,7 +681,7 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
                                    noClim$p.diam.tpa + ggtitle("no climate change"), align="hv", ncol = 5)
     
     
-    cowplot::save_plot(dia.plts,base_width = 15, base_height = 5, device = "png", filename= paste0("plot_level_images/diameter_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(dia.plts,base_width = 15, base_height = 5, device = "png", filename= paste0("plot_level_images/diameter_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     full$forecast$forecast.type <- "full"
@@ -659,15 +699,17 @@ biomass.sensitivity.periodic <- function(plot, density.dependent = TRUE, density
       theme_bw()
     
     abg.plt <- cowplot::plot_grid(AGB.plt, AGB.ded.plot, align="hv")
-    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images/agb_",plot, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images/agb_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
-    rm(full, GD.10, GD.20, DD.ramp, noClim, all.scen)
+    
+    rm(full, GD.10, GD.20, DD.ramp, noClim, all.scen, sdi.subp, sdi.subp.raw, MAT, MAP, cored.in.plt, trees.in.plt )
     }   
     
 
 }  
-}
+  }
+  #rm(list = get.objects( message = FALSE))
 }
 
 
