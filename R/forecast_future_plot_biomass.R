@@ -893,8 +893,8 @@ plot <- 3250176010690 # vector memeory limit reached
 unique(plots)[1:675] %in% 2972526010690
 # fixed the plotting issue for SDI with only 1 subplot:
 
-system.time(lapply(unique(plots)[1:2],
-                   FUN = function(x){biomass.sensitivity.periodic(plt.num = x, #2469918010690 , 
+system.time(lapply(X = unique(plots)[8:100],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
                                                                   density.dependent = TRUE, 
                                                                   density.independent = TRUE, 
                                                                   scenario = "rcp26", 
@@ -914,8 +914,8 @@ system.time(lapply(unique(plots)[1:2],
 # user  system elapsed 
 # 136.527  41.239 182.824
 system.time(
-  mclapply(unique(plots)[1:2],
-           FUN = function(x){biomass.sensitivity.periodic(plt.num = x, #2469918010690 , 
+  mclapply(unique(plots)[7:8],
+           FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, 
                                                           density.dependent = TRUE, 
                                                           density.independent = TRUE, 
                                                           scenario = "rcp26", 
@@ -930,7 +930,7 @@ system.time(
                                                           #xmat2 = xmat2, 
                                                           SDIscaled.matrix = SDIscaled,
                                                           time_data_list = time_data)}, 
-            mc.cores = 4)
+            mc.cores = 2)
   )
 
 #lapply(unique(plots)[429:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)}

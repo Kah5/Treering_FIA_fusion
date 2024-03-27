@@ -9,7 +9,7 @@ periodic.data <- readRDS("INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
 #--------------------------------------------------------------------------------
 # Do the scaling using expn factors for dead AGB
 #--------------------------------------------------------------------------------
-mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh.RDS"))
+mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.RDS"))
 # mort.all.parse.60.1.1 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.1.RDS"))
 # mort.all.parse.60.0.9 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_0.9.RDS"))
 head(mort.all.parse.60)
@@ -85,9 +85,9 @@ scale.mort.expns <- function(mort.df, parse = "full") {
 }
 
 full.1 <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "full")
-full.1.noCC <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "detrendedCC")
+#full.1.noCC <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "detrendedCC")
 
-ending.mort.1 <- full.1 %>% filter(parse %in% c("full", "detrendedCC") & year %in% 2098)
+ending.mort.1 <- full.1 %>% filter(parse %in% c("full", "detrendedCC", "DD.ramp","GT.10","GT.20") & year %in% 2098)
 #ending.mort.1.1 <- full.1.1 %>% filter(parse %in% "full" & year %in% 2098)
 #ending.mort.0.9 <- full.0.9 %>% filter(parse %in% "full" & year %in% 2098)
 
@@ -103,6 +103,9 @@ full.low.high <- ending.mort.1 %>%
   select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead)
 full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme","year"))
 #colnames(full.low.high.diffs)[6] <- "CI"
+ggplot(full.low.high, aes(x = year, y = mAGB.dead/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
+ggplot(full.low.high, aes(x = year, y = hiAGB.dead/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
+ggplot(full.low.high, aes(x = year, y = lowAGB.dead/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
 
 # full.low.high.diffs <- full.low.high.m %>% group_by(rcp, mort.scheme, year, scaled.mortality, variable)%>%
 #   spread(scaled.mortality, value) %>% mutate(INC.10 = ((`tuned to historic` - `+ 10%`)/`tuned to historic`)*-100, 
@@ -122,10 +125,10 @@ full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mor
 #--------------------------------------------------------------------------------
 # Do the scaling using expn factors for live AGB
 #--------------------------------------------------------------------------------
-AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold.RDS")
+AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 #colnames(AGB)[1] <- "PLT_CN"
-AGB.0.9 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_0.9.RDS")
-AGB.1.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.1.RDS")
+#AGB.0.9 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_0.9.RDS")
+#AGB.1.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.1.RDS")
 AGB = AGB.1
 AGB  = AGB.0.9
 scale.all.live.expns <- function(AGB, parse = "full") {
@@ -177,16 +180,26 @@ full.live.1 <- scale.all.live.expns(AGB = AGB.1, parse = "full")
 # full.live.0.9$scaled.mortality <- "+ 10%"
 
 #
-full.low.high.live <- full.live.1 %>% filter(parse %in% c("full", "no climate change") & year %in% 2098) %>% 
+unique(full.live.1$parse)
+full.low.high.live <- full.live.1 %>% filter(parse %in% c("full", "no climate change", "DD.ramp","GD.10","GD.20") & year %in% 2098) %>% 
   select(rcp, parse, mort.scheme, year, lowA, upA, mAGB)
+
+full.low.high.live.all <- full.live.1 %>% filter(parse %in% c("full", "no climate change", "DD.ramp","GD.10","GD.20") ) %>% 
+  select(rcp, parse, mort.scheme, year, lowA, upA, mAGB)
+
 #full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme", "scaled.mortality","year"))
+ggplot(full.low.high.live.all, aes(x = year, y = mAGB/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
+ggplot(full.low.high.live.all, aes(x = year, y = upA/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
+ggplot(full.low.high.live.all, aes(x = year, y = lowA/1000000000, color = rcp))+geom_line()+facet_wrap(~parse)
 
-
+unique(full.low.high.live$parse)
 
 ## do the math here
-
+full.low.high$parse <- ifelse(full.low.high$parse %in% "GT.10", "GD.10", 
+                              ifelse(full.low.high$parse %in% "GT.20", "GD.20", full.low.high$parse))
 # join the dead and live: 
 full.low.high.dead.live <- left_join(full.low.high.live, full.low.high)
+unique(full.low.high.dead.live$parse)
 
 # low dead values should start at upA and high dead values should be upA + (Range of low and high dead)
 full.low.high.dead.live$lowdeadAGBtot <- full.low.high.dead.live$upA
@@ -199,8 +212,7 @@ df.parse <- data.frame(parse = c("full", "no climate change"),
 
 full.low.high.dead.live <- left_join(full.low.high.dead.live, df.parse)
 
-
-
+ggplot(full.low.high.dead.live, aes(x = year, y = mAGB/1000000000))+facet_wrap(~parse)
 
 
 full.low.high.dead.live$mid.dead <- rowMeans(full.low.high.dead.live[,c("lowAGB.dead", "hiAGB.dead")])
@@ -218,27 +230,51 @@ colnames(low.high.live)[5:7] <- c("ci.low",  "ci.hi", "mAGB")
 
 low.high.Cpools <- rbind( low.high.live, low.high.dead)
 #low.high.Cpools$parse <- factor(low.high.Cpools$scaled.mortality, levels = c("- 10%",  "tuned to historic", "+ 10%"))
+mortality.descriptions <- data.frame(parse = unique(low.high.Cpools$parse), 
+                                     description = c("Density-dependent \n mortality increase", 
+                                                     "GD.10", 
+                                                     "GD.20",
+                                                     "Full climate change", 
+                                                     "No climate change" 
+                                                      ))
+                                                     
+                                                     # "Density-dependent mortality increase", 
+                                                     # "Climate change, but no mortality change", 
+                                                     # "Climate change and double growth-dependent p(mort)"))
+low.high.Cpools <- left_join(low.high.Cpools, mortality.descriptions)
+# not sure why the join is incomplete but here wer are
+low.high.Cpools$description <- ifelse(low.high.Cpools$parse == "GD.10", "Climate change but \n no mortality change",
+                                      ifelse(low.high.Cpools$parse == "GD.20", "Climate change & \n 2X growth-dependent p(mort)", 
+                                             ifelse(low.high.Cpools$parse == "DD.ramp","Density-dependent \n mortality increase",
+                                                    ifelse(low.high.Cpools$parse == "full","Full climate change","No climate change"))))
+low.high.Cpools$description <- factor(low.high.Cpools$description, levels = c("Full climate change", 
+                                                                              "Climate change & \n 2X growth-dependent p(mort)", 
+                                                                              "Density-dependent \n mortality increase", 
+                                                                              "Climate change but \n no mortality change", 
+                          "No climate change" ))
 
-totalC.barplot.parse <- ggplot(data = low.high.Cpools, aes(x = interaction(   rcp, parse), y = (mAGB/1000000000), group = rcp, fill = `Carbon Pool`), alpha = 0.5)+
+totalC.barplot.parse <- ggplot(data = low.high.Cpools, aes(x = description, y = (mAGB/1000000000),  fill = `Carbon Pool`), alpha = 0.5)+
   geom_bar(stat = "identity", position = position_dodge(), width = 0.7)+
   scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
-   annotate("text", x = 1:8, y =  10,
-            label = rep(c("rcp 2.6", "rcp 4.5", 
-                          "rcp 6.0", "rcp 8.5"), 2), 
-            angle = 90) +
-  annotate("text", c(2.5, 6.5), y = - 10, label = c("climate change", "no climate change"))+
-  geom_vline(aes(xintercept = c(4.5)))+
+  facet_wrap(~rcp)+
+  #  annotate("text", x = 1:8, y =  10,
+  #           label = rep(c("rcp 2.6", "rcp 4.5", 
+  #                         "rcp 6.0", "rcp 8.5"), 2), 
+  #           angle = 90) +
+  # annotate("text", c(2.5, 6.5), y = - 10, label = c("climate change", "no climate change"))+
+  # geom_vline(aes(xintercept = c(4.5)))+
   #geom_vline(aes(xintercept = c(8.5)))+
-  ylab("Mean Total Aboveground C (Tg)")+
+  ylab("Mean Regional \n Aboveground C (Tg)")+
+  xlab("Climate Change & mortality scenario")+
   theme_bw(base_size = 12)+
-  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), axis.text.x = element_blank(), 
-        axis.title.x = element_blank(), 
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), axis.text.x = element_text(angle = 60, hjust = 1), 
+       # axis.title.x = element_blank(), 
         axis.ticks.x = element_blank(), 
         panel.grid = element_blank())
   
 totalC.barplot.parse 
 
-ggsave(height = 4, width = 6.5, units = "in", "outputs/mean_total_C_live_dead_cc_vs_noCC.png")
+ggsave(height = 4.5, width = 8, units = "in", "outputs/mean_total_C_live_dead_cc_vs_noCC.png")
 
 #-----------------------------------------------------
 # make a time series figure with the difference 
@@ -398,3 +434,73 @@ plot_grid(plot_grid(RCP.26.cc.nocc + theme(legend.position = "none"),
           CC.contribution.RCP26 + theme(legend.position = "none"), align = "hv"), 
           Cpool.legend, rel_heights = c(0.9, 0.05), ncol = 1)
 dev.off()
+
+
+
+#----------------------------------------------------------------
+# calculate the amount of lost growth and standing dead due to climate change
+#----------------------------------------------------------------
+full.low.high.dead.live
+
+# dead values
+low.high.dead.real <- full.low.high.dead.live %>% select(rcp, year, parse, lowAGB.dead, hiAGB.dead)
+
+# live tree values 
+low.high.live.real <- full.low.high.dead.live %>% select(rcp, year, parse, upA, lowA)
+
+low.high.dead.real$`Carbon Pool` <- "Standing Dead C"
+low.high.live.real$`Carbon Pool` <- "Live Tree C"
+colnames(low.high.dead.real)[5:6] <- c("ci.low",  "ci.hi")
+colnames(low.high.live.real)[5:6] <- c("ci.low",  "ci.hi")
+
+low.high.Cpools.real <- rbind( low.high.live.real, low.high.dead.real)
+
+low.high.Cpools.real.CC <- low.high.Cpools.real %>% filter(parse %in% "full")
+low.high.Cpools.real.noCC <- low.high.Cpools.real %>% filter(parse %in% "no climate change")
+colnames(low.high.Cpools.real.CC)[5:6] <- c("CC.low", "CC.hi") 
+colnames(low.high.Cpools.real.noCC)[5:6] <- c("noCC.low", "noCC.hi") 
+full.pools <- left_join(low.high.Cpools.real.CC %>% select(-parse), low.high.Cpools.real.noCC %>% select(-parse))
+
+Full.pool.diff <- full.pools %>% group_by(mort.scheme, rcp, year, `Carbon Pool`)%>% 
+  mutate(CC.effect.low = CC.low - noCC.low, 
+         CC.effect.hi = CC.hi - noCC.hi, 
+         CC.effect.mid = (CC.effect.hi + CC.effect.low)/2)
+
+# Calculate the lost sequestration capacity due to reduced growth
+CC.effect.mid <- Full.pool.diff %>% select(mort.scheme, rcp, year, `Carbon Pool`, CC.effect.mid)%>% 
+  group_by(mort.scheme, rcp, year) %>% spread(`Carbon Pool`, CC.effect.mid) %>% 
+  mutate(Growth = `Live Tree C` + `Standing Dead C`,
+         Mortality = `Standing Dead C`)
+CC.effect.mid 
+CC.effect.mid.m <- reshape2::melt(CC.effect.mid, id.vars = c("mort.scheme", "rcp", "year"))
+colnames(CC.effect.mid.m) <- c("mort.scheme", "rcp", "year", "Demographic Pool", "mid")
+
+CC.effect.hi <- Full.pool.diff %>% select(mort.scheme, rcp, year, `Carbon Pool`, CC.effect.hi)%>% 
+  group_by(mort.scheme, rcp, year) %>% spread(`Carbon Pool`, CC.effect.hi) %>% 
+  mutate(Growth = `Live Tree C` + `Standing Dead C`, 
+         Mortality = `Standing Dead C`) 
+CC.effect.hi 
+CC.effect.hi.m <- reshape2::melt(CC.effect.hi, id.vars = c("mort.scheme", "rcp", "year"))
+colnames(CC.effect.hi.m) <- c("mort.scheme", "rcp", "year", "Demographic Pool", "ci.hi")
+
+
+CC.effect.low <- Full.pool.diff %>% select(mort.scheme, rcp, year, `Carbon Pool`, CC.effect.low)%>% 
+  group_by(mort.scheme, rcp, year) %>% spread(`Carbon Pool`, CC.effect.low) %>% 
+  mutate(Growth = `Live Tree C` + `Standing Dead C`, 
+         Mortality = `Standing Dead C`) 
+CC.effect.low.m <- reshape2::melt(CC.effect.low, id.vars = c("mort.scheme", "rcp", "year"))
+colnames(CC.effect.low.m) <- c("mort.scheme", "rcp", "year", "Demographic Pool", "ci.low")
+full.growth.pool.diff <- left_join(CC.effect.low.m, CC.effect.hi.m)%>%
+                      left_join(., CC.effect.mid.m) %>% filter(`Demographic Pool` %in% c("Growth", "Mortality"))
+  #ggplot(Full.pool.diff, aes(x = year, ymin = CC.effect.low, ymax = CC.effect.hi, fill = `Carbon Pool`))+geom_ribbon()+facet_wrap(~rcp)
+ggplot(data = full.growth.pool.diff, aes(x = year, y = mid/1000000000, fill = `Demographic Pool`))+geom_bar(stat = "identity", width = 0.9)+
+  geom_errorbar(data = full.growth.pool.diff, aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000), width = 0.1, color = "lightgrey")+
+  facet_wrap(~rcp, nrow = 4)+scale_fill_manual(values = c("Growth"= "#018571", "Mortality" = "#a6611a"))+
+  ylab("Effect of Climate Change on the \n demographic drivers of Carbon (Tg C)")+
+  xlab("Year")+
+  theme_bw(base_size = 12)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank())
+
+ggsave(height = 10, width = 6, units = "in", "outputs/total_contribution_of_climate_change_toLive_DeadCpools.png")
+

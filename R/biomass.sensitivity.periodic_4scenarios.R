@@ -30,7 +30,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
  # if there are no other trees on the plot just don't run the forecats
   if(length(trees.in.plt$PLOT) == 0){
-    cat("no other trees on plot")
+    #print("no other trees on plot")
   }else{
  
   
@@ -47,7 +47,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
    m <- x[1] # since all cored trees will have the same plot information this is okay
   
-   print("get starting DBH")
+   #print("get starting DBH")
   # read in xvalues from cored
   selx <- which(ci.names.noncored.df$row %in%  y) 
   
@@ -110,7 +110,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   DESIGNCD.plt <- unique(TREE.FIA[which(TREE.FIA$CN %in% trees.in.plt$CN),]$DESIGNCD)
   all.dbh.means$DBH_in
   
-  cat("get DESIGNCD")
+  #print("get DESIGNCD")
   DESIGNCD.table <- TPA.designcd.table %>% filter(DESIGNCD == unique(DESIGNCD.plt))
   
   calcTPA_unadj <- function(DBH_in, DESIGN.tb = DESIGNCD.table){
@@ -190,7 +190,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     #---------------------------------------------------------------------------
     ##  get all the paramter estimates + uncertainty
     #---------------------------------------------------------------------------
-    cat("set up the beta values")
+    #print("set up the beta values")
     nsamps1 <- nsamps-1 # need to subtract for the DBH mcmcs and parameter mcmcs used to make the forecast matches
     
     treeids <- cored.in.plt$treeid
@@ -285,7 +285,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                               bX_SDI)
     
     
-    cat ("set up SDI")
+    #print ("set up SDI")
     # get PLT_CN
     PLT_CNint <- as.character(plt.num)
     
@@ -299,7 +299,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     SDI.PLT.SCALED <- SDI.PLT # get the SDI values
     
   
-    cat("extracting future climate for the plot")
+    #print("extracting future climate for the plot")
     
     if(scenario %in% "rcp26"){
       clim.fut.scen <- future.clim.subset.26 
@@ -316,7 +316,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     
     scale.fut.clim.by.plt <- function(x, future.clim.subset){
-      cat(x)
+      #print(x)
       full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
       rowid <- which(cov.data.regional.df$PLT_CN %in%  x ) # get the row for the climate data
       full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE)
@@ -327,15 +327,15 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     fut.clim.scen <- scale.fut.clim.by.plt(x = PLT_CNint, future.clim.subset = clim.fut.scen)
     
     if(nrow(fut.clim.scen)==0){
-      cat("no matching climate data")
+      #print("no matching climate data")
     }else{
       if(length(unique(fut.clim.scen$year)) < 80){
-        cat("less than 80 years of future data")
+        #print("less than 80 years of future data")
       }else{
         #scenario <- "rcp26"
         
         #fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
-        cat("sampling by model")
+        #print("sampling by model")
         models <- unique(fut.clim.scen$model) # 21 models
         sample.model <- sample(models, size = length(models), replace= FALSE)
         
@@ -412,7 +412,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     MAP <- x.mat[m,]$MAP
     MAT <- x.mat[m,]$MAT
     
-    cat("assembling covariate data ")
+    #print("assembling covariate data ")
     
     covariates <- list()
     covariates$SDI <- as.matrix(SDI)
@@ -482,7 +482,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     ### Run for the full model     
     #------------------------------------------------------------------    
     source("R/generate_forecast.R")
-    cat("running full scenario")
+    #print("running full scenario")
     full <- generate.plot.forecast(index.trees.df = index.df, 
                                    covariates.list = covariates, 
                                    all.dbh.df = all.dbh , 

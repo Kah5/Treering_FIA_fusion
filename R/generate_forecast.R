@@ -208,7 +208,7 @@ for(t in 1:nt){ # for each year t in the # of trees
         live.trees <- rowSums(TPA.all) > 0
         
         if(all(live.trees==FALSE)==TRUE | length(live.trees[live.trees==TRUE]) ==1){
-          cat("only <=1 trees on the subplot are alive ")
+          #print("only <=1 trees on the subplot are alive ")
           TPADD[trees.subplot,,t+1] <- TPADD[trees.subplot,,t]
           TPAlive[trees.subplot,,t+1] <- TPAlive[trees.subplot,,t]
           TPAmort[trees.subplot,,t+1] <- TPAmort[trees.subplot,,t]
@@ -262,7 +262,7 @@ for(t in 1:nt){ # for each year t in the # of trees
           # }
           # 
           # need to index by both the subplot == s & by the live trees
-          # calculate a TPA that calucates the mort each year...probably needs to be the size of DBH and increment...
+          # calculate a TPA that calulateses the mort each year...probably needs to be the size of DBH and increment...
           # Also need to use this TPA to calculate SDI as we move forward...
           
           # indexing for the live trees on the subplot, add mortality to existing DD mortality and DI mortality to get the total
@@ -645,7 +645,7 @@ if(ramp.density == FALSE & scale.DImort == 10 & detrended.clim == FALSE){
 if(ramp.density == FALSE & scale.DImort == 10 & detrended.clim == TRUE){
   parse = "detrendedCC"
 }
-cat("start biomass estimates full model")
+#print("start biomass estimates full model")
 forecast.combined <- plot2AGB(combined = combined, 
                  out = out.mean, 
                  tpa = tpa.mean, 
@@ -668,7 +668,7 @@ forecast.combined <- plot2AGB(combined = combined,
                  mort.prob.reduced  = mort.prob.reduced)
 
 #List the objects created in this script
-get.objects()
+#get.objects()
 rm(list = get.objects(exception = c(forecast.combined, p.inc, p.dbh, p.diam.tpa, p.SDI), message = FALSE))
 
 return(list(forecast = forecast.combined,
