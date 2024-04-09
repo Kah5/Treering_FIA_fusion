@@ -15,9 +15,13 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                          time_data_list # = time_data
                                          ){
   
+  
+  source("R/plot2AGB_kayeFVS.R")
+  source("R/get_objects.R")
+  source("R/generate_forecast.R")
   #TPA_lookup <- TREE.FIA %>% filter(PLT_CN %in% plot) %>% dplyr::select(TPA_UNADJ, TPAMORT_UNADJ, PLOT, SUBP, TREE, MEASYR, DESIGNCD)
   # -------- get the diameter estimates for all trees on the plot: ------------------------
-  print(as.character(plt.num))
+  #print(as.character(plt.num))
    
   # get id of trees with cores:
   cored.in.plt <- cov.data.regional.df %>% dplyr::filter (PLT_CN %in% plt.num)
@@ -30,7 +34,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
  # if there are no other trees on the plot just don't run the forecats
   if(length(trees.in.plt$PLOT) == 0){
-    #print("no other trees on plot")
+    ##print("no other trees on plot")
   }else{
  
   
@@ -47,7 +51,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
    m <- x[1] # since all cored trees will have the same plot information this is okay
   
-   #print("get starting DBH")
+   ##print("get starting DBH")
   # read in xvalues from cored
   selx <- which(ci.names.noncored.df$row %in%  y) 
   
@@ -108,9 +112,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   # get the design codes
   # get the updated TPA factors for trees in variable radius plots
   DESIGNCD.plt <- unique(TREE.FIA[which(TREE.FIA$CN %in% trees.in.plt$CN),]$DESIGNCD)
-  all.dbh.means$DBH_in
+  #all.dbh.means$DBH_in
   
-  #print("get DESIGNCD")
+  ##print("get DESIGNCD")
   DESIGNCD.table <- TPA.designcd.table %>% filter(DESIGNCD == unique(DESIGNCD.plt))
   
   calcTPA_unadj <- function(DBH_in, DESIGN.tb = DESIGNCD.table){
@@ -190,7 +194,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     #---------------------------------------------------------------------------
     ##  get all the paramter estimates + uncertainty
     #---------------------------------------------------------------------------
-    #print("set up the beta values")
+    ##print("set up the beta values")
     nsamps1 <- nsamps-1 # need to subtract for the DBH mcmcs and parameter mcmcs used to make the forecast matches
     
     treeids <- cored.in.plt$treeid
@@ -285,7 +289,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                               bX_SDI)
     
     
-    #print ("set up SDI")
+    ##print ("set up SDI")
     # get PLT_CN
     PLT_CNint <- as.character(plt.num)
     
@@ -299,7 +303,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     SDI.PLT.SCALED <- SDI.PLT # get the SDI values
     
   
-    #print("extracting future climate for the plot")
+    ##print("extracting future climate for the plot")
     
     if(scenario %in% "rcp26"){
       clim.fut.scen <- future.clim.subset.26 
@@ -358,7 +362,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
             df[t,]$diff.tmax <- df[t,]$tmax - df[t-1,]$tmax
           }
           
-          df
+          return(df)
         }
         
         ens.samps <- lapply(1:length(models), get.ens.df)
@@ -441,10 +445,10 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
    
   rescale.sdi <- function(SDIscaled.val, scale.by.mean = SDI.mean.all, scale.by.sd = SDI.sd.all){
     SDI.raw <-   scale.by.mean + (scale.by.sd*SDIscaled.val)
-    SDI.raw
+    return(SDI.raw)
   }
 
-  rescale.sdi(SDIscaled.val = SDI$`2001`) 
+  #rescale.sdi(SDIscaled.val = SDI$`2001`) 
   
   # get the first years SDI (raw) based on the PIPO trees
   sdi.subp.raw[,2] <- rescale.sdi(covariates$SDI[,2])
@@ -463,7 +467,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     SDI.new <- sum(TPAcalc*(((avg.dbh/2.54)/10)^1.6)) # calculate SDI, convert to inches
     
     SDIscaled.val <- (SDI.new - scale.by.mean)/scale.by.sd
-    SDIscaled.val
+   return( SDIscaled.val )
   }
   
   
@@ -509,6 +513,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     ####################################################
     #run SSM by scaling growth dependent climate changes by 2
     ####################################################
+    source("R/generate_forecast.R")
     GD.20 <- generate.plot.forecast(index.trees.df = index.df, 
                                     covariates.list = covariates, 
                                     all.dbh.df = all.dbh , 
@@ -536,6 +541,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     ####################################################
     #run SSM by only ramping up growth dependent climate changes (GD1-)
     ####################################################
+    source("R/generate_forecast.R")
     GD.10 <- generate.plot.forecast(index.trees.df = index.df, 
                                     covariates.list = covariates, 
                                     all.dbh.df = all.dbh , 
@@ -561,6 +567,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     ####################################################
     #run SSM by only ramping up density dependent climate changes (DD.ramp)
     ####################################################
+    source("R/generate_forecast.R")
     DD.ramp <- generate.plot.forecast(index.trees.df = index.df, 
                                       covariates.list = covariates, 
                                       all.dbh.df = all.dbh , 
@@ -612,18 +619,18 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
     
-    MAP <- x.mat[m,]$MAP
-    MAT <- x.mat[m,]$MAT
+    # MAP <- x.mat[m,]$MAP
+    # MAT <- x.mat[m,]$MAT
     
     
     covariates <- list()
     covariates$SDI <- as.matrix(SDI)
     covariates$ppt <- as.matrix(full.ens.ppt)
     covariates$tmax <-  as.matrix(full.ens.tmax.detrend) 
-    covariates$MAP <- MAP
-    covariates$MAT <- MAT
+    covariates$MAP <- x.mat[m,]$MAP
+    covariates$MAT <- x.mat[m,]$MAT
     
-
+    source("R/generate_forecast.R")
     noClim <- generate.plot.forecast(index.trees.df = index.df, 
                                      covariates.list = covariates, 
                                      all.dbh.df = all.dbh , 
@@ -656,7 +663,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    DD.ramp$p.inc + ggtitle("ramping DD only"), 
                                    noClim$p.inc+ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/increments_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/increments_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     # SDI tracking plots
@@ -666,7 +673,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    DD.ramp$p.SDI + ggtitle("ramping DD only"), 
                                    noClim$p.SDI +ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
      dia.plts <- cowplot::plot_grid(full$p.dbh, 
@@ -682,7 +689,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    noClim$p.diam.tpa + ggtitle("no climate change"), align="hv", ncol = 5)
     
     
-    cowplot::save_plot(dia.plts,base_width = 15, base_height = 5, device = "png", filename= paste0("plot_level_images/diameter_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(dia.plts,base_width = 15, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/diameter_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     full$forecast$forecast.type <- "full"
@@ -701,7 +708,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
       theme_bw()
     
     abg.plt <- cowplot::plot_grid(AGB.plt, AGB.ded.plot, align="hv")
-    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images/agb_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/agb_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     

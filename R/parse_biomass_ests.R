@@ -1,6 +1,9 @@
 library(viridis)
 library(here)
 library(tidyverse)
+
+data <- readRDS("data/regional_pipo_jags_formatted_data.RDS")
+cov.data.regional <- data$cov.data.regional
 #Parse apart the SDI and climate change effects sensitivity effects on AGB
 parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7, rcp, cc.scenario = "doubleCC", scale.mort.prob = 1 ){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
@@ -270,8 +273,22 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
                              low.branchlive = low.branchlive[2:length(low.stemwood)],
                              low.branchdead = low.branchdead[2:length(low.stemwood)],
                              low.foliage = low.foliage[2:length(low.stemwood)])
-    
-    # obs.biomass <- data.frame(plot = c(plot,plot), 
+  
+    # ggplot()+geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA))+
+    #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    # tpa.live.df <- apply( tpa.live[i, , ] , 2, sum, na.rm = TRUE)
+    # tpa.live.df
+    # tpa.dead.df <- apply( tpa.dead[i, , ] , 2, sum, na.rm = TRUE)
+    # 
+    #  ggplot()+geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA))+
+    #    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    #  ggplot()+geom_point(data = tpa.live.df, aes(x = year, ymin = , ymax = upA))+
+    #    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    # 
+    # # obs.biomass <- data.frame(plot = c(plot,plot), 
     #                           DRYBIO_AG_lb_ha = c(sum(oldTREE$DRYBIO_AG*oldTREE$TPA_UNADJ), sum(STATUSCD_change$DRYBIO_AG*STATUSCD_change$TPA_UNADJ, na.rm =TRUE)),
     #                           year = c(unique(oldTREE$MEASYR), unique(STATUSCD_change$MEASYR)) )
     # 
@@ -796,11 +813,13 @@ DIDD.rcp60.parse.df.60 <- do.call(rbind, DIDD.rcp60.parse.list.60)
 DIDD.rcp85.parse.df.60 <- do.call(rbind, DIDD.rcp85.parse.list.60)
 
 parse.DIDD.mort.60 <- rbind( DIDD.parse.df.60, DIDD.rcp45.parse.df.60, DIDD.rcp60.parse.df.60, DIDD.rcp85.parse.df.60)
+#saveRDS( DIDD.parse.df.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
+
 saveRDS(parse.DIDD.mort.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 parse.DIDD.mort.60 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 
 
-parse.all.mort <- DIDD.parse.df.60#parse.DIDD.mort.60 #<- DIDD.parse.df.60 
+parse.all.mort <- parse.DIDD.mort.60  #DIDD.parse.df.60  #<- DIDD.parse.df.60 
 parse.all.mort$plot <- as.character(parse.all.mort$plot)
 
 # subtract the scenarios from the full scenario for the mean AGB:
@@ -1121,28 +1140,29 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
 mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
 mort.26 <- do.call(rbind, mort.26.list)
 saveRDS(mort.26, "outputs/parse.mort.26.60.tempfile.full.rds")
-rm(mort.26)
+rm(mort.26, mort.26.list)
 
 mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full"  , scale.mort.prob = 1)})
 mort.45.test <- do.call(rbind, mort.45.list)
 saveRDS(mort.45.test, "outputs/parse.mort.45.60.tempfile.full.rds")
-rm(mort.45.test)
+rm(mort.45.test, mort.45.list)
 
 
 mort.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full", scale.mort.prob = 1)})
 mort.60.test <- do.call(rbind, mort.60.list)
 saveRDS(mort.60.test, "outputs/parse.mort.60.60.tempfile.full.rds")
-rm(mort.60.test)
+rm(mort.60.test, mort.60.list)
 
 mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
 mort.85.test <- do.call(rbind, mort.85.list)
 saveRDS(mort.85.test, "outputs/parse.mort.85.60.tempfile.full.rds")
-#rm(mort.85.test)
+rm(mort.85.list)
 
 mort.26 <- readRDS("outputs/parse.mort.26.60.tempfile.full.rds")
 mort.45.test <- readRDS("outputs/parse.mort.45.60.tempfile.full.rds")
 mort.60.test <- readRDS("outputs/parse.mort.60.60.tempfile.full.rds")
 mort.full.parse <- rbind(mort.26, mort.45.test, mort.60.test, mort.85.test)
+#mort.full.parse <- mort.26
 saveRDS(mort.full.parse, "outputs/mort.full.parse.all.rds")
 rm(mort.full.parse, mort.26, mort.45.test, mort.60.test, mort.85.test)
 unique(plots) %in% 3172745010690
@@ -1162,12 +1182,16 @@ mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
 mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" , scale.mort.prob = 1)})
 mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
 
-
+#mort.full.parse.noCC <- mort.test.noCC
 mort.full.parse.noCC <- rbind(mort.test.noCC, mort.45.test.noCC, mort.60.test.noCC, mort.85.test.noCC)
 saveRDS(mort.full.parse.noCC, "outputs/mort.full.pars.noCC.60.rds")
-rm(mort.full.parse.noCC)
+rm(mort.full.parse.noCC, 
+   mort.26.list.noCC, mort.26.test.noCC, 
+   mort.45.list.noCC, mort.45.test.noCC, 
+   mort.60.list.noCC, mort.60.test.noCC, 
+   mort.85.list.noCC, mort.85.test.noCC)
 # get it for noSDI:
-x <- unique(plots)[1]
+#x <- unique(plots)[1]
 
 mort.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
 mort.test.noSDI <- do.call(rbind, mort.test.list.noSDI)
@@ -1181,9 +1205,17 @@ mort.60.test.noSDI <- do.call(rbind, mort.60.list.noSDI)
 mort.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
 mort.85.test.noSDI <- do.call(rbind, mort.85.list.noSDI)
 
-
+mort.full.parse.noSDI <- mort.test.noSDI
 mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test.noSDI, mort.85.test.noSDI)
 saveRDS(mort.full.parse.noSDI, "outputs/mort.full.parse.noSDI.60.rds")
+rm( 
+   mort.26.list.noSDI, mort.26.test.noSDI, 
+   mort.45.list.noSDI, mort.45.test.noSDI, 
+   mort.60.list.noSDI, mort.60.test.noSDI, 
+   mort.85.list.noSDI, mort.85.test.noSDI)
+#
+
+
 mort.full.parse <- readRDS("outputs/mort.full.parse.all.rds")
 mort.full.parse.noCC <- readRDS("outputs/mort.full.pars.noCC.60.rds")
 mort.all.parse.60 <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
@@ -1191,8 +1223,8 @@ mort.all.parse.60 <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.par
 # for just rcp 26
 #mort.all.parse.60 <- rbind(mort.26, mort.test.noCC, mort.test.noSDI)
 # save as RDS:
-saveRDS(mort.all.parse.60, here("outputs/", "all.plot.mort.C.60SDIthresh_1.1.RDS"))
-mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.1.RDS"))
+saveRDS(mort.all.parse.60, "outputs/all.plot.mort.C.60SDIthresh_1.RDS")
+mort.all.parse.60 <- readRDS( "outputs/all.plot.mort.C.60SDIthresh_1.RDS")
 
 # create function to scale biomass to C and convert to Tg?
 # Cfraction
@@ -1216,7 +1248,7 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax
   scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
   ylab("Dead Wood carbon (Tg C)")
 
-ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic_60MaxSDIthresh_1.1.png"))
+ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic_60MaxSDIthresh_1_test.png"))
 
 # reorient it so it looks closer to the parse plots
 

@@ -154,6 +154,8 @@ View(TREE_growth_mort.df %>% group_by(STATUSCD_CHANGE, is.na(MORTYR)) %>% summar
 
 
 PIPO.mort.data <- TREE_growth_mort.df %>% mutate(M = ifelse(STATUSCD_CHANGE==2, 1, 0))
+hist(PIPO.mort.data$DIA)
+ggplot(PIPO.mort.data, aes(DIA, M))+geom_point()+stat_smooth()
 
 m1 <- glm(M ~ growth ,family=binomial(link='logit'),data=PIPO.mort.data)
 summary(m1)
@@ -174,6 +176,25 @@ summary(m2)
 anova(m2)
 m2 <- readRDS("m2_pipo_mort_year.rds")
 alpha.mort <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+saveRDS(m2, "m2_pipo_mort_year.rds")
+
+PIPO.mort.data$DBH_cm_sq <- PIPO.mort.data$DBH_cm^2
+
+m2flex <- glm(M ~ growth + DBH_cm + DBH_cm_sq ,family=binomial(link='logit'),data=PIPO.mort.data)
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+growth.sim$DBH_cm_sq <- growth.sim$DBH_cm^2
+
+
+hist(predict(m2flex, growth.sim, type = "response"))
+
+summary(m2flex)
+anova(m2flex)
+#m2 <- readRDS("m2_pipo_mort_year.rds")
+alpha.mort <- m2flex$coefficients[1]
 b.growth <- m2$coefficients[2]
 b.dbh <- m2$coefficients[3]
 saveRDS(m2, "m2_pipo_mort_year.rds")

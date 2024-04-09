@@ -2,7 +2,7 @@ library(here)
 library(tidyverse)
 library(rFIA)
 library(sf)
-db <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
+#db <-readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/InWeUS_FIAdb.rds"))
 
 db <- readRDS("data/InWeUS_FIAdb.rds")
 db$PLOT <- db$PLOT %>% filter(STATECD %in% c(4, 8, 35, 49, 56, 16, 30))#& CN %in% unique(AGB$CN))
@@ -99,18 +99,23 @@ data <- data %>%
   filter(!is.na(YEAR))
 
 periodic.data <- data
-saveRDS(data, "INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
+#saveRDS(data, "INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
 
 rm(data, db, POP_PLOT_STRATUM_ASSGN, TREE, COND, PLOT)
+periodic.data <- periodic.data %>%
+  mutate(YEAR = END_INVYR) %>%
+  ## remove any NAs
+  filter(!is.na(YEAR))
+saveRDS(periodic.data, "INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
 
 
 #---------------------------------------------------------------------------------
 # 
 
 periodic.data <- readRDS("INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
-mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh.RDS"))
-mort.all.parse.60.1.1 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.1.RDS"))
-mort.all.parse.60.0.9 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_0.9.RDS"))
+mort.all.parse.60 <- readRDS( paste0("outputs/", "all.plot.mort.C.60SDIthresh_1.RDS"))
+#mort.all.parse.60.1.1 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.1.RDS"))
+#mort.all.parse.60.0.9 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_0.9.RDS"))
 
 scale.mort.expns <- function(mort.df, parse = "full") {
 
@@ -182,8 +187,8 @@ scale.mort.expns <- function(mort.df, parse = "full") {
 }
 
 full.1 <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "full")
-full.1.1 <- scale.mort.expns(mort.df = mort.all.parse.60.1.1, parse = "full")
-full.0.9 <- scale.mort.expns(mort.df = mort.all.parse.60.0.9, parse = "full")
+#full.1.1 <- scale.mort.expns(mort.df = mort.all.parse.60.1.1, parse = "full")
+#full.0.9 <- scale.mort.expns(mort.df = mort.all.parse.60.0.9, parse = "full")
 
 
 
@@ -219,7 +224,7 @@ mort.CC.pct.bar <- ggplot() +
   geom_errorbar(data = climate.change.dead.tree.effect %>% filter(year %in% "2098"), aes(x=rcp, ymin = low.DEAD, ymax = high.DEAD), size = 0.5, width = 0.1)+
   ylab("% of mortality attributable to climate change")+xlab("Emissions Pathway")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())#+#ylim(0, 30)
 mort.CC.pct.bar
-
+ggsave(height = 4, width = 4, units = "in", "outputs/PCT_MORT_DUE_TO_CC_bar.PNG")
 
 mort.CC.pct <- ggplot() + 
   geom_segment(data = climate.change.dead.tree.effect %>% filter(year %in% "2098"), aes(x=rcp, xend = rcp, y = low.DEAD, 
@@ -241,7 +246,7 @@ ending.mort.1.1$scaled.mortality <- "- 10%"
 ending.mort.0.9$scaled.mortality <- "+ 10%"
 
 ending.mort <- rbind(ending.mort.1, ending.mort.0.9, ending.mort.1.1)
-
+#ending.mort <- ending.mort.1
 full.low.high <- ending.mort %>% filter(parse %in% c("full")) %>% select(rcp, parse, mort.scheme, year,scaled.mortality, lowAGB.dead, hiAGB.dead, mAGB.dead)
 full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme", "scaled.mortality","year"))
 #colnames(full.low.high.diffs)[6] <- "CI"
@@ -275,7 +280,7 @@ ggplot()+geom_point(data = ending.mort, aes(x = scaled.mortality, y = mAGB.dead,
 #--------------------------------------------------------------------------------
 # Do the scaling for the Full AGB
 #--------------------------------------------------------------------------------
-AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold.RDS")
+AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 #colnames(AGB)[1] <- "PLT_CN"
 AGB.0.9 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_0.9.RDS")
 AGB.1.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.1.RDS")
@@ -329,7 +334,7 @@ full.live.1.1$scaled.mortality <- "- 10%"
 full.live.0.9$scaled.mortality <- "+ 10%"
 
 ending.full.live <- rbind(full.live.1, full.live.0.9, full.live.1.1)
-
+ending.full.live <- full.live.1
 full.low.high.live <- ending.full.live %>% filter(parse %in% c("full") & year %in% 2098) %>% 
   select(rcp, parse, mort.scheme, year,scaled.mortality, lowA, upA, mAGB)
 #full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme", "scaled.mortality","year"))
@@ -341,16 +346,16 @@ full.low.high.dead.live <- left_join(full.low.high.live, full.low.high)
 full.low.high.dead.live$lowdeadAGBtot <- full.low.high.dead.live$upA
 full.low.high.dead.live$highdeadAGBtot <- (full.low.high.dead.live$upA) + (full.low.high.dead.live$hiAGB.dead - full.low.high.dead.live$lowAGB.dead)
 
-full.low.high.dead.live %>% select(rcp, parse, mort.scheme, year, scaled.mortality, lowAGB.dead, hiAGB.dead, lowAGBtot, highAGBtot)
+full.low.high.dead.live %>% select(rcp, parse, mort.scheme, year, scaled.mortality, lowAGB.dead, hiAGB.dead, lowA, upA)
 
 df.scaled.mort <- data.frame(scaled.mortality = c("- 10%", "tuned to historic", "+ 10%"), 
                              mort.number = 1:3)
 
 full.low.high.dead.live <- left_join(full.low.high.dead.live, df.scaled.mort)
 # ribbon only works for continous vars...
-ggplot() + geom_ribbon(data = full.low.high.dead.live, aes(x = mort.number, ymin = lowA, ymax = upA), fill = "forestgreen")+
-  geom_ribbon(data = full.low.high.dead.live, aes(x = mort.number, ymin = lowAGB.dead, ymax = hiAGB.dead), fill = "brown")+facet_wrap(~rcp, ncol = 4)+ 
-  scale_x_continuous(breaks = 1:3, labels = c("- 10%", "tuned to historic", "+ 10%"))
+# ggplot() + geom_ribbon(data = full.low.high.dead.live, aes(x = mort.number, ymin = lowA, ymax = upA), fill = "forestgreen")+
+#   geom_ribbon(data = full.low.high.dead.live, aes(x = mort.number, ymin = lowAGB.dead, ymax = hiAGB.dead), fill = "brown")+facet_wrap(~rcp, ncol = 4)+ 
+#   scale_x_continuous(breaks = 1:3, labels = c("- 10%", "tuned to historic", "+ 10%"))
 
 
 

@@ -851,7 +851,7 @@ source("R/plot2AGB_kayeFVS.R")
 source("R/get_objects.R")
 source("R/generate_forecast.R")
 source("R/biomass.sensitivity.periodic_4scenarios.R")
-
+high.plts <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
 # run the function that makes all of the forecasts
 # system.time(biomass.sensitivity.periodic( plot = '2533485010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
 # system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 0.9))
@@ -871,7 +871,7 @@ scenario = "rcp26"
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 3125031010690
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plt.num = 3250176010690, #2469918010690 , 
+biomass.sensitivity.periodic(plt.num = 2578176010690, #high.plts$PLT_CN[4] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
                              scenario = "rcp26", 
@@ -890,10 +890,11 @@ plt.num <- unique(highAGBplots)[1,]
 plot <- 3250176010690 # vector memeory limit reached
 # plot <- 2567114010690
 # plot <- 2447900010690 # vector memory limit exhausted
-unique(plots)[1:675] %in% 2972526010690
+unique(plots)[1:675] %in% 2491432010690
+# 154
 # fixed the plotting issue for SDI with only 1 subplot:
-
-system.time(lapply(X = unique(plots)[8:100],
+unique(high.plts$plot)
+system.time(lapply(X = unique(plots)[201:300], #unique(plots)[540:650],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
                                                                   density.dependent = TRUE, 
                                                                   density.independent = TRUE, 
@@ -914,7 +915,7 @@ system.time(lapply(X = unique(plots)[8:100],
 # user  system elapsed 
 # 136.527  41.239 182.824
 system.time(
-  mclapply(unique(plots)[7:8],
+  mclapply(unique(plots)[154:155],
            FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, 
                                                           density.dependent = TRUE, 
                                                           density.independent = TRUE, 
@@ -932,6 +933,13 @@ system.time(
                                                           time_data_list = time_data)}, 
             mc.cores = 2)
   )
+
+
+system.time(
+ outputs <-  mclapply(unique(plots)[154:155],
+           FUN = function(pltid){as.numeric(pltid) - 2}, 
+           mc.cores = 2)
+)
 
 #lapply(unique(plots)[429:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)}
 
