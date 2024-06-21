@@ -124,19 +124,19 @@ model {
      
         inc[i,1:Ncol] ~ lognormal( alpha_TREE[i] + betaX*xscaled[i, 1:(Ncol)] + betaTmax*tmaxAprMayJunscaled[i,1:Ncol] + betaPrecip*wateryrscaled[i,1:Ncol] +
         betaSDI*SDI[i,1:Ncol] + betaMAT*MAT[i] + betaMAP*MAP[i] + 
-         betaPrecip_MAT*wateryrscaled[i,1:Ncol]*MAT[i] +  
+        betaPrecip_MAT*wateryrscaled[i,1:Ncol]*MAT[i] +  
         betaPrecip_Tmax*(wateryrscaled[i,1:Ncol].*tmaxAprMayJunscaled[i,1:Ncol]) +
         betaPrecip_SDI*(wateryrscaled[i,1:Ncol].*SDI[i,1:Ncol]) + 
         betaTmax_SDI*(tmaxAprMayJunscaled[i,1:Ncol].*SDI[i,1:Ncol]) + 
-       betaTmax_MAP*(tmaxAprMayJunscaled[i,1:Ncol]*MAP[i])+ 
+        betaTmax_MAP*(tmaxAprMayJunscaled[i,1:Ncol]*MAP[i])+ 
         betaTmax_MAT*(tmaxAprMayJunscaled[i,1:Ncol]*MAT[i])+ 
-       betaX_Tmax*(xscaled[i,1:Ncol].*tmaxAprMayJunscaled[i,1:Ncol])+ 
-       betaX_Precip*(xscaled[i,1:Ncol].*wateryrscaled[i,1:Ncol])+ 
-       betaX_SDI*(xscaled[i,1:Ncol].*SDI[i,1:Ncol]) + 
-       betaPrecip_MAP*(wateryrscaled[i,1:Ncol]*MAP[i]) +
-       betaMAP_MAT*(MAP[i]*MAT[i]) + 
-       betaX_MAP*(xscaled[i,1:Ncol]*MAP[i]) + 
-       betaX_MAT*(xscaled[i,1:Ncol]*MAT[i]), sigma_add);
+        betaX_Tmax*(xscaled[i,1:Ncol].*tmaxAprMayJunscaled[i,1:Ncol])+ 
+        betaX_Precip*(xscaled[i,1:Ncol].*wateryrscaled[i,1:Ncol])+ 
+        betaX_SDI*(xscaled[i,1:Ncol].*SDI[i,1:Ncol]) + 
+        betaPrecip_MAP*(wateryrscaled[i,1:Ncol]*MAP[i]) +
+        betaMAP_MAT*(MAP[i]*MAT[i]) + 
+        betaX_MAP*(xscaled[i,1:Ncol]*MAP[i]) + 
+        betaX_MAT*(xscaled[i,1:Ncol]*MAT[i]), sigma_add);
       
   
  }

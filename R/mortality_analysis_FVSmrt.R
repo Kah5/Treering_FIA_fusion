@@ -92,6 +92,7 @@ PLOT$DSTRBYR3 <- COND$DSTRBYR3[match(PLOT$CN, COND$PLT_CN)]
 
 PLOT$DSTRBCD1 <- COND$DSTRBCD1[match(PLOT$CN, COND$PLT_CN)]
 PLOT$DSTRBCD2 <- COND$DSTRBCD2[match(PLOT$CN, COND$PLT_CN)]
+
 PLOT$DSTRBCD3 <- COND$DSTRBCD3[match(PLOT$CN, COND$PLT_CN)]
 
 # Match up the tree and plot data
@@ -194,13 +195,11 @@ hist(predict(m2flex, growth.sim, type = "response"))
 summary(m2flex)
 anova(m2flex)
 #m2 <- readRDS("m2_pipo_mort_year.rds")
-alpha.mort <- m2flex$coefficients[1]
+alpha.mort <- m2$coefficients[1]
 b.growth <- m2$coefficients[2]
 b.dbh <- m2$coefficients[3]
 saveRDS(m2, "m2_pipo_mort_year.rds")
 
-#plot(x = growth.sim$growth, y = vector(predict(m2, growth.sim, type = "response")))
-#alpha + (b.growth*growth.sim)
 pmort <- as.vector(inv.logit(alpha.mort + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
 
 growth.sim$pmort <- pmort
@@ -210,6 +209,51 @@ DBH.responses <- ggplot(growth.sim, aes(DBH_cm, pmort, color = growth, group = g
 growth.responses <- ggplot(growth.sim, aes(growth, pmort, color = DBH_cm, group = DBH_cm))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter growth (cm)")
 
 png(height = 4, width = 8, units = "in", res = 300, "outputs/mortality_FIA_derived_logistic_model.png")
+cowplot::plot_grid(DBH.responses, growth.responses, ncol = 2, align = "hv")
+dev.off()
+
+#--------------------------------------------------------------------------------------
+# make this a survival model
+
+
+PIPO.surv.data <- TREE_growth_mort.df %>% mutate(S = ifelse(STATUSCD_CHANGE==2, 0, 1))
+hist(PIPO.surv.data$DIA)
+ggplot(PIPO.surv.data, aes(DIA, S))+geom_point()+stat_smooth()
+ggplot(PIPO.surv.data, aes(growth, S))+geom_point()+stat_smooth()
+
+m1 <- glm(S ~ growth ,family=binomial(link='logit'),data=PIPO.surv.data)
+summary(m1)
+anova(m1)
+alpha <- m1$coefficients[1]
+b.growth <- m1$coefficients[2]
+# save the mortality analysis equation:
+saveRDS(m1, "outputs/PIPO_growth_model.RDS")
+
+
+m2 <- glm(S ~ growth + DBH_cm,family=binomial(link='logit'),data=PIPO.surv.data)
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+hist(predict(m2, growth.sim, type = "response"))
+
+summary(m2)
+anova(m2)
+saveRDS(m2, "m2_pipo_surv_year.rds")
+
+alpha.surv <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+saveRDS(m2, "m2_pipo_surv_year.rds")
+
+psurv <- as.vector(inv.logit(alpha.surv + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
+
+growth.sim$psurv <- psurv
+growth.sim <- as.data.frame(growth.sim)
+class(growth.sim$growth)
+DBH.responses <- ggplot(growth.sim, aes(DBH_cm, psurv, color = growth, group = growth))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter (cm)")
+growth.responses <- ggplot(growth.sim, aes(growth, psurv, color = DBH_cm, group = DBH_cm))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter growth (cm)")
+
+png(height = 4, width = 8, units = "in", res = 300, "outputs/mortality_FIA_derived_logistic_model_survival.png")
 cowplot::plot_grid(DBH.responses, growth.responses, ncol = 2, align = "hv")
 dev.off()
 

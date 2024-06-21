@@ -207,10 +207,10 @@ mort.total.rcp
 ggsave(height = 4, width = 8, units = "in", "outputs/Total_MORT_DI_DD.PNG")
 
 
-full.low.high <- full.1 %>% filter(parse %in% c("full", "detrendedCC")) %>% select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead)
+full.low.high <- full.1 %>% filter(parse %in% c("full", "noCC")) %>% select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead)
 full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme", "year"))
 full.low.high.diffs <- full.low.high.m %>% group_by(rcp, mort.scheme, year, variable)%>%
-  spread(parse, value) %>% mutate(climatechange = ((full - detrendedCC)/full)*100) %>% select(rcp, mort.scheme, year, variable, climatechange)
+  spread(parse, value) %>% mutate(climatechange = ((full - noCC)/full)*100) %>% select(rcp, mort.scheme, year, variable, climatechange)
 
 colnames(full.low.high.diffs)[4] <- "CI"
 full.low.high.diffs.m <- reshape2::melt(full.low.high.diffs, id.vars = c("rcp", "mort.scheme", "year", "CI"))

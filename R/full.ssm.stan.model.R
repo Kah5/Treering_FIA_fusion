@@ -25,7 +25,9 @@ colnames(y.long) <- c("treeid", "year", "inc")
 # does the conversion to diameter increment 
 y.long <- y.long %>% mutate(diainc = (inc)*2) %>% filter(!is.na(diainc))
 
-
+y.long$diainc
+summary(y.long$inc)
+summary(y.long$diainc)
 # separate y into training and testing data:
 N_train <- nrow(y.long)*0.80
 N_test <- nrow(y.long)*0.20
@@ -53,13 +55,13 @@ z.long <- z.long %>% filter(!is.na(z.long$DIA))
 
 z.repeated <- z.long %>% filter(!is.na(DIA)) %>% group_by(tree.id) %>% summarise(n = n()) %>% filter(n > 1)
 
+# delete
+#z.train <- z.long %>% filter(!tree.id %in% test_z.tre$tree.id & !year > 2001)
+#z.test <- z.long %>% filter(tree.id %in% test_z.tre$tree.id & year > 2001)
 
-z.train <- z.long %>% filter(!tree.id %in% test_z.tre$tree.id & !year > 2001)
-z.test <- z.long %>% filter(tree.id %in% test_z.tre$tree.id & year > 2001)
 
-
-z.train <- left_join(z.train, time.df)
-z.test <- left_join(z.test, time.df)
+#z.train <- left_join(z.train, time.df)
+#z.test <- left_join(z.test, time.df)
 z.long <- left_join(z.long, time.df)
 train_y <- left_join(train_y, time.df)
 test_y <- left_join(test_y, time.df)
@@ -89,15 +91,15 @@ mod.data <- list(Nrow = length(unique(y.long$treeid)),
                  Ndia = length(z.long$DIA), 
                  
                  
-                 tmaxAprMayJunscaled = data$tmaxAprMayJunscaled[,1:36], 
-                 wateryrscaled = data$wateryrscaled[,1:36], 
+                 tmaxAprMayJunscaled = time_data$tmaxAprMayJunscaled[,1:36], 
+                 wateryrscaled = time_data$wateryrscaled[,1:36], 
                  MAP = data$MAP, 
                  MAT = data$MAT, 
-                 SDI = data$SDIscaled[,1:36])
+                 SDI = time_data$SDIscaled[,1:36])
 
-saveRDS(mod.data, "/Users/kellyheilman/Documents/SSM_small_test/data/mod.data.object.rds")
+saveRDS(mod.data, "data/mod.data.object.rds")
 summary(mod.data$SDI)
-
+mod.data$SDI
 
 #---------------------------------------------------------------
 # Run all versions of the model, sequentially adding in effects
@@ -105,8 +107,9 @@ summary(mod.data$SDI)
 # Model 0
 model.name <- "model_0"
 # record the total time it takes to run
+# fix the model folder in all of these models
 start.time = Sys.time()
-model.0 <- stan(file = "model_0_no_missingdata_vectorized.stan", 
+model.0 <- stan(file = "modelcode/model_0_no_missingdata_vectorized.stan", 
                 data = mod.data,
                 iter = 2000, chains = 3, verbose=FALSE, control =  list(max_treedepth = 15),#list(adapt_delta = 0.99, stepsize = 0.5, max_treedepth = 15),#, stepsize = 0.01, max_treedepth = 15),
                 sample_file = model.name, 

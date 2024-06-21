@@ -54,10 +54,10 @@ model {
   
   //variance priors
   sigma_dbh ~ normal(1, 0.01); //normal(1,0.01) works well on base model
-  sigma_inc ~ normal(0.035, 0.01);
-  sigma_add ~ normal(0, 5);
+  sigma_inc ~ normal(0.035, 0.01); //based on SD of remeasured increments
+  sigma_add ~ normal(0, 5); // wide (ish) prior given that max diameter inc is ~3.5
   
-  //x initial prior-uniformativae
+  //x initial prior-weakly informative --max tree size in data is 75
   xinit  ~ uniform(0, 75);
  
   

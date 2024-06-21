@@ -66,7 +66,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
   # for cored trees:
   #yrs <- 31:135
-  tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names.df$row == x & ci.names.df$col %in% 33:36)}) # select just the years 1994:2010 to match the plot level data:
+  tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names.df$row == x & ci.names.df$col %in% 33:36)}) #dplyr::select just the years 1994:2010 to match the plot level data:
   i.cored <- do.call(rbind, tree.ind.cored )
   
   if(class(out.noncored.plt)[1] == "vector"){
@@ -95,7 +95,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   
   all.dbh.ids <- separate(reshape2::melt(colnames(all.dbh)), col =value, into = c("x[", "tree", "year", "]"))
   all.dbh.ids$col.id <- 1:length(all.dbh.ids$tree)
-  yr.2001.ids <- as.vector(unlist(all.dbh.ids %>% filter(year == 36) %>% select(col.id)))
+  yr.2001.ids <- as.vector(unlist(all.dbh.ids %>% filter(year == 36) %>% dplyr::select(col.id)))
   
   all.dbh <- all.dbh[,yr.2001.ids]
   # get plot subplot and cored status for each tree:
@@ -203,7 +203,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     get_mcmc_samples <- function(x, betas, nsamps){
       
-      rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>% select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>% select(sd)))
+      rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(sd)))
     }
     
     nsamps <- nsamps
@@ -413,8 +413,10 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
     
-    MAP <- x.mat[m,]$MAP
-    MAT <- x.mat[m,]$MAT
+    # check the MAP and MAT--I think we can just get from cored.in.plt df
+    # this indexing may be off now
+    MAP <- cov.mat$MAP
+    MAT <- cov.mat$MAT
     
     #print("assembling covariate data ")
     
@@ -496,7 +498,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     
                                    DESIGNCD.table.plot = DESIGNCD.table,
                                    ramp.density = TRUE, # if true, will decrease the SDImax threshold 
-                                   scale.DImort = 20, # scaler to multiply DI mortality by
+                                   scale.DImort = 2, # scaler to multiply DI mortality by
                                    # keep these set to true
                                    density.dependent = TRUE, 
                                    density.independent = TRUE, 
@@ -508,7 +510,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # set to true for the no climate change scenario
                                    detrended.clim = FALSE, 
                                    SDI.mean.scale = SDI.mean.all, 
-                                   SDI.sd.scale = SDI.sd.all)
+                                   SDI.sd.scale = SDI.sd.all, 
+                                   MSB = TRUE, 
+                                   parse = "full")
     
     ####################################################
     #run SSM by scaling growth dependent climate changes by 2
@@ -523,7 +527,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     plt.number = plt.num, 
                                     DESIGNCD.table.plot = DESIGNCD.table,
                                    ramp.density = FALSE, # if true, will decrease the SDImax threshold 
-                                   scale.DImort = 20, # scaler to multiply DI mortality by
+                                   scale.DImort = 2, # scaler to multiply DI mortality by
                                    # keep these set to true
                                    density.dependent = TRUE, 
                                    density.independent = TRUE, 
@@ -535,7 +539,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # set to true for the no climate change scenario
                                    detrended.clim = FALSE, 
                                    SDI.mean.scale = SDI.mean.all, 
-                                   SDI.sd.scale = SDI.sd.all)
+                                   SDI.sd.scale = SDI.sd.all, 
+                                   MSB = TRUE, 
+                                   parse = "GD.20")
     
     
     ####################################################
@@ -551,7 +557,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     plt.number = plt.num, 
                                     DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
-                                    scale.DImort = 10, # scaler to multiply DI mortality by
+                                    scale.DImort = 1, # scaler to multiply DI mortality by
                                     # keep these set to true
                                     density.dependent = TRUE, 
                                     density.independent = TRUE, 
@@ -563,7 +569,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # set to true for the no climate change scenario
                                     detrended.clim = FALSE, 
                                     SDI.mean.scale = SDI.mean.all, 
-                                    SDI.sd.scale = SDI.sd.all)
+                                    SDI.sd.scale = SDI.sd.all,
+                                    MSB = TRUE, 
+                                    parse = "GD.10")
     ####################################################
     #run SSM by only ramping up density dependent climate changes (DD.ramp)
     ####################################################
@@ -577,7 +585,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                       plt.number = plt.num, 
                                       DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = TRUE, # if true, will decrease the SDImax threshold 
-                                    scale.DImort = 10, # scaler to multiply DI mortality by
+                                    scale.DImort = 1, # scaler to multiply DI mortality by
                                     # keep these set to true
                                     density.dependent = TRUE, 
                                     density.independent = TRUE, 
@@ -589,7 +597,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # set to true for the no climate change scenario
                                     detrended.clim = FALSE, 
                                     SDI.mean.scale = SDI.mean.all, 
-                                    SDI.sd.scale = SDI.sd.all)
+                                    SDI.sd.scale = SDI.sd.all,
+                                    MSB = TRUE, 
+                                    parse = "DD.ramp")
     ####################################################
     #run SSM with detrended climate impacts
     ####################################################
@@ -627,8 +637,8 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     covariates$SDI <- as.matrix(SDI)
     covariates$ppt <- as.matrix(full.ens.ppt)
     covariates$tmax <-  as.matrix(full.ens.tmax.detrend) 
-    covariates$MAP <- x.mat[m,]$MAP
-    covariates$MAT <- x.mat[m,]$MAT
+    covariates$MAP <- cov.mat$MAP
+    covariates$MAT <- cov.mat$MAT
     
     source("R/generate_forecast.R")
     noClim <- generate.plot.forecast(index.trees.df = index.df, 
@@ -641,7 +651,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                      
                                     DESIGNCD.table.plot = DESIGNCD.table,
                                     ramp.density = FALSE, # if true, will decrease the SDImax threshold 
-                                    scale.DImort = 10, # scaler to multiply DI mortality by
+                                    scale.DImort = 1, # scaler to multiply DI mortality by
                                     # keep these set to true
                                     density.dependent = TRUE, 
                                     density.independent = TRUE, 
@@ -653,7 +663,9 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # set to true for the no climate change scenario
                                     detrended.clim = TRUE, 
                                     SDI.mean.scale = SDI.mean.all, 
-                                    SDI.sd.scale = SDI.sd.all)
+                                    SDI.sd.scale = SDI.sd.all,
+                                    MSB = TRUE, 
+                                    parse = "noCC")
     
    ################################################################################
    # SAVE THE PLOT level figures
@@ -675,7 +687,22 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
+    # TPA tracking plots
+    TPA.plts <- cowplot::plot_grid(full$p.TPA.DD, 
+                                   full$p.TPA.DI,
+                                   full$p.TPA.MSB,
+                                   full$p.TPA.all,
+                                   full$p.TPA.allmort, 
+                                   # GD.10$p.TPA.DD + ggtitle("scaling GD by 10 only"), 
+                                   # GD.20$p.SDI+ ggtitle("scaling GD by 20 only"), 
+                                   # DD.ramp$p.SDI + ggtitle("ramping DD only"), 
+                                   # noClim$p.SDI +ggtitle("no climate change")
+                                    align="hv", ncol = 2)
+                                   # 
+    cowplot::save_plot(TPA.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/TPA_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
+    
+    # DIAMETER plots
      dia.plts <- cowplot::plot_grid(full$p.dbh, 
                                    GD.10$p.dbh + ggtitle("scaling GD by 10 only"), 
                                    GD.20$p.dbh + ggtitle("scaling GD by 20 only"), 
