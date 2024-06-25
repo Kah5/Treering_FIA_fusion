@@ -305,9 +305,10 @@ SDIscaled <- SDI.mat.PLT.subp # note this is not ordered (it might be but i have
 
 wateryrscaled[,4:ncol(wateryrscaled)] <- standardize.mat(as.matrix(wintP.wateryr[,4:ncol(wintP.wateryr)]))
 tmaxAprMayJunscaled[,4:ncol(tmaxAprMayJunscaled)] <- standardize.mat(as.matrix(tmax.AprMayJun[,4:ncol(tmax.AprMayJun)]))
-SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)]))
-
-
+#SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(data.frame(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)]))
+SDIscaled <- data.frame(time_data$SDIscaled)
+SDIscaled$PLT_CN <- data$cov.data.regional$PLT_CN
+SDIscaled$SUBP <- data$cov.data.regional$SUBP
 #--------------------------------------------------------------------------------------------- 
 # Read in the posterior parameter estimates
 #--------------------------------------------------------------------------------------------- 
@@ -451,11 +452,11 @@ iterate_statespace.incpred <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha
 }
 
 
-#iterate_statespace.incpred(x = 45, betas.all= betas.all, alpha = 0, SDinc = sigma.INC$median, covariates = data.frame(SDI = 2, 
-                                                                                                                                    # ppt = -8, 
-                                                                                                                                    # tmax = -8, 
-                                                                                                                                    # MAP = -1,
-                                                                                                                                    # MAT = -1.5))
+iterate_statespace.incpred(x = 45, betas.all= betas.all, alpha = 0, SDinc = sigma.INC$median, covariates = data.frame(SDI = 2, 
+                                                                                                                                     ppt = -8, 
+                                                                                                                                     tmax = -8, 
+                                                                                                                                     MAP = -1,
+                                                                                                                                     MAT = -1.5))
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
 simulate.xvals.from.model.oos <- function(m, nsamps = 100){
