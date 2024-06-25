@@ -667,6 +667,9 @@ if(file.exists(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))){
  saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
 }
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
+
+#TREE %>% filter(PREV_TRE_CN %in% as.character(x.mat$CN)) # %in% as.character(validate.diam$TRE_CN)
+
 #--------------------------------------------------------------------------------------------- 
 # forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
@@ -740,6 +743,41 @@ plot <- cov.data.regional$PLT_CN[1]
 all.noncored <- x.mat # x.mat from dbh.spread above
 all.noncored$treeid <- 1:length(x.mat$PLT_CN)
 plots <- as.character(unique(x.mat$PLT_CN))
+
+# --------------------------------------------------------------------------------------------
+# Check for any trees with validation from inventory to 2001
+# --------------------------------------------------------------------------------------------
+validate.diam <- read.delim("data/PIPOCore_TentativeMatch.csv", sep = ",")
+validate.diam<- validate.diam  %>% mutate(DIA_T2 = DIA + INCR) %>% mutate(DIA_cm_T2 = DIA_T2*2.54)
+nearTermDIA <- validate.diam %>% filter(CORE_CN %in% cov.data.regional$CORE_CN) %>% filter(MEASYEAR_T2 <= 2001)
+farTermDIA <- validate.diam %>% filter(CORE_CN %in% cov.data.regional$CORE_CN) %>% filter(MEASYEAR_T2 > 2001) %>% mutate(DIA_T2 = DIA + INCR)
+cov.data.regional$DIA_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$DIA_T2
+cov.data.regional$DIA_cm_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$DIA_cm_T2
+
+cov.data.regional$MEASYEAR_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$MEASYEAR_T2
+
+nearTermValidate <- cov.data.regional %>% filter(!is.na(DIA_cm_T2)) %>% filter(MEASYEAR_T2 <= 2001)
+plt.num <- as.character(nearTermValidate$PLT_CN[1])
+
+yr.col.df <- data.frame(col = 1:36, 
+                        MEASYEAR_T2 = 1966:2001)
+
+#validate.year <- yr.col.df %>% filter(MEASYEAR_T2%in% cored.in.plt$MEASYEAR_T2)
+
+ci.melt <- reshape2::melt(ci, id.vars = rownames(ci))%>% spread(Var1, value)
+ci.melt$treeid <- rep(1:1046, 36)
+ci.melt$col <- rep(1:36, each = 1046)
+ci.years <- left_join(ci.melt, yr.col.df) 
+# get the matching melted trees
+
+cov.data.validation <- left_join(cov.data.regional, ci.years)
+ggplot()+geom_point(data = cov.data.validation, aes(x = DIA_cm_T2, y = `50%`))+
+  geom_errorbar(data = cov.data.validation, aes(x = DIA_cm_T2, ymin = `2.5%`, ymax = `97.5%`))+
+  geom_abline(aes(intercept = 0, slope = 1), linetype = "dashed", color = "red")+theme_bw(base_size = 12)+
+  ylab("Predicted held-out diameters (cm) 1990-2001")+
+  xlab("Observed held-out diameters (cm)")
+ggsave("outputs/validation/OOS_1990_2001_DIAMETERS.png")
+saveRDS(cov.data.validation, "outputs/validation/OOS_cov_data_validation_1990_2001.RDS")
 
 
 #--------------------------------------------------------------------------------------------- 
@@ -860,12 +898,12 @@ high.plts <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
 #plot <- unique(odd.plots$plot)[1]
 
 # run all the plots for this scenario and 60% max SDI
-
+remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2))
 scenario = "rcp26"
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 3125031010690
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plt.num = 2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[6],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
                              scenario = "rcp26", 
@@ -880,26 +918,14 @@ biomass.sensitivity.periodic(plt.num = 2487922010690,#2972526010690, #2972148010
                              #xmat2 = xmat2, 
                              SDIscaled.matrix = SDIscaled,
                              time_data_list = time_data)
-plt.num <- unique(highAGBplots)[1,]
-plot <- 3250176010690 # vector memeory limit reached
-# plot <- 2567114010690
-# plot <- 2447900010690 # vector memory limit exhausted
-unique(plots)[1:675] %in% 2491432010690
-# 154
-# fixed the plotting issue for SDI with only 1 subplot:
-unique(high.plts$plot)
 
-unique(plots) %in% 2698717010690 # 375
-
-unique(plots)[!unique(plots) %in% unique(high.plts$plot)]
-large.dia.plots <- readRDS("outputs/large.dia.plots.rds")
- unique(plots)[!unique(plots) %in% unique(high.plts$plot)] %in% 2972148010690 #2972148010690
-system.time(lapply(X = large.dia.plots$plot,#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+# run for all of the remeasured trees
+system.time(lapply(X = as.character(remeasured.trees.plts$PLT_CN)[1:322],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
                                                                   density.dependent = TRUE, 
                                                                   density.independent = TRUE, 
                                                                   scenario = "rcp26", 
-                                                                  SDI.ratio.DD = 0.7, 
+                                                                  SDI.ratio.DD = 0.6, 
                                                                   aggressiveCC = FALSE, 
                                                                   scale.mort.prob = 1, 
                                                                   cov.data.regional.df = cov.data.regional, 
