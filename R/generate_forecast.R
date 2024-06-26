@@ -532,14 +532,17 @@ p.dbh <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, col
   geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
   theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plt.number))
 
-cored.remeas <- index.trees.df %>% filter(type %in% "cored" & !is.na(DIA_cm_T2))
+cored.remeas <- index.trees.df %>% filter(type %in% "cored" & !is.na(DIA_cm_T2) &  cored.remeas$MEASYEAR_T2 > 2001)
 
-if(length(cored.remeas$treeid) >0 & cored.remeas$MEASYEAR_T2 > 2001){
+if(length(cored.remeas$treeid) >0 ){
   p.dbh.validate <- ggplot()+geom_line(data = dbh.means.index %>% filter(treeno %in% cored.remeas$treeno), aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
     geom_ribbon(data = dbh.means.index %>% filter(treeno %in% cored.remeas$treeno), aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
     geom_point(data = cored.remeas, aes(x = MEASYEAR_T2-2001, y = DIA_cm_T2))+
     theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for  ", plt.number))
   cored.remeas$time <- cored.remeas$MEASYEAR_T2-2001
+  
+  
+  
   pred.dbh.validate <- dbh.means.index %>% filter(treeno %in% cored.remeas$treeno & time %in% cored.remeas$time)
   cored.remeas$predDBH_T2 <-  pred.dbh.validate$`50%`
   cored.remeas$predDBH_T2.lo <-  pred.dbh.validate$`2.5%`
