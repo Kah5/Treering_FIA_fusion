@@ -68,7 +68,8 @@ generate.plot.forecast <- function(index.trees.df,
                                    MSB = TRUE, 
                                    parse = "full"){
 
-rm(p.inc,p.SDI, p.diam.tpa, p.dbh)
+rm(forecast.combined, p.inc, p.dbh, p.diam.tpa, p.SDI, p.dbh.validate, p.TPA.all,
+   p.TPA.allmort, p.TPA.MSB, p.TPA.DI, p.TPA.DD, cored.remeas)
 ni <- ncol(all.dbh.df)#/4 # number of individuals per plot (divide by 4 because its the #years in the data)
 
 
@@ -142,7 +143,7 @@ for(t in 1:nt){ # for each year t in the # of trees
                                                                                                                                                                     ppt = covariates.list$ppt[,t],
                                                                                                                                                                     tmax = covariates.list$tmax[,t]))
       
-      dbh.pred[i,,t+1] <-  increment[i,,t+1]+dbh.pred[i,,t] # calculate new dbh
+      dbh.pred[i,,t+1] <-  increment[i,,t+1] + dbh.pred[i,,t] # calculate new dbh
       # calculate a new TPA value, incase the tree grew out of the subplot:
       TPAsize[i,,t+1] <- rep(calcTPA_unadj (DBH_in = mean(dbh.pred[i,,t+1])/2.54, DESIGN.tb =  DESIGNCD.table.plot ), length(TPAsize[i,,t+1]))
       
@@ -530,7 +531,29 @@ dbh.means.index <- left_join(dbh.quants.spread , index.trees.df, by = "treeno")
 p.dbh <- ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
   geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
   theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plt.number))
-p.dbh
+
+cored.remeas <- index.trees.df %>% filter(type %in% "cored" & !is.na(DIA_cm_T2))
+
+if(length(cored.remeas$treeid) >0 & cored.remeas$MEASYEAR_T2 > 2001){
+  p.dbh.validate <- ggplot()+geom_line(data = dbh.means.index %>% filter(treeno %in% cored.remeas$treeno), aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
+    geom_ribbon(data = dbh.means.index %>% filter(treeno %in% cored.remeas$treeno), aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+    geom_point(data = cored.remeas, aes(x = MEASYEAR_T2-2001, y = DIA_cm_T2))+
+    theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for  ", plt.number))
+  cored.remeas$time <- cored.remeas$MEASYEAR_T2-2001
+  pred.dbh.validate <- dbh.means.index %>% filter(treeno %in% cored.remeas$treeno & time %in% cored.remeas$time)
+  cored.remeas$predDBH_T2 <-  pred.dbh.validate$`50%`
+  cored.remeas$predDBH_T2.lo <-  pred.dbh.validate$`2.5%`
+  cored.remeas$predDBH_T2.hi <-  pred.dbh.validate$`97.5%`
+}else{
+  p.dbh.validate = NA
+  cored.remeas = NA
+}
+
+ggplot()+geom_line(data = dbh.means.index, aes(x = time, y = `50%`, color = as.character(SUBP), group = treeno)) +
+  geom_ribbon(data = dbh.means.index, aes(x = time, ymin = `2.5%`, ymax = `97.5%`,fill = as.character(SUBP), group = treeno), alpha = 0.5)+
+  theme_bw() + ylab("Diameters (cm)")+xlab("years after 2001") + ggtitle(paste0("Diameter forecasts (means) for plot ", plt.number))
+
+
 # TPA of live trees
 TPA.quants <- reshape2::melt(apply(TPAlive, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
 colnames(TPA.quants) <- c("treeno","time", "TPA")
@@ -552,6 +575,7 @@ p.TPA.DD <- ggplot(TPA.DD.quants, aes(x = time, y = TPADD, group = treeno, color
 
 TPA.MSB.quants <- reshape2::melt(apply(TPAMSB, c(1,3), function(x){quantile(x,c(0.5), na.rm = TRUE)}))
 colnames(TPA.MSB.quants) <- c("treeno","time", "TPAMSB")
+
 
 p.TPA.MSB <- ggplot(TPA.MSB.quants, aes(x = time, y = TPAMSB, group = treeno, color = treeno))+geom_line()+ggtitle("TPA MSB")
 
@@ -739,17 +763,21 @@ forecast.combined <- plot2AGB(combined = combined,
                  yrvec = 2001:2098, 
                  scenario = scenario,
                  cc.scenario = cc.scenario, 
-                 p = NULL, 
-                 p.inc = NULL, 
+                 #p = NULL, 
+                 #p.inc = NULL, 
                  SDI.ratio.DD = SDI.ratio.DD, 
                  plt.design = "periodic", 
                  folder.name = paste0("biomass_dataFIAperiodic_", scale.mort.prob), 
                  parse.type = parse, 
-                 mort.prob.reduced  = mort.prob.reduced)
+                 mort.prob.reduced  = mort.prob.reduced, 
+                 index.trees.data = index.trees.df, 
+                 cored.remeas = cored.remeas)
 
 #List the objects created in this script
 #get.objects()
-rm(list = get.objects(exception = c(forecast.combined, p.inc, p.dbh, p.diam.tpa, p.SDI), message = FALSE))
+# rm(list = get.objects(exception = c(forecast.combined,kaye_pipo, p.inc, p.dbh, p.diam.tpa,
+#                                     p.SDI, p.dbh.validate, p.TPA.all, p.TPA.allmort,
+#                                     p.TPA.MSB, p.TPA.DI, p.TPA.DD, cored.remeas), message = TRUE))
 
 return(list(forecast = forecast.combined,
             p.inc = p.inc, 
@@ -760,7 +788,12 @@ return(list(forecast = forecast.combined,
             p.TPA.DD = p.TPA.DD, 
             p.TPA.MSB = p.TPA.MSB, 
             p.TPA.all = p.TPA.all, 
-            p.TPA.allmort = p.TPA.allmort))
+            p.TPA.allmort = p.TPA.allmort, 
+            p.dbh.validate = p.dbh.validate, 
+            cored.remeas = cored.remeas))
 
+rm(list = get.objects(exception = c(forecast.combined,kaye_pipo, p.inc, p.dbh, p.diam.tpa, 
+                                    p.SDI, p.dbh.validate, p.TPA.all, p.TPA.allmort, 
+                                    p.TPA.MSB, p.TPA.DI, p.TPA.DD, cored.remeas), message = TRUE))
 
 }
