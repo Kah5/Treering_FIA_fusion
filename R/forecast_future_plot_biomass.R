@@ -291,8 +291,9 @@ standardize.mat <- function(x){
 }
 
 standardize.vector <- function(x){
-  x.bar <- mean(as.vector(x), na.rm = TRUE)
-  s.d. <- sd(x, na.rm = TRUE)
+  x.2 <- apply(x, 2, as.numeric)
+  x.bar <- mean(as.vector(x.2), na.rm = TRUE)
+  s.d. <- sd(x.2, na.rm = TRUE)
   return((x-x.bar)/s.d.)
 }
 
@@ -305,10 +306,15 @@ SDIscaled <- SDI.mat.PLT.subp # note this is not ordered (it might be but i have
 
 wateryrscaled[,4:ncol(wateryrscaled)] <- standardize.mat(as.matrix(wintP.wateryr[,4:ncol(wintP.wateryr)]))
 tmaxAprMayJunscaled[,4:ncol(tmaxAprMayJunscaled)] <- standardize.mat(as.matrix(tmax.AprMayJun[,4:ncol(tmax.AprMayJun)]))
-#SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(data.frame(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)]))
-SDIscaled <- data.frame(time_data$SDIscaled)
-SDIscaled$PLT_CN <- data$cov.data.regional$PLT_CN
-SDIscaled$SUBP <- data$cov.data.regional$SUBP
+test <- as.numeric(as.matrix(SDIscaled[,5:ncol(SDIscaled)]))
+
+# Convert the matrix to numeric, forcing non-numeric values to NA
+numeric_matrix <- apply(SDIscaled[,5:ncol(SDIscaled)], 2, as.numeric)
+
+SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)])
+#SDIscaled <- data.frame(time_data$SDIscaled)
+#SDIscaled$PLT_CN <- data$cov.data.regional$PLT_CN
+#SDIscaled$SUBP <- data$cov.data.regional$SUBP
 #--------------------------------------------------------------------------------------------- 
 # Read in the posterior parameter estimates
 #--------------------------------------------------------------------------------------------- 
@@ -452,11 +458,6 @@ iterate_statespace.incpred <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha
 }
 
 
-iterate_statespace.incpred(x = 45, betas.all= betas.all, alpha = 0, SDinc = sigma.INC$median, covariates = data.frame(SDI = 2, 
-                                                                                                                                     ppt = -8, 
-                                                                                                                                     tmax = -8, 
-                                                                                                                                     MAP = -1,
-                                                                                                                                     MAT = -1.5))
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
 simulate.xvals.from.model.oos <- function(m, nsamps = 100){
@@ -656,7 +657,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 simulate.xvals.from.model.oos(m = 260, nsamps = 100)
 
 # see how long this will take:
-system.time(sims.x.forecast <- lapply(11:20, simulate.xvals.from.model.oos))
+system.time(sims.x.forecast <- lapply(1:20, simulate.xvals.from.model.oos))
 #3.8 user time multiplied by ~1500 =95 mintues 
 
 if(file.exists(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))){
@@ -899,12 +900,12 @@ high.plts <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
 #plot <- unique(odd.plots$plot)[1]
 
 # run all the plots for this scenario and 60% max SDI
-remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2))
+remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYEAR_T2 > 2001)
 scenario = "rcp26"
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 3125031010690
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[6],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[123],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
                              scenario = "rcp26", 
@@ -919,9 +920,9 @@ biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN
                              #xmat2 = xmat2, 
                              SDIscaled.matrix = SDIscaled,
                              time_data_list = time_data)
-
+as.character(unique(remeasured.trees.plts$PLT_CN))[1:322] %in% 2484206010690
 # run for all of the remeasured trees
-system.time(lapply(X = as.character(remeasured.trees.plts$PLT_CN)[1:322],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+system.time(lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[124:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
                                                                   density.dependent = TRUE, 
                                                                   density.independent = TRUE, 
@@ -938,33 +939,54 @@ system.time(lapply(X = as.character(remeasured.trees.plts$PLT_CN)[1:322],#unique
                                                                   SDIscaled.matrix = SDIscaled,
                                                                   time_data_list = time_data)}))
 
-# # for 2 plots!
-# # user  system elapsed 
-# # 136.527  41.239 182.824
-# system.time(
-#   mclapply(unique(plots)[154:155],
-#            FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, 
-#                                                           density.dependent = TRUE, 
-#                                                           density.independent = TRUE, 
-#                                                           scenario = "rcp26", 
-#                                                           SDI.ratio.DD = 0.7, 
-#                                                           aggressiveCC = FALSE, 
-#                                                           scale.mort.prob = 1, 
-#                                                           cov.data.regional.df = cov.data.regional, 
-#                                                           TREE.FIA = TREE, 
-#                                                           ci.names.df = ci.names, 
-#                                                           ci.names.noncored.df = ci.names.noncored, 
-#                                                           mean.pred.cored.df = mean.pred.cored,
-#                                                           #xmat2 = xmat2, 
-#                                                           SDIscaled.matrix = SDIscaled,
-#                                                           time_data_list = time_data)}, 
-#             mc.cores = 2)
-#   )
-# 
-# 
-# system.time(
-#  outputs <-  mclapply(unique(plots)[154:155],
-#            FUN = function(pltid){as.numeric(pltid) - 2}, 
-#            mc.cores = 2)
-# )
-# 
+
+########################################################################################
+# read in the predicted cored values from the SSM plus mortality forecasts
+########################################################################################
+get_remeas <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scenario, scale.mort.prob = 1 ){
+  
+  cat(paste0("getting pred vs obs for ", as.character(plot)))
+  
+  if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
+    cat("no forecast")
+  }else{
+    oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
+    if(nrow(oldTREE) <=1){
+      cat("less than 2 trees on the first plot")
+    }else{
+      
+      cat (paste("reading in forecasts from plot ", plot))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      cored.remeas
+    }
+  }
+}
+
+cored.reams.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){get_remeas(plot = pltid, 
+                                                    mort.scheme = "DIDD",
+                                                    scenario = "rcp26", 
+                                                    SDI.ratio.DD = 0.6, 
+                                                    cc.scenario = "singleCC",
+                                                    scale.mort.prob = 1
+                                                                      )})
+
+
+cored.remeas.df <- do.call(rbind, cored.reams.list)
+saveRDS(cored.remeas.df, "outputs/validation/cored.remeas.df.full.rds")
+
+
+ggplot(data = cored.remeas.df, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots.png")
+
+cored.remeas.df %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                              RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                              MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+                              ) 
+
+
+summary.stats <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df))
+
