@@ -975,7 +975,6 @@ cored.reams.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN)
 cored.remeas.df <- do.call(rbind, cored.reams.list)
 saveRDS(cored.remeas.df, "outputs/validation/cored.remeas.df.full.rds")
 
-
 ggplot(data = cored.remeas.df, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
   geom_errorbar(data = cored.remeas.df, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
   geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
@@ -989,4 +988,438 @@ cored.remeas.df %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TR
 
 
 summary.stats <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df))
+
+########################################################################################
+# generate tree-level forecasts in the near term without mortality or changing SDI
+########################################################################################
+plt.num = "3153259010690" #as.character(unique(remeasured.trees.plts$PLT_CN))[1]
+scenario = "rcp26"
+cov.data.regional.df = cov.data.regional
+TREE.FIA = TREE
+ci.names.df = ci.names
+ci.names.noncored.df = ci.names.noncored 
+mean.pred.cored.df = mean.pred.cored
+SDIscaled.matrix = time_data$SDIscaled
+
+forecast.cored.ssm <- function(plt.num,
+                               scenario,
+                               cov.data.regional.df,
+                               TREE.FIA = TREE,
+                               ci.names.df = ci.names,
+                               ci.names.noncored.df = ci.names.noncored ,
+                               mean.pred.cored.df = mean.pred.cored,
+                               SDIscaled.matrix = time_data$SDIscaled){
+  
+    cored.in.plt <- cov.data.regional.df %>% dplyr::filter (PLT_CN %in% plt.num)
+    cored.in.plt <- cored.in.plt[!duplicated(cored.in.plt$TRE_CN),]
+    cored.in.plt$TPA_UNADJ <- TREE.FIA[which(TREE.FIA$CN %in% unique(cored.in.plt$TRE_CN)),]$TPA_UNADJ
+    x <- cored.in.plt$treeid
+    
+    
+    # plot the posterior predictions of DBH for a single tree:
+    sel <- which(ci.names.df$row %in%  x) # use sel to subset the data for the 415th tree
+    mean.cored <- mean.pred.cored.df[sel]
+    nsamps = 100
+    nt <- length(2001:2098)
+    ntfull <- length(1998:2098)
+    ni <- length(cored.in.plt$CORE_CN)
+    # fill in the array with the diameter estimates for 2018:
+    dbh.pred <- increment  <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    nsamps1 <- nsamps-1 # need to subtract for the DBH mcmcs and parameter mcmcs used to make the forecast matches
+    
+    treeids <- cored.in.plt$treeid
+    
+    # write a function to get the MCMC samples
+    
+    get_mcmc_samples <- function(x, betas, nsamps){
+      
+      rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(sd)))
+    }
+    
+    nsamps <- nsamps
+    #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = 1000)
+    # for each tree generate a random sample for the tree-level intercept:
+    alpha <- matrix(NA, nrow = 100, ncol = ni)
+    if(length(treeids)>1){ # if we have more than one cored tree per plot
+      alphatreeids <- vector()
+      for(i in 1:length(treeids)){
+        alphatreeids[i]<- paste0("alpha_TREE[", treeids[i], "]")
+        alpha[,i] <- get_mcmc_samples(alphatreeids[i], betas = mus, nsamps = nsamps)
+      }
+      
+      
+    }else{ # if there is just one cored tree per plot
+      alphatreeids <- paste0("alpha_TREE[", treeids, "]")
+      alpha[,1] <- get_mcmc_samples(alphatreeids, betas = alphas, nsamps = nsamps)
+    }
+    
+   
+    
+    bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nsamps)
+    bMAT <- get_mcmc_samples("betaMAT", betas = betas, nsamps = nsamps)
+    bMAP_MAT <- get_mcmc_samples("betaMAP_MAT", betas = betas, nsamps = nsamps)
+    
+    bSDI <- get_mcmc_samples("betaSDI", betas = betas, nsamps = nsamps)
+    bSDI_ppt <- get_mcmc_samples("betaPrecip_SDI", betas = betas, nsamps = nsamps)
+    bSDI_tmax <- get_mcmc_samples("betaTmax_SDI", betas = betas, nsamps = nsamps)
+    
+    
+    
+    #MAP interactions:
+    bMAP_ppt <- get_mcmc_samples("betaPrecip_MAP", betas = betas, nsamps = nsamps)
+    bMAP_tmax <- get_mcmc_samples("betaTmax_MAP", betas = betas, nsamps = nsamps)
+    #bMAP_SDI <- get_mcmc_samples("betaSDI_MAP", betas = betas, nsamps = nsamps)
+    
+    #MAT interactions:
+    bMAT_ppt <- get_mcmc_samples("betaPrecip_MAT", betas = betas, nsamps = nsamps)
+    bMAT_tmax <- get_mcmc_samples("betaTmax_MAT", betas = betas, nsamps = nsamps)
+    #bMAT_SDI <- get_mcmc_samples("betaSDI_MAT", betas = betas, nsamps = nsamps)
+    
+    
+    bX <-  get_mcmc_samples("betaX", betas = betas, nsamps = nsamps)
+    
+    
+    bppt <- get_mcmc_samples("betaPrecip", betas = betas, nsamps = nsamps)
+    btmax <- get_mcmc_samples("betaTmax", betas = betas, nsamps = nsamps)
+    btmax_ppt <- get_mcmc_samples("betaPrecip_Tmax", betas = betas, nsamps = nsamps)
+    
+    # X interactions:
+    bX_ppt <- get_mcmc_samples("betaX_Precip", betas = betas, nsamps = nsamps)
+    bX_tmax <- get_mcmc_samples("betaX_Tmax", betas = betas, nsamps = nsamps)
+    bX_MAP<- get_mcmc_samples("betaX_MAP", betas = betas, nsamps = nsamps)
+    bX_MAT <- get_mcmc_samples("betaX_MAT", betas = betas, nsamps = nsamps)
+    bX_SDI <- get_mcmc_samples("betaX_SDI", betas = betas, nsamps = nsamps)
+    
+    
+    betas.all <- data.frame(  alpha ,
+                              bMAP,
+                              bMAT ,
+                              bMAP_MAT,
+                              bSDI ,
+                              bSDI_ppt,
+                              bSDI_tmax,
+                              
+                              #MAP interactions:
+                              bMAP_ppt,
+                              bMAP_tmax,
+                              #bMAP_SDI,
+                              #MAT interactions:
+                              bMAT_ppt,
+                              bMAT_tmax,
+                              #bMAT_SDI,
+                              
+                              bX,
+                              bppt,
+                              btmax,
+                              btmax_ppt, 
+                              
+                              bX_MAP, 
+                              bX_MAT, 
+                              bX_tmax, 
+                              bX_ppt, 
+                              bX_SDI)
+    
+    
+    ##print ("set up SDI")
+    # get PLT_CN
+    PLT_CNint <- as.character(plt.num)
+    
+    # get the scaled SDI for the PLT:
+    
+    # get the unique SUBPLOTS in the plot
+    #subplots <- unique(SDIscaled.matrix %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
+    
+    SDI.PLT.2001 <- SDIscaled.matrix[cored.in.plt$treeid,36]
+    
+     # get the SDI values
+    
+    
+    ##print("extracting future climate for the plot")
+    
+    if(scenario %in% "rcp26"){
+      clim.fut.scen <- future.clim.subset.26 
+    }
+    if(scenario %in% "rcp45"){
+      clim.fut.scen <- future.clim.subset.45 
+    }
+    if(scenario %in% "rcp60"){
+      clim.fut.scen <- future.clim.subset.60 
+    }
+    if(scenario %in% "rcp85"){
+      clim.fut.scen <- future.clim.subset.85 
+    }
+    
+    
+    scale.fut.clim.by.plt <- function(x, future.clim.subset){
+      #print(x)
+      full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
+      rowid <- which(cov.data.regional.df$PLT_CN %in%  x ) # get the row for the climate data
+      full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE)
+      full.clim.plt$tmax.scale <- ( full.clim.plt$tmax.corrected-mean(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE))/sd(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE)
+      full.clim.plt
+    }
+    
+    fut.clim.scen <- scale.fut.clim.by.plt(x = PLT_CNint, future.clim.subset = clim.fut.scen)
+    
+    if(nrow(fut.clim.scen)>0){
+     
+        models <- unique(fut.clim.scen$model) # 21 models
+        sample.model <- sample(models, size = length(models), replace= FALSE)
+        
+        get.ens.df <- function(i){
+          
+          ens.proj.yr <- fut.clim.scen %>% filter(model %in% sample.model[i])
+          ens.proj.yr <- ens.proj.yr [!duplicated(ens.proj.yr),]
+          
+          
+          df <- data.frame(ppt = ens.proj.yr$ppt.scale, 
+                           tmax = ens.proj.yr$tmax.scale, 
+                           model = i, 
+                           year = ens.proj.yr$year)
+          df$diff.ppt <- NA
+          df$diff.tmax <- NA
+          
+          for(t in 2:82){
+            
+            df[t,]$diff.ppt <- df[t,]$ppt-df[t-1,]$ppt
+            df[t,]$diff.tmax <- df[t,]$tmax - df[t-1,]$tmax
+          }
+          
+          return(df)
+        }
+        
+        ens.samps <- lapply(1:length(models), get.ens.df)
+        ens.samps.df <- do.call(rbind, ens.samps)
+        
+        detrend.samps.df  <- ens.samps.df %>% dplyr::select(diff.ppt, diff.tmax, model, year)# %>%
+        colnames(detrend.samps.df) <- c("ppt", "tmax", "model", "year")
+        
+        
+        samps.df  <- ens.samps.df %>% dplyr::select(ppt, tmax, model, year)
+        detrend.samps.df  <- detrend.samps.df %>% dplyr::select(ppt, tmax, model, year)
+        
+        
+        ens.samps.df <- samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
+        #             tmax.mean = mean(tmax, na.rm = TRUE))
+        
+        #ppt.fut <- ens.samps.df %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
+        #tmax.fut <- ens.samps.df %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
+        
+        ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
+        
+        tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
+        hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
+                                    tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
+                                    model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
+                                    year = rep(2001:2018, length(unique(ens.samps.df$model))))
+        
+        full.df <- rbind(hist.samps.df, ens.samps.df %>% filter(!year %in% 2018))
+        full.df.nodups <- full.df[!duplicated(full.df),]
+        #full.df.nodups$rowid <- 1:length(full.df.nodups$ppt)
+        full.ens.ppt <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>% group_by(model, year)%>% 
+          summarise(ppt.m = mean(ppt, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(ppt.m, year, model) %>%group_by(year)%>%
+          spread(year, value = ppt.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
+        
+        full.ens.tmax <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model, year)%>% 
+          summarise(tmax.m = mean(tmax, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(tmax.m, year, model) %>%group_by(year)%>%
+          spread(year, value = tmax.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
+        
+       
+        
+        
+        
+        cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
+        
+        # check the MAP and MAT--I think we can just get from cored.in.plt df
+        # this indexing may be off now
+        MAP <- cov.mat$MAP
+        MAT <- cov.mat$MAT
+        
+        #print("assembling covariate data ")
+        
+        covariates <- list()
+        covariates$SDI <- SDI.PLT.2001[1]
+        covariates$ppt <- as.matrix(full.ens.ppt)
+        covariates$tmax <- as.matrix(full.ens.tmax) 
+        covariates$MAP <- cored.in.plt$MAP[1]
+        covariates$MAT <- cored.in.plt$MAT[1]
+        
+        # get the diameters:
+        
+        #yrs <- 31:135
+        tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names.df$row == x & ci.names.df$col %in% 33:36)}) #dplyr::select just the years 1994:2010 to match the plot level data:
+        i.cored <- do.call(rbind, tree.ind.cored )
+        out.cored.plt <-  out.cored[(length(out.cored[,1])-nsamps + 1):length(out.cored[,1]),i.cored] 
+        
+        all.dbh <- out.cored.plt
+        
+        all.dbh.ids <- separate(reshape2::melt(colnames(all.dbh)), col =value, into = c("x[", "tree", "year", "]"))
+        all.dbh.ids$col.id <- 1:length(all.dbh.ids$tree)
+        yr.2001.ids <- as.vector(unlist(all.dbh.ids %>% filter(year == 36) %>% dplyr::select(col.id)))
+        
+        all.dbh <- all.dbh[,yr.2001.ids]
+        
+        time_steps <-  length(2001:2098)
+        nsamps <- max(length(betas.all$bSDI), length(x.mat[m,1]))
+        forecast <- matrix(data = NA, nrow = nsamps, ncol = time_steps)
+        
+        
+        dbh.pred <- increment <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+        
+        
+        
+        # set up empty matrices for dbh, increment, TPA projections
+        id.ni <- rep(1:ni, each = 1)
+        if(is.null(ncol(all.dbh))){
+          for(i in 1:length(id.ni)){
+          dbh.pred[id.ni[i],,1] <- all.dbh[i]
+          }
+        }else{
+          for(i in 1:length(id.ni)){
+            dbh.pred[id.ni[i],,1] <- all.dbh[,i]
+          }
+        }
+        
+        # get the increments
+        for(i in 1:ni){
+          for(t in 2:4){
+            increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
+          }
+        }
+        
+        
+        # get the tree diameter means
+        dbh.pred.means <- apply(dbh.pred, 1, FUN = mean, na.rm=TRUE)
+        
+        # Make the time series forecasts for each tree i and time t
+        for(i in 1:ni){
+         for(t in 1:time_steps){
+          
+          if(t == 1){ # if t is less than the measureyr assign NA (fo now)
+      
+            # if the time step is the measuryr use the measureed DBH
+            increment[i,,t] <- iterate_statespace.incpred(x = dbh.pred[id.ni[i],,1],  
+                                                    betas.all = betas.all, 
+                                                    alpha = betas.all[,i], 
+                                                    SDinc = sigma.INC$median, 
+                                                    covariates = data.frame(SDI = covariates$SDI, 
+                                                                           ppt = covariates$ppt[,t], 
+                                                                           tmax = covariates$tmax[,t], 
+                                                                           MAP = covariates$MAP,
+                                                                           MAT = covariates$MAT))
+              
+            dbh.pred[id.ni[i],,t]<- dbh.pred[id.ni[i],,1]+increment[i,,t]
+              
+            }else{
+              increment[i,,t]<- iterate_statespace.incpred(x = dbh.pred[id.ni[i],,t-1],
+                                                   betas.all = betas.all, 
+                                                   alpha = betas.all[,i], 
+                                                   SDinc = sigma.INC$median, 
+                                                   covariates = data.frame(SDI = covariates$SDI, 
+                                                                           ppt = covariates$ppt[,t], 
+                                                                           tmax = covariates$tmax[,t], 
+                                                                           MAP = covariates$MAP,
+                                                                           MAT = covariates$MAT))
+                                                   
+              dbh.pred[id.ni[i],,t] <- dbh.pred[id.ni[i],,t-1]+ increment[i,,t]
+              
+              forecast <- dbh.pred
+          
+            }  
+           
+          }
+        
+          
+        }
+        
+        # lets output the summary of the posterior predictions
+        forecast.summary  <- reshape2::melt(forecast) %>% group_by(Var1, Var3) %>% 
+          summarise(median = median(value, na.rm =TRUE), 
+                   ci.lo = quantile(value, 0.025, na.rm =TRUE), 
+                   ci.hi = quantile(value, 0.975, na.rm =TRUE)) %>%
+          rename("index.id" = "Var1", 
+                 "year.id" = "Var3")
+        
+        
+        index.df <- data.frame(treeid = cored.in.plt$treeid, 
+                   index.id = 1:ni)
+        year.df <- data.frame(year = 2002:2098, 
+                              year.id = 1:97)
+        forecast.summary <- left_join(year.df, forecast.summary) %>% left_join(., index.df)
+    }else{
+      
+       forecast.summary <- data.frame(year = NA, 
+                                      year.id = NA, 
+                                      index.id = NA, 
+                                      median = NA, 
+                                      ci.lo = NA, 
+                                      ci.hi = NA, 
+                                      treeid = NA)
+        
+    }  
+    
+    forecast.summary
+ }   
+
+# test on one plot
+system.time(forecast.cored.ssm(plt.num = as.character(unique(remeasured.trees.plts$PLT_CN))[1],
+                   scenario = "rcp26",
+                   cov.data.regional.df = cov.data.regional,
+                   TREE.FIA = TREE,
+                   ci.names.df = ci.names,
+                   ci.names.noncored.df = ci.names.noncored ,
+                   mean.pred.cored.df = mean.pred.cored,
+                   SDIscaled.matrix = time_data$SDIscaled
+)   )
+
+cored.tree.ssm.forecast.list <- list()
+for(d in 1:20){
+cored.tree.ssm.forecast.list[[d]]<- forecast.cored.ssm(plt.num = as.character(unique(remeasured.trees.plts$PLT_CN))[d],
+                   scenario = "rcp26",
+                   cov.data.regional.df = cov.data.regional,
+                   TREE.FIA = TREE,
+                   ci.names.df = ci.names,
+                   ci.names.noncored.df = ci.names.noncored ,
+                   mean.pred.cored.df = mean.pred.cored,
+                   SDIscaled.matrix = time_data$SDIscaled
+) 
+}
+# apply the function over all plots that have held out measurements
+
+cored.tree.ssm.forecast.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN)), 
+                                       FUN = function(X){forecast.cored.ssm(plt.num = X,
+                                                   scenario = "rcp26",
+                                                   cov.data.regional.df = cov.data.regional,
+                                                   TREE.FIA = TREE,
+                                                   ci.names.df = ci.names,
+                                                   ci.names.noncored.df = ci.names.noncored ,
+                                                   mean.pred.cored.df = mean.pred.cored,
+                                                   SDIscaled.matrix = time_data$SDIscaled
+)} )
+
+
+cored.tree.ssm.forecast.df <- do.call(rbind, cored.tree.ssm.forecast.list)
+
+#cored.tree.ssm.forecast.df <- cored.tree.ssm.forecast.df %>% rename(`MEASYEAR_T2` = year)
+
+ggplot(cored.tree.ssm.forecast.df, aes(x = year, y = median, group = treeid))+geom_line()
+
+
+pred.obs.ssmonly <- left_join(remeasured.trees.plts, cored.tree.ssm.forecast.df) %>% filter(year == MEASYEAR_T2)
+
+ggplot()+geom_point(data = pred.obs.ssmonly, aes(x = DIA_cm_T2, y = median))+
+  geom_errorbar(data = pred.obs.ssmonly, aes(x = DIA_cm_T2, ymin = ci.lo, ymax = ci.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+
+  ylab("Predicted Diameters (cm)\n SSM-only predictions")+
+  xlab("Observed Diameters (cm)")+theme_bw()
+ggsave("outputs/validation/SSM_only_predicted_diameters.png")
+saveRDS(pred.obs.ssmonly, "outputs/validation/SSM_only_predicted_cored_trees.RDS")
+
+pred.obs.ssmonly %>% summarise(MSPE = mean(( DIA_cm_T2 - median)^2, na.rm =TRUE),
+                              RMSPE = sqrt(mean(( DIA_cm_T2 - median)^2, na.rm =TRUE)),
+                              MAPE = mean(abs( DIA_cm_T2 - median), na.rm = TRUE)
+) 
+
+
+summary.stats <- summary(lm(DIA_cm_T2  ~ median, data = pred.obs.ssmonly))
 
