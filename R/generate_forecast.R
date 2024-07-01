@@ -137,11 +137,22 @@ for(t in 1:nt){ # for each year t in the # of trees
       increment[i,,(t+1):nt ] <- 0
       
     }else{
-      increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  betas.all = betas.all.df, beta_YEARid = rep(0, nsamps), SDdbh = 0, covariates =  data.frame(SDI = sdi.subplot.df[which(sdi.subplot.df[,1]==SUBPLOT.index),t+1],
-                                                                                                                                                                    MAP = covariates.list$MAP,
-                                                                                                                                                                    MAT= covariates.list$MAT,
-                                                                                                                                                                    ppt = covariates.list$ppt[,t],
-                                                                                                                                                                    tmax = covariates.list$tmax[,t]))
+      # get the right alpha for the tree
+      if(index.trees.df[i,]$type %in% "cored"){
+        tree.id.name <- paste0("alpha_TREE.",index.trees.df[i,]$treeid,".")
+      tree.alpha <- betas.all.df[,tree.id.name]
+      }else{
+        tree.alpha <- betas.all.df$alpha
+      }
+      increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  
+                                                      betas.all = betas.all.df, 
+                                                      alpha = tree.alpha, 
+                                                      SDdbh = 0, 
+                                                      covariates =  data.frame(SDI = sdi.subplot.df[which(sdi.subplot.df[,1]==SUBPLOT.index),t+1],
+                                                                               MAP = covariates.list$MAP,
+                                                                               MAT= covariates.list$MAT,
+                                                                               ppt = covariates.list$ppt[,t],
+                                                                               tmax = covariates.list$tmax[,t]))
       
       dbh.pred[i,,t+1] <-  increment[i,,t+1] + dbh.pred[i,,t] # calculate new dbh
       # calculate a new TPA value, incase the tree grew out of the subplot:

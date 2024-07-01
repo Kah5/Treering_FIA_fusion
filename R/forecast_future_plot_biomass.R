@@ -904,8 +904,25 @@ remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYE
 scenario = "rcp26"
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
 plot <- 3125031010690
+
+plt.num = as.character(remeasured.trees.plts$PLT_CN)[1]#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+density.dependent = TRUE 
+density.independent = TRUE 
+scenario = "rcp26" 
+SDI.ratio.DD = 0.6 
+aggressiveCC = FALSE 
+scale.mort.prob = 1 
+cov.data.regional.df = cov.data.regional 
+TREE.FIA = TREE 
+ci.names.df = ci.names 
+ci.names.noncored.df = ci.names.noncored 
+mean.pred.cored.df = mean.pred.cored
+#xmat2 = xmat2, 
+SDIscaled.matrix = SDIscaled
+time_data_list = time_data
+
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[123],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[2],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
                              scenario = "rcp26", 
@@ -922,7 +939,7 @@ biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN
                              time_data_list = time_data)
 as.character(unique(remeasured.trees.plts$PLT_CN))[1:322] %in% 2484206010690
 # run for all of the remeasured trees
-system.time(lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[124:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+system.time(lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[2:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
                                                                   density.dependent = TRUE, 
                                                                   density.independent = TRUE, 
@@ -943,11 +960,17 @@ system.time(lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[124:29
 ########################################################################################
 # read in the predicted cored values from the SSM plus mortality forecasts
 ########################################################################################
-get_remeas <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scenario, scale.mort.prob = 1 ){
+get_remeas <- function(plot, 
+                       mort.scheme, 
+                       scenario, 
+                       SDI.ratio.DD, 
+                       cc.scenario, 
+                       scale.mort.prob = 1, 
+                       parse = "full" ){
   
   cat(paste0("getting pred vs obs for ", as.character(plot)))
   
-  if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))==TRUE){
+  if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".",parse,".Rdata"))==TRUE){
     cat("no forecast")
   }else{
     oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
@@ -956,7 +979,7 @@ get_remeas <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scenario, s
     }else{
       
       cat (paste("reading in forecasts from plot ", plot))
-      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".",parse,".Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       cored.remeas
     }
   }
@@ -968,27 +991,79 @@ cored.reams.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN)
                                                     scenario = "rcp26", 
                                                     SDI.ratio.DD = 0.6, 
                                                     cc.scenario = "singleCC",
-                                                    scale.mort.prob = 1
+                                                    scale.mort.prob = 1,
+                                                    parse = "full"
                                                                       )})
 
 
 cored.remeas.df <- do.call(rbind, cored.reams.list)
+cored.remeas.df$parse <- "full"
 saveRDS(cored.remeas.df, "outputs/validation/cored.remeas.df.full.rds")
 
-ggplot(data = cored.remeas.df, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+
+cored.reams.list.nocc <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                           FUN = function(pltid){get_remeas(plot = pltid, 
+                                                            mort.scheme = "DIDD",
+                                                            scenario = "rcp26", 
+                                                            SDI.ratio.DD = 0.6, 
+                                                            cc.scenario = "singleCC",
+                                                            scale.mort.prob = 1,
+                                                            parse = "noCC"
+                           )})
+
+
+cored.remeas.df.nocc <- do.call(rbind, cored.reams.list.nocc)
+cored.remeas.df.nocc$parse <- "noCC"
+saveRDS(cored.remeas.df.nocc, "outputs/validation/cored.remeas.df.noCC.rds")
+
+
+ggplot(data = cored.remeas.df.nocc, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
   geom_errorbar(data = cored.remeas.df, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
   geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
   ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
-ggsave("outputs/validation/out_of_sample_full_diamter_plots.png")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_noCC.png")
 
-cored.remeas.df %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+
+
+cored.reams.list.GD.10 <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                                FUN = function(pltid){get_remeas(plot = pltid, 
+                                                                 mort.scheme = "DIDD",
+                                                                 scenario = "rcp26", 
+                                                                 SDI.ratio.DD = 0.6, 
+                                                                 cc.scenario = "singleCC",
+                                                                 scale.mort.prob = 1,
+                                                                 parse = "GD.10"
+                                )})
+
+
+cored.remeas.df.GD.10 <- do.call(rbind, cored.reams.list.GD.10)
+cored.remeas.df.GD.10$parse <- "GD.10"
+saveRDS(cored.remeas.df.GD.10, "outputs/validation/cored.remeas.df.GD.10.rds")
+
+
+ggplot(data = cored.remeas.df.GD.10, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df.GD.10, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_GD.10.png")
+
+cored.remeas.df.GD.10 %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
                               RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
                               MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
                               ) 
 
 
-summary.stats <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df))
+summary.stats.GD.10 <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df.GD.10))
 
+
+## combine here
+core.remeas.both <- rbind(cored.remeas.df, cored.remeas.df.nocc, cored.remeas.df.GD.10)
+ggplot(data = core.remeas.both , aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = core.remeas.both , aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")+facet_wrap(~parse)
+
+core.remeas.both %>% filter(treeid == 1)
 ########################################################################################
 # generate tree-level forecasts in the near term without mortality or changing SDI
 ########################################################################################
@@ -1422,4 +1497,4 @@ pred.obs.ssmonly %>% summarise(MSPE = mean(( DIA_cm_T2 - median)^2, na.rm =TRUE)
 
 
 summary.stats <- summary(lm(DIA_cm_T2  ~ median, data = pred.obs.ssmonly))
-
+saveRDS(pred.obs.ssmonly, "outputs/validation/cored_remeas_ssm_only.RDS")
