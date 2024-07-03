@@ -190,15 +190,11 @@ full.1 <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "full")
 #full.1.1 <- scale.mort.expns(mort.df = mort.all.parse.60.1.1, parse = "full")
 #full.0.9 <- scale.mort.expns(mort.df = mort.all.parse.60.0.9, parse = "full")
 
-
-
-
 head(full.1)
-head(full.0.9)
-head(full.1.1)
 
-mort.total.rcp <- ggplot()+geom_ribbon(data = full.1 %>% filter(parse %in% "full"), aes(x = year, ymin = lowAGB.dead, ymax = hiAGB.dead, fill = "Density Independent"))+
-  geom_ribbon(data = full.1 %>% filter(parse %in% "full"), aes(x = year, ymin = lowAGB.dead, ymax = lowAGB.dead + hiAGB.dead.dd, fill = "Density Dependent"))+
+
+mort.total.rcp <- ggplot()+geom_ribbon(data = full.1 %>% filter(parse %in% "full"), aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
+  geom_ribbon(data = full.1 %>% filter(parse %in% "full"), aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
   facet_wrap(~rcp, ncol = 4)+theme_bw()+#theme(panel.grid = element_blank())+
   scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
   ylab("Cumulative Dead Wood carbon (Tg C)")+xlab("Year")+theme_bw(base_size = 12)+theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
@@ -209,10 +205,13 @@ ggsave(height = 4, width = 8, units = "in", "outputs/Total_MORT_DI_DD.PNG")
 
 full.low.high <- full.1 %>% filter(parse %in% c("full", "noCC")) %>% select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead)
 full.low.high.m <- reshape2::melt(full.low.high, id.vars = c("rcp","parse", "mort.scheme", "year"))
-full.low.high.diffs <- full.low.high.m %>% group_by(rcp, mort.scheme, year, variable)%>%
-  spread(parse, value) %>% mutate(climatechange = ((full - noCC)/full)*100) %>% select(rcp, mort.scheme, year, variable, climatechange)
+full.low.high.diffs <- full.low.high.m %>% group_by(rcp, mort.scheme, year, variable) %>%
+  spread(parse, value) %>% mutate(climatechange = ((full - noCC)/full)*100) %>% 
+  select(rcp, mort.scheme, year, variable, climatechange) %>%
+  rename("CI" = `variable`)
 
-colnames(full.low.high.diffs)[4] <- "CI"
+#colnames(full.low.high.diffs)[4] <- "CI"
+
 full.low.high.diffs.m <- reshape2::melt(full.low.high.diffs, id.vars = c("rcp", "mort.scheme", "year", "CI"))
 climate.change.dead.tree.effect <- full.low.high.diffs.m %>% group_by(year, rcp, mort.scheme) %>% spread(CI, value) %>%
   mutate(low.DEAD = min(lowAGB.dead, hiAGB.dead), 
@@ -232,8 +231,6 @@ mort.CC.pct <- ggplot() +
   ylab("% of mortality attributable to climate change")+xlab("Emissions Pathway")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())#+#ylim(0, 30)
 mort.CC.pct
 ggsave(height = 4, width = 4, units = "in", "outputs/PCT_MORT_DUE_TO_CC.PNG")
-# ggplot()+geom_errorbar(data = climate.change.dead.tree.effect %>% filter(year %in% "2098"), aes(x = rcp, ymin =low.DEAD, ymax = high.DEAD, color = rcp), width = 0.1)+
-#   geom_point(data =  climate.change.dead.tree.effect %>% filter(year %in% "2098"), aes(x = rcp, y = mDEAD, color = rcp))
 
 # now compare the different mortality tuning scenarios:
 
