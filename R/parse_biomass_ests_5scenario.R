@@ -1964,7 +1964,6 @@ mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC )#,
 
 
 mort.dbh.all.parse <- rbind(mort.dbh.full.parse, 
-                            
                             mort.dbh.full.parse.noCC)
 
 # save as RDS:
@@ -2059,47 +2058,41 @@ get_component_plot_diffs <- function(component, parse.all.mort){
     spread(parse, UQ(sym(component))) %>% 
     
     mutate(climatechangediff = full - `no climate change`, 
-           #tmaxdiff = full - `no tmax`, 
-           SDIdiff = full - `no SDI`, 
-           climatechangediff.pct = ((full - `no climate change`)/full)*100, 
-           #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
-           SDIdiff.pct = ((full - `no SDI`)/full)*100) %>%
-    ungroup() %>% select(rcp, mort.scheme, year, climatechangediff, SDIdiff) %>% 
+           climatechangediff.pct = ((full - `no climate change`)/full)*100) %>% #, 
+          
+    ungroup() %>% select(rcp, mort.scheme, year, climatechangediff, climatechangediff.pct) %>% 
     group_by(rcp, mort.scheme, year) %>%
-    summarise(across(c(climatechangediff :SDIdiff), sum)) 
+    summarise(across(c(climatechangediff : climatechangediff.pct), sum)) 
   parse.difference.df 
   
 }
+
+# read in parse.all.mort, created earlier in this script
+parse.all.mort <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
+
+parse.all.mort$plot <- as.character(parse.all.mort$plot)
 
 # for the total C
 upA.parse.plot <- get_component_plot_diffs(component = "upA", parse.all.mort)
 lowA.parse.plot <- get_component_plot_diffs("lowA", parse.all.mort)
 
-upA.parse.m <- reshape2::melt(upA.parse.plot, id.vars = c("rcp", "mort.scheme", "year"))
-lowA.parse.m <- reshape2::melt(lowA.parse.plot, id.vars = c("rcp", "mort.scheme", "year"))
-colnames(upA.parse.m)[5] <- "upA"
-colnames(lowA.parse.m)[5] <- "lowA"
+upA.parse.m <- reshape2::melt(upA.parse.plot, id.vars = c("rcp", "mort.scheme", "year")) %>%
+                  rename("upA" = "value")
+lowA.parse.m <- reshape2::melt(lowA.parse.plot, id.vars = c("rcp", "mort.scheme", "year")) %>%
+                  rename("lowA" = "value")
+
+
 
 CI.A.parse <- left_join(upA.parse.m, lowA.parse.m)
-parse.differences <- CI.A.parse %>% filter(variable %in% c("climatechangediff", "SDIdiff"))
+parse.differences <- CI.A.parse %>% filter(variable %in% c("climatechangediff"))
 
 parse.differences$year <- as.numeric(parse.differences$year)
 
 parse.differences
 
-# ggplot()+geom_line(data = parse.differences , aes(x = year, y = lowA,  color = variable))+facet_wrap(~rcp)
-# ggplot()+geom_line(data = parse.differences , aes(x = year, y = upA,  color = variable))+facet_wrap(~rcp)
 
-# why wont this plot?
+
 ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax = upA, fill = variable))+facet_wrap(~rcp)
-
-
-# notes: based on this I don't think we should be removing the SDI effect entirely---
-# SDI + climate change scenario?
-# is this because SDI x X or SDI x climate interactions? can we remove just the time varying effect of SDI?
-# for NPP
-# get_component_diffs("up", parse.all.mort)
-# get_component_diffs("low", parse.all.mort)
 
 
 
@@ -2122,13 +2115,6 @@ AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, 
   summarise(across(c(mAGB:low.foliage), sum)) # sum across all the PLT_CNs then divide by # plots to convert to per acre
 
 
-# More about the parse scenarios:
-#1. No SDI = 0SDI in the growth equation
-#2. DIonly, No SDI = 0SDI in the growth equation, no density dependent mortality (parse mortality + growth effect of SDI on Carbon)
-#3. no Climate change, DIDD-- parse climate effect on Carbon, including all mortality
-#4. no Climate change, DIDD-- parse only climate effect on Carbon, excluding density dependent mortality (do we need this)
-
-#5. Full ==full forecast scenario
 
 # rename the AGB.parse.totals and filter
 AGB.parse.totals$parse.new <- ifelse(AGB.parse.totals$parse %in% c("no SDI") & AGB.parse.totals$mort.scheme %in% "DIonly", "no SDI growth & mortality", 
@@ -2151,9 +2137,9 @@ parse.Carbon.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>% filt
   
   facet_wrap(~rcp, ncol = 4)+ ylab( "Total Carbon in PIPO FIA stands\n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))+
   scale_color_manual( name = "Scenario",
-                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))
 
   
 
@@ -2162,9 +2148,9 @@ parse.Carbon.flux.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>%
   
   facet_wrap(~rcp, ncol = 4)+theme_bw(base_size = 14) + ylab( "Carbon difference \n (Tg C)")+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))+
   scale_color_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))
 
 
 
@@ -2184,9 +2170,9 @@ parse.deadCarbon.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>% 
   
   facet_wrap(~rcp, ncol = 4)+ ylab( "Dead Carbon \n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))+
   scale_color_manual( name = "Scenario",
-                      values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))
 
 # without SDI based mortality, DI-dependent mortality increases unchecked?
 png(height = 3.5, width = 12, units = "in", res = 300, "outputs/Dead_Carbon_density_regional_total_parse_periodic_26.png")
@@ -2200,8 +2186,10 @@ parse.dead.Carbon.flux.totals <- ggplot()+#geom_ribbon(data = AGB.parse.totals %
   #scale_fill_manual( name = "Scenario",
    
   #                  values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))+
+  scale_fill_manual( name = "Scenario",
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))+
   scale_color_manual( name = "Scenario",
-                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3", "no climate change, DDonly" = "black"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))
 
 
 
@@ -2211,8 +2199,6 @@ parse.dead.Carbon.flux.totals <- ggplot()+#geom_ribbon(data = AGB.parse.totals %
 
 # calculate the total decline over time?
 # how much is due to CC and how much is due to everything else. 
-
-
 
 AGB.parse.totals.m <- reshape2::melt(AGB.parse.totals, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 AGB.parse.totals.m$value <- as.numeric(AGB.parse.totals.m$value)
@@ -2248,541 +2234,6 @@ parse.Carbon.totals.diff <- ggplot()+ #geom_abline(aes(intercept = 0, slope = 0)
   facet_wrap(~rcp, ncol = 4)+ ylab( "Total Carbon in PIPO FIA stands\n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank()) 
  
 parse.Carbon.totals.diff  
-
-
-
-
- # scale_fill_manual( name = "Scenario",
-  #                    values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
-  # scale_color_manual( name = "Scenario",
-  #                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
-  # 
-
-#----------------------------------------------------------------------
-# separate out by high and low SDI
-#----------------------------------------------------------------------
-
-SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
-SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203", 
-                                   ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 133, "133 - 203",
-                                          ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 85, "85 - 133", "<85")))
-colnames(parse.all.mort)[1] <- "PLT_CN"
-SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
-
-
-# rename the AGB.parse.totals and filter
-parse.all.mort$parse.new <- ifelse(parse.all.mort$parse %in% c("no SDI") & parse.all.mort$mort.scheme %in% "DIonly", "no SDI growth & mortality", 
-                                     ifelse(parse.all.mort$parse %in% c("no SDI") & parse.all.mort$mort.scheme %in% "DIDD", "no SDI growth", parse.all.mort$parse))
-
-parse.all.mort$parse.type <- ifelse(parse.all.mort$mort.scheme %in% "DIonly" & parse.all.mort$parse.new %in% "no SDI growth & mortality", "in", 
-                                      ifelse(parse.all.mort$mort.scheme %in% "DIDD", "in", "out"))
-
-
-new.parse.all.mort <- parse.all.mort %>% filter(parse.type %in% "in")  
-
-
-AGB.parse.all.mort.SDI <- left_join(new.parse.all.mort, SDI.plt.unscaled)
-
-# plot the totals across space:
-plot.by.plot.totals  <- AGB.parse.all.mort.SDI %>% 
-  group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI.bin, SDI) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
-  mutate(AGB.median = sum(mAGB.stemwood:mAGB.foliage, na.rm = TRUE)) 
-
-plot.by.plot.parse <- plot.by.plot.totals %>% ungroup() %>% 
-  group_by(PLT_CN, LAT, LON, parse.new, rcp, year) %>%
-  spread(parse.new, AGB.median) %>% 
-  mutate(climatechangediff = full - `no climate change`, 
-         #tmaxdiff = full - `no tmax`, 
-         SDIdiff = full - `no SDI growth`, 
-         SDImortdiff = full - `no SDI growth & mortality`, 
-         climatechangediff.pct = ((full - `no climate change`)/full)*100, 
-         #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
-         SDIdiff.pct = ((full - `no SDI growth`)/full)*100, 
-         SDImortdiff.pct = ((full - `no SDI growth & mortality`)/full)*100)
-
-
-
-# plot up the median contributions for set time points across the map
-# merge with lat and lon values:
-plot.by.plot.totals$LAT <- PLOT[match(plot.by.plot.totals$PLT_CN, PLOT$CN),]$LAT
-plot.by.plot.totals$LON <- PLOT[match(plot.by.plot.totals$PLT_CN, PLOT$CN),]$LON
-
-
-ggplot(data = plot.by.plot.totals %>% filter(year %in% c(2050)), aes(x = LON, y = LAT, color = mAGB))+
-  geom_point()+
-  facet_grid(cols = vars(rcp), rows = vars(parse.new)) 
-
-ggplot(data = plot.by.plot.totals %>% filter(year %in% c(2050)), aes(x = SDI, y = mAGB))+
-  geom_point()+
-  facet_grid(cols = vars(rcp), rows = vars(parse.new)) 
-
-
-# We want biomass differences by plots for total AGB:
-plot.by.plot.parse.median <- AGB.parse.all.mort.SDI %>% 
-  group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI.bin, SDI) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
-  mutate(AGB.median = sum(mAGB.stemwood:mAGB.foliage, na.rm = TRUE))%>% 
-  select(rcp, PLT_CN, mort.scheme, year, parse.new, SDI.bin, SDI, AGB.median) %>% ungroup()%>%
-  group_by(PLT_CN, rcp, year, parse.new, SDI, SDI.bin) %>%
-  spread(parse.new, AGB.median) %>% 
-  mutate(climatechangediff = full - `no climate change`, 
-         #tmaxdiff = full - `no tmax`, 
-         SDIdiff = full - `no SDI growth`, 
-         SDImortdiff = full - `no SDI growth & mortality`, 
-         climatechangediff.pct = ((full - `no climate change`)/full)*100, 
-         #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
-         SDIdiff.pct = ((full - `no SDI growth`)/full)*100, 
-         SDImortdiff.pct = ((full - `no SDI growth & mortality`)/full)*100)
-
-
-ggplot(data = plot.by.plot.parse.median, aes(x = year, y = climatechangediff, group = PLT_CN))+geom_point()+
-  facet_wrap(~rcp) 
-
-# plot up the median contributions against SDI for set time points
-ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = climatechangediff, color = year))+
-  geom_point()+
-  facet_wrap(~rcp) 
-
-ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = `no SDI growth & mortality`, color = year))+
-  geom_point()+
-  facet_wrap(~rcp) 
-
-ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = SDI, y = `no SDI growth`, color = year))+
-  geom_point()+
-  facet_grid(cols = vars(rcp), rows = vars(year)) 
-
-# plot up the median contributions for set time points across the map
-# merge with lat and lon values:
-plot.by.plot.parse.median$LAT <- PLOT[match(plot.by.plot.parse.median$PLT_CN, PLOT$CN),]$LAT
-plot.by.plot.parse.median$LON <- PLOT[match(plot.by.plot.parse.median$PLT_CN, PLOT$CN),]$LON
-
-ggplot(data = plot.by.plot.parse.median %>% filter(year %in% c(2025, 2050, 2075, 2099)), aes(x = LON, y = LAT, color = `no SDI growth`))+
-  geom_point()+
-  facet_grid(cols = vars(rcp), rows = vars(year)) 
-
-
-
-#get component plto not working anymore because of UQ() and sym() language...
-get_component_plot_sdi_diffs <- function(component, AGB.parse.all.mort.SDI){
-  
-  parse.difference.df  <- AGB.parse.all.mort.SDI %>% group_by(PLT_CN, mort.scheme, parse.new, rcp, year, SDI,SDI.bin) %>% 
-    summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
-    ungroup() %>% # sum across all the PLT_CNs
-    select(rcp, PLT_CN, mort.scheme, year, parse.new, SDI.bin, SDI, !!rlang::sym(component)) %>% 
-    group_by(PLT_CN, rcp, mort.scheme, year, parse.new, SDI, SDI.bin) %>%
-    spread(parse.new, !!rlang::sym(component)) %>% 
-    
-    mutate(climatechangediff = full - `no climate change`, 
-           #tmaxdiff = full - `no tmax`, 
-           SDIdiff = full - `no SDI`, 
-           climatechangediff.pct = ((full - `no climate change`)/full)*100, 
-           #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
-           SDIdiff.pct = ((full - `no SDI`)/full)*100) %>%
-    ungroup() %>% select(rcp, mort.scheme, year, SDI.bin, SDI, climatechangediff, SDIdiff) %>% 
-    group_by(rcp, mort.scheme, year, SDI.bin) %>%
-    summarise(across(c(climatechangediff:SDIdiff), sum)) 
-  parse.difference.df 
-  
-}
-
-# for the total C
-upA.parse.plot <- get_component_plot_sdi_diffs(component = "upA", AGB.parse.all.mort.SDI)
-lowA.parse.plot <- get_component_plot_sdi_diffs("lowA", AGB.parse.all.mort.SDI)
-
-upA.parse.m <- reshape2::melt(upA.parse.plot, id.vars = c("rcp", "mort.scheme", "year", "SDI.bin"))
-lowA.parse.m <- reshape2::melt(lowA.parse.plot, id.vars = c("rcp", "mort.scheme", "year","SDI.bin"))
-colnames(upA.parse.m)[6] <- "upA"
-colnames(lowA.parse.m)[6] <- "lowA"
-
-CI.A.parse <- left_join(upA.parse.m, lowA.parse.m)
-parse.differences <- CI.A.parse %>% filter(variable %in% c("climatechangediff", "SDIdiff"))
-
-parse.differences$year <- as.numeric(parse.differences$year)
-
-parse.differences
-
-# ggplot()+geom_line(data = parse.differences , aes(x = year, y = lowA,  color = variable))+facet_wrap(~rcp)
-# ggplot()+geom_line(data = parse.differences , aes(x = year, y = upA,  color = variable))+facet_wrap(~rcp)
-
-# why wont this plot?
-ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax = upA, fill = variable))+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))
-
-
-
-
-
-#---------------------------- merge with SDI ----------------------------------
-SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
-SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203", 
-                                   ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 133, "133 - 203",
-                                          ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 85, "85 - 133", "<85")))
-colnames(AGB.parse.dCC)[1] <- "PLT_CN"
-SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
-AGB.parse.dCC.SDI <- left_join(AGB.parse.dCC, SDI.plt.unscaled)
-
-AGB.parse.dCC.summary.SDI  <- AGB.parse.dCC.SDI %>% ungroup() %>% group_by(rcp, mort.scheme, SDI.bin, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            SDIdiff.lo = quantile(SDIdiff, 0.025),
-            SDIdiff.hi = quantile(SDIdiff, 0.975),
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.lo = quantile(climatechangediff, 0.025),
-            climatechangediff.hi = quantile(climatechangediff, 0.975),
-            # tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.lo = quantile(tmaxdiff, 0.025),
-            # tmaxdiff.hi = quantile(tmaxdiff, 0.975),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
-
-
-AGB.parse.dCC.summary.SDI$SDI.bin <- factor(AGB.parse.dCC.summary.SDI$SDI.bin, levels = c("<85", "85 - 133", "133 - 203", "> 203"))
-
-ggplot(data = AGB.parse.dCC.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))
-
-png(height = 6, width = 7, units = "in", res = 100, "outputs/SDI.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
-ggplot(data = na.omit(AGB.parse.dCC.summary.SDI), aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
-dev.off()
-
-png(height = 6, width = 7, units = "in", res = 100, "outputs/climate_changes.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
-ggplot(data = AGB.parse.dCC.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
-dev.off()
-
-# png(height = 6, width = 7, units = "in", res = 100, "outputs/tmax.parse.AGB.FIAperiodic.doubleCC.bySDI.png")
-# ggplot(data = AGB.parse.dCC.summary.SDI, aes(x = year, y = tmaxdiff.median))+geom_line()+
-#   geom_ribbon(data = AGB.parse.dCC.summary.SDI, aes(x = year, ymin = tmaxdiff.lo, ymax = tmaxdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-#   facet_grid(rows = vars(mort.scheme), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank())
-# dev.off()
-
-# summaries for the single CC runs
-AGB.parse <- parse.all.mort %>% select(plot,rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
-  spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
-                                 #tmaxdiff = full - `no tmax`, 
-                                 SDIdiff = full - `no SDI`, 
-                                 climatechangediff.pct = ((full - `no climate change`)/full)*100, 
-                                 #tmaxdiff.pct = ((full - `no tmax`)/full)*100, 
-                                 SDIdiff.pct = ((full - `no SDI`)/full)*100)
-
-AGB.parse.summary <- AGB.parse %>% ungroup() %>% group_by(rcp,mort.scheme, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            #tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            #tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            #tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            #tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE),)
-
-
-
-ggplot(data = AGB.parse.summary, aes(x = year, y = climatechangediff.median, color = mort.scheme))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_wrap(~rcp)
-
-
-# ggplot(data = AGB.parse.summary, aes(x = year, y = tmaxdiff.median, color = mort.scheme))+geom_line()+
-#   geom_ribbon(data = AGB.parse.summary, aes(x = year, ymin = tmaxdiff.median - tmaxdiff.sd, ymax = tmaxdiff.median + tmaxdiff.sd,  fill = mort.scheme))+
-#   facet_wrap(~mort.scheme)
-
-ggplot(data = AGB.parse.summary, aes(x = year, y = SDIdiff.median, color = mort.scheme))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_wrap(~rcp)
-
-
-#---------------------------- merge with SDI ----------------------------------
-SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
-SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 400, "> 400", 
-                                   ifelse(SDI.plt.unscaled$SDI < 400 & SDI.plt.unscaled$SDI >= 250, "250 - 400",
-                                          ifelse(SDI.plt.unscaled$SDI < 250 & SDI.plt.unscaled$SDI >= 150, "150 - 250", ">150")))
-colnames(AGB.parse)[1] <- "PLT_CN"
-SDI.plt.unscaled$PLT_CN <- as.character(SDI.plt.unscaled$PLT_CN)
-AGB.parse.SDI <- left_join(AGB.parse, SDI.plt.unscaled)
-
-AGB.parse.summary.SDI  <- AGB.parse.SDI %>% ungroup() %>% group_by(rcp,mort.scheme, SDI.bin, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            SDIdiff.lo = quantile(SDIdiff, 0.025),
-            SDIdiff.hi = quantile(SDIdiff, 0.975),
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.lo = quantile(climatechangediff, 0.025),
-            climatechangediff.hi = quantile(climatechangediff, 0.975),
-            # tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.lo = quantile(tmaxdiff, 0.025),
-            # tmaxdiff.hi = quantile(tmaxdiff, 0.975),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
-AGB.parse.summary.SDI$SDI.bin <- factor(AGB.parse.summary.SDI$SDI.bin, levels = c(">150", "150 - 250", "250 - 400", "> 400"))
-
-ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))
-
-
-png(height = 6, width = 7, units = "in", res = 100, "outputs/SDI.parse.AGB.FIAperiodic.singleCC.bySDI.png")
-ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+ theme_bw()
-dev.off()
-
-png(height = 6, width = 7, units = "in", res = 100, "outputs/no_climate_change.parse.AGB.FIAperiodic.singleCC.bySDI.png")
-ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows = vars(rcp), cols = vars(SDI.bin))+ theme_bw()
-dev.off()
-
-
-
-SDI.parse <- ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = SDIdiff.median))+geom_line()+
-                    geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-                    facet_grid(rows =vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-                    ylab("Difference between no SDI \n and full projections")
-
-
-CC.parse <- ggplot(data = AGB.parse.summary.SDI, aes(x = year, y = climatechangediff.median))+geom_line()+
-                    geom_ribbon(data = AGB.parse.summary.SDI, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-                    facet_grid(rows =vars(rcp),cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-                    ylab("Difference between no climate \n change and full projections")
-
-png(height = 10, width = 8, units = "in", res = 200, "outputs/no_cc_no_SDI_absolute_difference_plots.png")
-cowplot::plot_grid(SDI.parse, CC.parse, align = "hv", ncol = 1)
-dev.off()
-
-#-----------------------------------------------------------
-# next plot out by MAP and MAT
-#-----------------------------------------------------------
-cov.data.unique <- unique(cov.data.regional %>% select(PLT_CN, STATECD, COUNTYCD, PLOT, SUBP, SICOND, STDAGE, MAT, MAP, PLOTSTATE))
-cov.data.unique$MAP.bin <- ifelse(cov.data.unique$MAP >= 0.659801, "> 0.659801", 
-                                   ifelse(cov.data.unique$MAP < 0.659801 & cov.data.unique$MAP >= -0.225419, "0.659801 - -0.225419",
-                                          ifelse(cov.data.unique$MAP < -0.225419 & cov.data.unique$MAP >= -0.722995, "-0.225419 - -0.722995", "<-0.722995")))
-
-cov.data.unique$MAT.bin <- ifelse(cov.data.unique$MAT >= 0.569027, "> 0.569027", 
-                                  ifelse(cov.data.unique$MAT < 0.569027 & cov.data.unique$MAT >= -0.006959, "0.569027 - -0.006959",
-                                         ifelse(cov.data.unique$MAT < -0.006959 & cov.data.unique$MAT >= -0.579155, "-0.006959 - -0.579155", "<-0.579155")))
-
-cov.data.unique$PLT_CN <- as.character(cov.data.unique$PLT_CN)
-AGB.parse.dCC.MAP.MAT <- left_join(AGB.parse.dCC.SDI, cov.data.unique)
-
-# get the summary for MAP:
-AGB.parse.summary.MAP  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, MAP.bin, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            SDIdiff.lo = quantile(SDIdiff, 0.025),
-            SDIdiff.hi = quantile(SDIdiff, 0.975),
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.lo = quantile(climatechangediff, 0.025),
-            climatechangediff.hi = quantile(climatechangediff, 0.975),
-            # tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.lo = quantile(tmaxdiff, 0.025),
-            # tmaxdiff.hi = quantile(tmaxdiff, 0.975),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
-AGB.parse.summary.MAP$MAP.bin <- factor(AGB.parse.summary.MAP$MAP.bin, levels = c("<-0.722995", "-0.225419 - -0.722995", "0.659801 - -0.225419", "> 0.659801"))
-
-
-ggplot(data = AGB.parse.summary.MAP, aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.MAP, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no SDI \n and full projections")
-
-
-ggplot(data = AGB.parse.summary.MAP, aes(x = year, y = climatechangediff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.MAP, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp), cols = vars(MAP.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")
-
-
-# get the summary for MAT:
-AGB.parse.summary.MAT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, MAT.bin, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            SDIdiff.lo = quantile(SDIdiff, 0.025),
-            SDIdiff.hi = quantile(SDIdiff, 0.975),
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.lo = quantile(climatechangediff, 0.025),
-            climatechangediff.hi = quantile(climatechangediff, 0.975),
-            # tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.lo = quantile(tmaxdiff, 0.025),
-            # tmaxdiff.hi = quantile(tmaxdiff, 0.975),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
-AGB.parse.summary.MAT$MAT.bin <- factor(AGB.parse.summary.MAT$MAT.bin, levels = c("<-0.579155", "-0.006959 - -0.579155", "0.569027 - -0.006959", "> 0.569027"))
-
-ggplot(data = AGB.parse.summary.MAT, aes(x = year, y = SDIdiff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.MAT, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no SDI \n and full projections")
-
-
-ggplot(data = AGB.parse.summary.MAT, aes(x = year, y = climatechangediff.median))+geom_line()+
-  geom_ribbon(data = AGB.parse.summary.MAT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp), cols = vars(MAT.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")
-
-
-
-
-#---------------------------------------------------------------------------
-# Make some individual difference plots
-#---------------------------------------------------------------------------
-
-# get the summary for MAT:
-AGB.parse.summary.PLT  <- AGB.parse.dCC.MAP.MAT %>% ungroup() %>% group_by(rcp, mort.scheme, PLT_CN,SDI.bin, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            SDIdiff.median = median(SDIdiff, na.rm =TRUE),
-            SDIdiff.sd = sd(SDIdiff, na.rm =TRUE),
-            SDIdiff.lo = quantile(SDIdiff, 0.025),
-            SDIdiff.hi = quantile(SDIdiff, 0.975),
-            climatechangediff.pct.median = median(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.pct.sd = sd(climatechangediff.pct, na.rm =TRUE),
-            climatechangediff.lo = quantile(climatechangediff, 0.025),
-            climatechangediff.hi = quantile(climatechangediff, 0.975),
-            # tmaxdiff.pct.median = median(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.pct.sd = sd(tmaxdiff.pct, na.rm =TRUE),
-            # tmaxdiff.lo = quantile(tmaxdiff, 0.025),
-            # tmaxdiff.hi = quantile(tmaxdiff, 0.975),
-            SDIdiff.pct.median = median(SDIdiff.pct, na.rm =TRUE),
-            SDIdiff.pct.sd = sd(SDIdiff.pct, na.rm =TRUE))
-
-
-ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = SDIdiff.median, group = PLT_CN))+geom_line()+
- # geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = SDIdiff.lo, ymax = SDIdiff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp), cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no SDI \n and full projections")
-
-
-ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN))+geom_line()+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows =vars(rcp),cols = vars(SDI.bin))+theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")
-
-
-ggplot(data = AGB.parse.summary.PLT, aes(x = year, y = climatechangediff.median, group = PLT_CN))+geom_line(color = "darkgrey")+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("Difference between no climate \n change and full projections")+facet_wrap(~rcp)
-
-
-#----------------------------------------------------------------------------
-# look at a variety of covariates: sdi, site index, stdage, elevation, lat/lon
-#----------------------------------------------------------------------------
-cov.AGB.parse.PLT <- left_join(AGB.parse.summary.PLT, cov.data.unique)
-cov.AGB.parse.PLT <- left_join(PLOT, cov.AGB.parse.PLT )
-
-cov.AGB.parse.PLT
-# plot up trajectories by STDAGE
-ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  facet_grid(rows=vars(rcp),cols = vars(STATECD))+theme_bw()+theme(panel.grid = element_blank())+
-  ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
-
-
-
-ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = STDAGE))+geom_line()+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank())+facet_grid(rows=vars(rcp))+
-  ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
-
-
-
-# by ELEV, 
-
-ggplot(data = cov.AGB.parse.PLT %>% filter(!is.na(rcp)), aes(x = year, y = climatechangediff.median, group = PLT_CN, color = ELEV))+geom_line()+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank())+facet_grid(cols=vars(rcp))+
-  ylab("Difference between no climate \n change and full projections")+ scale_color_viridis(option = "D")
-
-
-# by state
-
-# by MAP & MAT
-
-
-# plot up all trajectories:
-
-ggplot(data = parse.all.mort,  aes(x = year, y = mAGB, group = plot))+geom_line()+
-  #geom_ribbon(data = AGB.parse.summary.PLT, aes(x = year, ymin = climatechangediff.lo, ymax = climatechangediff.hi,  fill = mort.scheme),alpha = 0.5)+
-  theme_bw()+theme(panel.grid = element_blank(), legend.position = "none")+
-  ylab("full projections by plot")+facet_grid(cols= vars(parse), rows = vars(rcp))
-
-
-# get whether biomass is increasing, decreasing, or staying the same over time. 
-
-biomass.trajectory.means <- parse.all.mort %>% select(plot, parse,rcp, mAGB, year)%>% group_by(plot,rcp, parse) %>% filter(year %in% c(2002, 2098))%>%
-  spread(year, value = mAGB) %>% mutate(difference.century = `2098`-`2002`)
-# biomass decreasing over time on the whole
-sum(biomass.trajectory.means$difference.century)
-hist(biomass.trajectory.means$difference.century)
-
-# join up with plot tables to map out:
-colnames(biomass.trajectory.means)[1] <- "CN" 
-PLOT$CN <- as.character(PLOT$CN)
-
-biomass.plot.trajectory <- left_join(biomass.trajectory.means, PLOT)
-
-ggplot(biomass.plot.trajectory, aes(x = LON, y = LAT, color = difference.century))+geom_point()+
-  theme_bw()+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(rcp),cols = vars(parse))+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
-  
-ggplot(biomass.plot.trajectory, aes(x = ELEV, y = difference.century))+geom_point()+
-  theme_bw()+theme(panel.grid = element_blank())+
-  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
-  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
-
-ggplot(biomass.plot.trajectory, aes(x = LON, y = difference.century))+geom_point()+
-  theme_bw()+theme(panel.grid = element_blank())+
-  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
-  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
-
-ggplot(biomass.plot.trajectory, aes(x = LAT, y = difference.century))+geom_point()+
-  theme_bw()+theme(panel.grid = element_blank())+
-  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
-  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
-
-COND$CN <- as.character(COND$PLT_CN)
-biomass.plot.trajectory.cond <- left_join(biomass.plot.trajectory, COND)
-ggplot(biomass.plot.trajectory.cond, aes(x = SICOND, y = difference.century))+geom_point()+
-  theme_bw()+theme(panel.grid = element_blank())+
-  geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed", color = "red")+
-  facet_grid(rows = vars(rcp),cols = vars(parse))#+  scale_color_gradient2(low = "red", high = "blue", mid = "grey", midpoint = 0)
 
 
 #----------------------------------------------------------------------------
