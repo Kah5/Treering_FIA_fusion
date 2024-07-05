@@ -31,7 +31,8 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   # get id of trees with out cores:
   trees.in.plt <- all.noncored %>% dplyr::filter (PLT_CN %in% plt.num)
   trees.in.plt$TPA_UNADJ <- TREE.FIA[which(TREE.FIA$CN %in% trees.in.plt$CN),]$TPA_UNADJ
-  
+  trees.in.plt$DIA_cm_T2 <- NA
+  trees.in.plt$MEASYEAR_T2 <- NA
  # if there are no other trees on the plot just don't run the forecats
   if(length(trees.in.plt$PLOT) == 0){
     ##print("no other trees on plot")
@@ -42,8 +43,8 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
   y <- trees.in.plt$treeid
   
   # get the subplot information & TPA information
-  trees.in.plt.subp <- trees.in.plt[,c("treeid", "SUBP", "TPA_UNADJ")]
-  cored.in.plt.subp <- cored.in.plt[,c("treeid", "SUBP","TPA_UNADJ")]
+  trees.in.plt.subp <- trees.in.plt[,c("treeid", "SUBP", "TPA_UNADJ", "DIA_cm_T2", "MEASYEAR_T2")]
+  cored.in.plt.subp <- cored.in.plt[,c("treeid", "SUBP","TPA_UNADJ", "DIA_cm_T2", "MEASYEAR_T2")]
   
   combined <- rbind( cored.in.plt.subp, trees.in.plt.subp)
   
@@ -162,34 +163,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     # set up empty matrices for dbh, increment, TPA projections
     id.ni <- rep(1:ni, each = 1)
     
-    # for(i in 1:length(id.ni)){
-    #   
-    #   dbh.pred[id.ni[i],,1] <- all.dbh[,i]
-    #   
-    # }
-    # 
-    # # get the increments
-    # for(i in 1:ni){
-    #   for(t in 2:4){
-    #     increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
-    #   }
-    # }
-    # 
-    # 
-    # # get the tree diameter means
-    # dbh.pred.means <- apply(dbh.pred, 1, FUN = mean, na.rm=TRUE)
-    # 
-    # for(i in 1:ni){
-    #   # TPA expansion factors for live trees
-    #   TPAsize[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # TPAlive adjusted for SIZE
-    #   TPAlive[i,,1:(ntfull + 1)] <- index.df[i, "TPA_UNADJ"] # live TPA trees (will be reduced by TPAmort)
-    #   # TPA for tracking mortality
-    #   TPADI[i,,1:(ntfull + 1)] <- 0 # total dead due to DI mortality
-    #   TPADD[i,,1:(ntfull + 1)] <- 0 # total dead due to DD mortality 
-    #   TPAmort[i,,1:(ntfull + 1)] <- 0 # dead TPA total
-    # 
-    # }
-    # 
+    
     
     #---------------------------------------------------------------------------
     ##  get all the paramter estimates + uncertainty
@@ -212,15 +186,25 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     if(length(treeids)>1){ # if we have more than one cored tree per plot
       alphatreeids <- vector()
+      alphas.trees <- matrix(data = NA, nrow = nsamps, ncol = length(treeids))
       for(i in 1:length(treeids)){
         alphatreeids[i]<- paste0("alpha_TREE[", treeids[i], "]")
+        #alphas[,i] <- get_mcmc_samples(alphatreeids[i], betas = mus, nsamps = nsamps)
+        alphas.trees[,i] <- get_mcmc_samples(alphatreeids[i], betas = alphas, nsamps = nsamps)
         
-      }
+        }
+      colnames(alphas.trees) <- alphatreeids
       alpha <- get_mcmc_samples("mutree", betas = mus, nsamps = nsamps)
       
+     # # get average for the cored trees
+     alpha.avg <- rowMeans(alphas.trees)
+     
     }else{ # if there is just one cored tree per plot
+      alphas.trees <- matrix(data = NA, nrow = nsamps, ncol = length(treeids))
       alphatreeids <- paste0("alpha_TREE[", treeids, "]")
-      alpha <- get_mcmc_samples(alphatreeids, betas = alphas, nsamps = nsamps)
+      alpha <- get_mcmc_samples("mutree", betas = mus, nsamps = nsamps)
+      alphas.trees[,1] <- get_mcmc_samples(alphatreeids, betas = alphas, nsamps = nsamps)
+      colnames(alphas.trees) <- alphatreeids
     }
     
     
@@ -261,6 +245,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     
     betas.all <- data.frame(  alpha ,
+                              alphas.trees,
                               bMAP,
                               bMAT ,
                               bMAP_MAT,
@@ -427,6 +412,10 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     covariates$MAP <- MAP
     covariates$MAT <- MAT
     
+    cov.data.plot <- cov.data.regional.df %>% filter(PLT_CN %in% plt.num)  %>% select(MAT, MAP)
+    
+    assertthat::assert_that(covariates$MAP == unique(cov.data.plot$MAP))
+    assertthat::assert_that(covariates$MAT == unique(cov.data.plot$MAT))
     
     time_steps <-  length(2001:2098)
     nsamps <- max(length(betas.all$bSDI), length(x.mat[m,1]))
@@ -718,6 +707,21 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     cowplot::save_plot(dia.plts,base_width = 15, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/diameter_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
+    ## plot the cored.remeas for all together
+    if(length(full$cored.remeas)==1){
+      cat("no remeasured cores")
+    }else{
+    full$cored.remeas$forecast.type <- "full"
+    GD.10$cored.remeas$forecast.type <- "GD.10"
+    GD.20$cored.remeas$forecast.type <- "GD.20"
+    DD.ramp$cored.remeas$forecast.type <- "DD.ramp"
+    noClim$cored.remeas$forecast.type <- "no climate change"
+    all.scen.cored <- rbind(full$cored.remeas, GD.10$cored.remeas, GD.20$cored.remeas, DD.ramp$cored.remeas, noClim$cored.remeas)
+    
+    pred.obs.cored <- ggplot()+geom_point(data = all.scen.cored, aes(x = DIA_cm_T2, y = predDBH_T2, color = forecast.type))+
+      geom_errorbar(data = all.scen.cored, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi, color = forecast.type))
+    cowplot::save_plot( pred.obs.cored, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/cored_tree_validation_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    }
     
     full$forecast$forecast.type <- "full"
     GD.10$forecast$forecast.type <- "GD.10"

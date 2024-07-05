@@ -3,7 +3,19 @@ library(reshape2)
 library(tidyverse)
 library(rgdal)
 library(firebehavioR)
-#plots <- unique(x.mat$PLT_CN)
+
+# read in data needed to run post processing
+data <- readRDS("data/regional_pipo_jags_formatted_data.RDS")
+cov.data.regional <- data$cov.data.regional
+plots <- unique(cov.data.regional$PLT_CN)
+plot <- unique(plots)[2]
+mort.scheme = "DIDD"
+SDI.ratio.DD = 0.6
+cc.scenario = "singleCC"
+db <- readRDS("data/InWeUS_FIAdb.rds")
+TREE <- db$TREE
+PLOT <- db$PLOT %>% rename(`PLT_CN` = "CN")
+rm(db)
 # reading in the available forecasts (1-184 I believe)
 # only gets it for the full scenario
 get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scenario, scale.mort.prob = 1 ){
@@ -246,29 +258,11 @@ get_biomass_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD, cc.scena
 }
 
 get_biomass_ests(plot = 2447353010690, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD= 0.6, cc.scenario = "singleCC", scale.mort.prob = 1)
-plot = 3169377010690
+
 
 # -------------------------------------------------------------------------------
 # read in forecasts for all scenarios and mortality conditions, 80%SDI threshold
 # -------------------------------------------------------------------------------
-# RCP2.6
-# so far only have DIDD for rcp2.6 done, and only 43 plots
-# normort.AGB <- lapply(unique(plots)[1:10], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
-# DIonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
-# DDonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC")})
-# DIDD.AGB <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "singleCC", scale.mort.prob = 0.9)})
-# DIDD.AGB.45 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45", SDI.ratio.DD = 0.8, cc.scenario = "singleCC", scale.mort.prob = 0.9)})
-# DIDD.AGB.60 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60", SDI.ratio.DD = 0.8, cc.scenario = "singleCC", scale.mort.prob = 0.9)})
-# DIDD.AGB.85 <- lapply(unique(plots)[1:650], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85", SDI.ratio.DD = 0.8, cc.scenario = "singleCC", scale.mort.prob = 0.9)})
-# 
-# 
-# # normort.AGB.df <- do.call(rbind, normort.AGB)
-# # DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
-# # DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
-# DIDD.AGB.df <- do.call(rbind, DIDD.AGB)
-# DIDD.AGB.45.df <- do.call(rbind, DIDD.AGB.45)
-# DIDD.AGB.60.df <- do.call(rbind, DIDD.AGB.60)
-# DIDD.AGB.85.df <- do.call(rbind, DIDD.AGB.85)
 
 # do this for the 60% max SDI threshold scenario
 DIDD.AGB.60thresh <- lapply(unique(plots)[1:675], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.6, cc.scenario = "singleCC", scale.mort.prob = 1)})
@@ -277,9 +271,7 @@ DIDD.AGB.60.60thresh <- lapply(unique(plots)[1:675], FUN = function(x) {get_biom
 DIDD.AGB.85.60thresh <- lapply(unique(plots)[1:675], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85", SDI.ratio.DD = 0.6, cc.scenario = "singleCC", scale.mort.prob = 1)})
 
 
-# normort.AGB.df <- do.call(rbind, normort.AGB)
-# DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
-# DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
+
 DIDD.AGB.60thresh.df <- do.call(rbind, DIDD.AGB.60thresh)
 DIDD.AGB.45.60thresh.df <- do.call(rbind, DIDD.AGB.45.60thresh)
 DIDD.AGB.60.60thresh.df <- do.call(rbind, DIDD.AGB.60.60thresh)
@@ -290,59 +282,44 @@ all10plot <- all10plots <- DIDD.AGB.60thresh.df
 # -------------------------------------------------------------------------------
 # combine all forecasts
 # -------------------------------------------------------------------------------
-all10plots <- rbind(DIDD.AGB.60thresh.df, DIDD.AGB.45.60thresh.df, DIDD.AGB.60.60thresh.df, DIDD.AGB.85.60thresh.df) #, 
+all10plots <- rbind(DIDD.AGB.60thresh.df, 
+                    DIDD.AGB.45.60thresh.df, 
+                    DIDD.AGB.60.60thresh.df, 
+                    DIDD.AGB.85.60thresh.df) #, 
 
 saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_60thresh_full_1_scale_mort.RDS")
 all10plots <- readRDS("all.AGB.fiaperiodic_singleCC_60thresh_full_1_scale_mort.RDS")
 
-# -------------------------------------------------------------------------------
-# read in forecasts for all scenarios and mortality conditions (double cc)
-# -------------------------------------------------------------------------------
-### Don't have any of the double cc scenarios done yet
-# RCP2.6
-# normort.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# DIonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# DDonly.AGB <- lapply(unique(plots)[1:417], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# DIDD.AGB <- lapply(unique(plots)[1:43], FUN = function(x) {get_biomass_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", SDI.ratio.DD = 0.8, cc.scenario = "doubleCC")})
-# 
-# 
-# normort.AGB.df <- do.call(rbind, normort.AGB)
-# DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
-# DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
-# DIDD.AGB.df <- do.call(rbind, DIDD.AGB)
-# 
-# 
-# 
-# # -------------------------------------------------------------------------------
-# # combine all forecasts 
-# # -------------------------------------------------------------------------------
-# all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df) #, 
-# #normort.AGB.60.df, DIonly.AGB.60.df, DDonly.AGB.60.df, DIDD.AGB.60.df, 
-#normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
-#normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df) #, 
-#nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
-#all.AGB.26.nomort <- rbind(nocc.nomort.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df, nocc.DIonly.AGB.df)
 
-#saveRDS(all10plots, "all.AGB.fiaperiodic_doubleCC_.RDS")
-
-
-#all10plot <- readRDS( "all.AGB.fiaperiodic_singleCC_12.30.22tempfile.RDS")
-# all10plot.nocc<- rbind(all.AGB.26.nomort, all10plot)
-# saveRDS(all10plot.nocc, "all.AGB.10.26.22tempfile.RDS")
-# all10plot.nocc <- readRDS("all.AGB.10.26.22tempfile.RDS")
 all10plots <- DIDD.AGB.60thresh.df
 ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
+ten.plot.medians <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
+  summarise_at(.vars = vars(mAGB:low.foliage), .funs = median, na.rm = TRUE)
 
 # -------------------------------------------------------------------------------
 #  make plots of total biomass across the region
 # -------------------------------------------------------------------------------
-highAGBplots <- all10plots %>% filter(mAGB*0.001 > 250 & year == 2098) %>% select(plot) %>% distinct()
+# high AGB plots
+highAGBplots <- all10plots %>% filter(mAGB*0.001 > 150 & year == 2040) %>% select(plot) %>% distinct()
 highAGBplots
 AGB.lines <- ggplot()+geom_line(data = all10plots, aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)#+
   #geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA, ymax = upA, group = mort.scheme, fill = mort.scheme))+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 AGB.lines
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGB_lines_log_MSBfn.png")
+
+
+AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year < 2050 ), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)+
+  ylab("Mean plot Aboveground Biomass (Mg/hectare)")+xlab("Year")
+#geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA, ymax = upA, group = mort.scheme, fill = mort.scheme))+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
+AGB.lines
+ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGB_lines_log_MSBfn_2000_2050.png")
+
+AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year < 2025), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)#+
+#geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA, ymax = upA, group = mort.scheme, fill = mort.scheme))+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
+AGB.lines
+ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGB_lines_log_MSBfn_2000_2050.png")
+
 
 # summarise
 all10plots
@@ -367,8 +344,8 @@ ggplot()+geom_histogram(data = all.10.plots.diff, aes(x = diff.50*0.001))+
   geom_vline(aes(xintercept = median(all.10.plots.diff$diff.50*0.001)), color = "red", linetype = "dashed")+xlab("AGB (Mg) difference \n 2098-2002")
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGBdiff_2002_2050.png")
 
-AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB*0.001, group = mort.scheme, color = mort.scheme))+theme_bw()+
-  geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA*0.001, ymax = upA*0.001, group = mort.scheme, fill = mort.scheme), alpha = 0.5)+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
+AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB*0.001, group = mort.scheme), color = "forestgreen")+theme_bw()+
+  geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA*0.001, ymax = upA*0.001, group = mort.scheme), alpha = 0.5, fill = "forestgreen")+ylab("Total AGB for all plots \n (Mg/hectare), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for all  plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(-6e5,2e5)
 AGB.line
 NPP.line
@@ -376,9 +353,26 @@ png(height = 7, width = 10, units = "in", res = 150, "outputs/allplotsFIAperiodi
 cowplot::plot_grid(AGB.line, NPP.line, ncol = 1, align = "hv")
 dev.off()
 
+png(height = 4, width = 6, units = "in", res = 150, "outputs/allplotsFIAperiodic.total.biomass.singleCC_1.full_AGB.png")
+AGB.line
+dev.off()
+
+# plot the individual plots with the means
+AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter( ! plot %in% highAGBplots$plot), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)+
+  geom_line(data = ten.plot.medians, aes(year, y = mAGB*0.001, group = mort.scheme), color = "forestgreen", size = 2)+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
+AGB.lines
+ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcp2.6_with_median.png")
+
+AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year <= 2052 &  ! plot %in% highAGBplots$plot), aes(year, mAGB*0.001, group = plot), alpha = 0.25, color = "black")+theme_bw()+facet_wrap(~rcp, ncol = 5)+
+  geom_line(data = ten.plot.medians %>% filter(year <= 2052), aes(year, y = mAGB*0.001, group = mort.scheme), color = "forestgreen", size = 2)+ylab("Total per plot live AGB \n (Mg/hectoare), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
+AGB.lines
+ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcp2.6_with_median_2002_2050.png")
+
+
 # plot out the differences:
-PLOT.ll <- PLOT %>% select(CN, LAT, LON) %>% distinct() %>% rename(`plot` = "CN")
+PLOT.ll <- PLOT %>% select(PLT_CN, LAT, LON) %>% distinct() %>% rename(`plot` = "PLT_CN")
 PLOT.ll$plot <- as.character(PLOT.ll$plot)
+all.10.plots.diff$plot <- as.character(all.10.plots.diff$plot)
 all.diff.ll <- left_join( all.10.plots.diff , PLOT.ll)
 all.diff.ll <- all.diff.ll %>% mutate(`change in live AGB` = diff*0.001, 
                                       `change in live AGB 2001-2050`= diff.50*0.001)
@@ -422,7 +416,7 @@ change.map.2050 <- ggplot()+
   geom_point(data = all.diff.ll, aes(x = LON, y = LAT, color = `change in live AGB 2001-2050`))+
   theme_bw()+
   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+
-  scale_color_viridis_c(option = "B")
+  scale_color_viridis_b(option = "B")
 png(height = 7, width = 12, units = "in", res = 150, "outputs/allplotsChange_2050.png")
 change.map.2050
 dev.off()
@@ -568,161 +562,9 @@ get_tree_levelC_ests_FVS <- function(plot, mort.scheme, scenario, nocc = FALSE, 
 
 
 # -------------------------------------------------------------------------------
-# read in everything for double CC
-# -------------------------------------------------------------------------------
-
-# # read in and get the tree level estimates
-# # RCP 2.6
-# btst.AGB.DIDD.26 <- lapply(unique(plots)[1:417], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIDD", scenario = "rcp26",SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# btst.AGB.DIDD.26.df <- do.call(rbind, btst.AGB.DIDD.26)
-# btst.AGB.DIDD.26.df
-# 
-# 
-# btst.AGB.nomort.26 <- lapply(unique(plots)[1:417], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "nomort", scenario = "rcp26",SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# btst.AGB.nomort.26.df <- do.call(rbind, btst.AGB.nomort.26)
-# 
-# btst.AGB.DDonly.26 <- lapply(unique(plots)[1:417], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DDonly", scenario = "rcp26",SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# btst.AGB.DDonly.26.df <- do.call(rbind, btst.AGB.DDonly.26)
-# 
-# 
-# btst.AGB.DIonly.26 <- lapply(unique(plots)[1:417], FUN = function(x){get_tree_levelC_ests_FVS(plot = x, mort.scheme = "DIonly", scenario = "rcp26",SDI.ratio.DD = 0.7, cc.scenario = "doubleCC")})
-# btst.AGB.DIonly.26.df <- do.call(rbind, btst.AGB.DIonly.26)
-# 
-# 
-# # combine all the tree-level datasets together:
-# allplots.treeC <- rbind(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df)#, 
-# #btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
-# #btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
-# #btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df) #, 
-# #btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
-# saveRDS(allplots.treeC, "outputs/allplots.FIAperiodic.treeC12.30.22_doubleCC.RDS")
-# 
-
-rm(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
-   btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
-   btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
-   btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
-   btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
-
-rm(btst.AGB.nomort.26 , btst.AGB.DIonly.26 , btst.AGB.DDonly.26 , btst.AGB.DIDD.26 , 
-   btst.AGB.nomort.45 , btst.AGB.DIonly.45 , btst.AGB.DDonly.45 , btst.AGB.DIDD.45 ,
-   btst.AGB.nomort.60 , btst.AGB.DIonly.60 , btst.AGB.DDonly.60 , btst.AGB.DIDD.60 , 
-   btst.AGB.nomort.85 , btst.AGB.DIonly.85 , btst.AGB.DDonly.85 , btst.AGB.DIDD.85 , 
-   btst.AGB.nomort.nocc , btst.AGB.DIonly.nocc , btst.AGB.DDonly.nocc , btst.AGB.DIDD.nocc )
-#
-# ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
-#   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
-
-#allplots.treeC <- rbind(btst.AGB.DIDD.26.df, btst.AGB.nomort.26.df,  btst.AGB.DDonly.26.df)
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_all_run_plotsFIAperiodic_singleCC_43plots.png")
-ggplot(na.omit(allplots.treeC), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (kg/acre)")+theme_bw()+theme(panel.grid = element_blank())+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-# example for how single plots may vary quite alot!
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_one_plot_FIAperiodic_singleCC.png")
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[1]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_two_plotFIAperiodic_singleCC.png")
-
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[2]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_three_plotFIAperiodic_singleCC.png")
-
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[3]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-
-dev.off()
-
-
-allplots.treeC.totals <- na.omit(allplots.treeC) %>% group_by(plot, mort.scheme, scenario, size_class, time) %>%
-  summarise(total.AGB.size = sum(AGB, na.rm=TRUE), 
-            avg.diam.size = median(DBH, na.rm = TRUE), 
-            ntrees = n())
-
-# get proportion of total biomass in large vs small trees:
-plotC.totals.spread <- allplots.treeC.totals %>% select(-ntrees, -avg.diam.size) %>% group_by(plot, mort.scheme, scenario, time) %>%
-  spread(size_class, value = total.AGB.size)
-
-plotC.totals.prop <- plotC.totals.spread %>% group_by(plot, mort.scheme, scenario, time) %>%
-  mutate(total.AGB = `big tree` + `small tree`,
-         prop.big = `big tree`/total.AGB, 
-         prop.small = `small tree`/total.AGB) 
-
-
-whole.regionC <- plotC.totals.prop %>% group_by(mort.scheme, scenario, time) %>% mutate(big.dominated = ifelse(prop.big > 0.65, 1, 0), 
-                                                                                        small.dominated = ifelse(prop.small > 0.65, 1, 0), 
-                                                                                        mixed.size = ifelse(prop.small <= 0.65 & prop.small >=0.35, 1, 0))%>%
-  summarise(prop.big.all = mean(prop.big, na.rm =TRUE), 
-            prop.small.all = mean(prop.small, na.rm =TRUE), 
-            sum.AGB = sum(total.AGB, na.rm =TRUE),
-            nplots.big = sum(big.dominated, na.rm = TRUE), 
-            nplots.small = sum(small.dominated, na.rm = TRUE), 
-            nplots.mixed = sum(mixed.size, na.rm = TRUE))
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_dominated_FIAperiodic_singleCC.png")
-
-ggplot()+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.big, color = "big tree dominated"))+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.small, color= "small tree dominated"))+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.mixed, color= "mixed dominated"))+
-  scale_color_manual(name = 'Size class', 
-                     values =c("big tree dominated"="#e66101","small tree dominated"="#5e3c99", "mixed dominated" = "black"))+
-  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
-  
-  ylab(paste("number of plots dominated by big vs small trees"))+    xlab("Year")+
-  
-  theme_bw()+theme(panel.grid = element_blank())
-
-dev.off()
-# plot the number of plots dominated by small vs large trees:
-png(height = 10, width = 10, units = "in", res = 150, "outputs/big_tree_vs_small_tree_dominated_prop_biomass_FIAperiodic_singleCC.png")
-
-ggplot()+
-  geom_ribbon(data = whole.regionC , aes(x=time,ymin=prop.big.all, ymax=prop.big.all + prop.small.all, fill = "small tree"))+
-  geom_ribbon(data = whole.regionC , aes(x=time,ymin=0, ymax=prop.big.all, fill = "big tree"))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+
-  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
-  
-  ylab(paste("% of total biomass in each size class"))+    xlab("Year")+
-  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
-                     expand = c(0, 0))+
-  theme_bw()+theme(panel.grid = element_blank())
-dev.off()
-
-
-
-
-ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()
-ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()+geom_density()+facet_wrap(~time)
-
-# how to classify these different trajectories?
-
-plotC.totals.prop %>% group_by(plot, mort.scheme, scenario, time) %>% select(-total.AGB, -prop.small, )
-
-
-
-
-# -------------------------------------------------------------------------------
 #  make plots of big tree vs small tree mortality
 # -------------------------------------------------------------------------------
+plot <- 2487922010690
 get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.DD = 0.8,nocc = FALSE, cc.scenario, scale.mort.prob = 1){
   cat(paste0("reading in plot "), plot)
   
@@ -772,24 +614,26 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
     
     
     # get dead diameters not sure we need to add this!
-    #diam.dead.melt <- melt(diam.live[2,,])
-    #diam.dead.melt$size_class <- ifelse(diam.dead.melt$value<= 0.1, NA, 
-    #                                    ifelse(diam.dead.melt$value <= 30, "small tree", "big tree"))
-    #colnames(diam.dead.melt) <- c("tree", "time", "DBH", "size_class")
-    
-    #summary(diam.dead.melt)
+    # diam.dead.melt <- melt(diam.live[2,,])
+    # diam.dead.melt$size_class <- ifelse(diam.dead.melt$value<= 0.1, NA, 
+    #                                     ifelse(diam.dead.melt$value <= 30, "small tree", "big tree"))
+    # colnames(diam.dead.melt) <- c("tree", "time", "DBH", "size_class")
+    # 
+    # summary(diam.dead.melt)
     
   #  diam.dead.melt$status <- ifelse(diam.dead.melt$DBH == 0, "live", "dead")
    # diam.live.melt$status <- ifelse(diam.live.melt$DBH == 0.1, "dead", "live")
-    
+    colnames(tpa.dead.melt) <- c("tree", "time", "TPAdead")
     # use TPA now to characterize dead vs live
     #diam.dead.melt <- left_join(diam.dead.melt, tpa.dead.melt, by = c("tree", "time"))
     diam.live.melt <- left_join(diam.live.melt, tpa.live.melt, by = c("tree", "time"))
+    diam.live.melt <- left_join(diam.live.melt, tpa.dead.melt, by = c("tree", "time"))
     
     #diam.dead.melt$status <- ifelse(diam.dead.melt$TPA == 0, "live", "all dead")
     diam.live.melt$status <- ifelse(diam.live.melt$TPA == 0, "all dead", "live")
-    unique(diam.dead.melt$status)
-    #ggplot(diam.live.melt, aes(time, DBH, color = TPA == 0))+geom_point()+facet_wrap("status")
+    #unique(diam.dead.melt$status)
+    ggplot(diam.live.melt, aes(time, DBH, color = TPA == 0))+geom_point()+facet_wrap("status")
+    ggplot(diam.live.melt, aes(TPAdead, TPA, color = TPA == 0))+geom_point()+facet_wrap("status")
     #combine into one big DF
     #diam.dead.melt$df <- "dead"
     diam.live.melt$df <- "live"
@@ -808,7 +652,7 @@ get_tree_diam_live_dead_ests <- function(plot, mort.scheme, scenario, SDI.ratio.
   }
   }
 }
-
+get_tree_diam_live_dead_ests(plot = 3635611010690, mort.scheme = "DIDD", scenario = "rcp26",SDI.ratio.DD = 0.6, cc.scenario = "singleCC", scale.mort.prob = 1)
 plot <- 2511127010690
 # -------------------------------------------------------------------------------
 # for single CC
@@ -823,55 +667,72 @@ saveRDS(btst.DIAMS.DIDD.26.df, "btst.DIAMS.DIDD.26.df.tempfile.RDS")
 rm(btst.DIAMS.DIDD.26)
 btst.DIAMS.DIDD.26.df <- readRDS( "btst.DIAMS.DIDD.26.df.tempfile.RDS")
 live.diams <- btst.DIAMS.DIDD.26.df %>% filter(status %in% "live")
+large.dia.plots <- live.diams %>% filter(DBH > 90) %>% select(plot) %>% distinct()
+saveRDS(large.dia.plots, "outputs/large.dia.plots.rds")
 
-high.plts <- readRDS("outputs/suspiciously_high_prediction_plots.rds")
-over.250 <- high.plts %>% filter(mAGB/1000 > 250 & year %in% 2098)
+# validation with live trees in PIPO record
+matched.cores <- read.csv("data/PIPOCore_TentativeMatch1.csv")
+matched.cores <- matched.cores %>% mutate(DIA_T2 = DIA+INCR, 
+                                          DIA_cm_T2 = (DIA+ INCR)*2.54)
+matched.cores$CORE_CN <- as.character(matched.cores$CORE_CN)
+matching.dia <- left_join(matched.cores, cov.data.regional)
+all.diams <- left_join(btst.DIAMS.DIDD.26.df , year.time.match)
+
+p1 <- matching.dia$PLT_CN[1]
+
+year.time.match <- data.frame(time = 1:98, 
+                              year = 2002:2099)
+cored.trees <- matching.dia %>% filter(PLT_CN %in% p1)
+all.diams %>% filter(plot %in% p1 & tree %in% 1:nrow(cored.trees))
+
+cov.data.regional %>% filter(TRE_CN %in% matched.cores$TRE_CN[1])
 
 # calculate mean diameter and QMD for each plot and time
-live.diams.plt <- live.diams %>% group_by(time, plot, scenario)%>% 
-  summarise(TPA.tot = sum(TPA), 
+live.diams.plt <- live.diams %>% group_by(time, plot, scenario) %>% 
+  summarise(TPA.tot = sum(TPA),
+            TPA.tot.dead = sum(TPAdead),
             DBH.tot = sum(DBH, na.rm =TRUE),
             DBH.mean = mean(DBH, na.rm = TRUE), 
             DBH.max = max(DBH, na.rm =TRUE)) %>%
-  mutate(QMD.mean = (sqrt(DBH.tot/2.54)^2)/TPA.tot)
+  mutate(QMD.mean = (sqrt(DBH.tot/2.54)^2/TPA.tot))
 unique(unique(live.diams.plt %>% filter(QMD.mean > 30) %>% select(plot))$plot)
 
-ggplot(live.diams.plt %>% filter(time == 1), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(over.250$plot) ))+geom_point()
+ggplot(live.diams.plt %>% filter(time == 1), aes(x = TPA.tot, y = DBH.mean))+geom_point()
 ggsave(height = 4, width = 6, "outputs/plot_summary_DBHmean_TPA_2002_MSBfix_3.png")
-ggplot(live.diams.plt %>% filter(time == 1), aes(x = TPA.tot, y = DBH.max, color = plot %in% unique(over.250$plot) ))+geom_point()
+ggplot(live.diams.plt %>% filter(time == 1), aes(x = TPA.tot, y = DBH.max ))+geom_point()
 ggsave(height = 4, width = 6, "outputs/plot_summary_DBHmax_TPA_2002_MSBfix_3.png")
-ggplot(live.diams.plt %>% filter(time == 49), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(over.250$plot)))+geom_point()
+ggplot(live.diams.plt %>% filter(time == 49), aes(x = TPA.tot, y = DBH.mean))+geom_point()
 ggsave(height = 4, width = 6, "outputs/plot_summary_DBHmean_TPA_2052_MSBfix_3.png")
 
-ggplot(live.diams.plt %>% filter(time < 50), aes(x = TPA.tot, y = QMD.mean, color = plot %in% unique(over.250$plot)))+geom_point()+
+ggplot(live.diams.plt %>% filter(time < 50), aes(x = TPA.tot, y = QMD.mean))+geom_point()+
   facet_wrap(~time, ncol = 10, scales = "free")+theme(legend.position = "none")
 ggsave(height = 5, width = 12, "outputs/plot_summary_QMDmean_TPA_2002_2051_MSBfix_3.png")
 
-ggplot(live.diams.plt %>% filter(time == 49), aes(x = TPA.tot, y = QMD.mean, color = plot %in% unique(over.250$plot)))+geom_point()
+ggplot(live.diams.plt %>% filter(time == 49), aes(x = TPA.tot, y = QMD.mean))+geom_point()
 ggsave(height = 4, width = 6, "outputs/plot_summary_QMDmean_TPA_2052_MSBfix_3.png")
 
 
-ggplot(live.diams.plt %>% filter(time <=15), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=15), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_first15_MSBfix_3.png")
-ggplot(live.diams.plt %>% filter(time <=30 & time >15 ), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=30 & time >15 ), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_16-30years_MSBfix_3.png")
 
-ggplot(live.diams.plt %>% filter(time <=45 & time >30 ), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=45 & time >30 ), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_31-45years_MSBfix_3.png")
 
 
-ggplot(live.diams.plt %>% filter(time <=60 & time >45 ), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=60 & time >45 ), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_46-60years_MSBfix_3.png")
 
-ggplot(live.diams.plt %>% filter(time <=75 & time >60 ), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=75 & time >60 ), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_61-75years_MSBfix_3.png")
 
 
-ggplot(live.diams.plt %>% filter(time <=90 & time >75 ), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time <=90 & time >75 ), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_76-90years_MSBfix_3.png")
 
 
-ggplot(live.diams.plt %>% filter(time >90), aes(x = TPA.tot, y = DBH.mean, color = plot %in% unique(high.plts$plot)))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
+ggplot(live.diams.plt %>% filter(time >90), aes(x = TPA.tot, y = DBH.mean))+geom_point(alpha = 0.75, shape = 21)+facet_wrap(~time, ncol = 5)
 ggsave(height = 8, width = 15, "outputs/plot_summary_DBHmean_TPA_>90years_MSBfix_3.png")
 
 PIPO.plt.summary <- TREE %>% filter(SPCD %in% "122")%>% group_by(PLT_CN) %>% summarise(DBH.mean = mean(DIA*2.54, na.rm =TRUE), 
@@ -943,13 +804,18 @@ rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIA
 #
 
 allplots.treeDIAMsubset <- rcp26.DIAMS
-region.ndead <- allplots.treeDIAMsubset %>% group_by(df,  mort.scheme, scenario, time) %>% summarise(ntree = sum(TPA))
-ggplot(region.ndead, aes(x = time, y = ntree, color = df))+geom_point()+facet_wrap(~mort.scheme)
+# need to redo this somehow?
+region.ndead <- allplots.treeDIAMsubset %>% group_by(mort.scheme, scenario, time) %>% summarise(ntree = sum(TPA), 
+                                                                                                         ntree.dead = sum(TPAdead))
+ggplot()+geom_point(data = region.ndead %>% filter(ntree > 0), aes(x = time, y = ntree), color = "forestgreen")+
+  geom_point(data = region.ndead %>% filter(ntree.dead > 0 ), aes(x = time, y = ntree.dead), color = "brown")+
+  facet_wrap(~mort.scheme)
 ggsave("outputs/ntree_dead_live.png")
 # summarize the dead tree mortality rate by plot, and compare to the results of FIA data analyses
 # 
-plot.ndead <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time) %>% summarise(ntree = sum(TPA))
-plot.ndead.spread <- plot.ndead %>% ungroup()  %>% group_by(plot, mort.scheme, scenario, time) %>% spread(df, value = ntree)
+plot.ndead <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, scenario, time) %>% summarise(live = sum(TPA), 
+                                                                                                     dead = sum(TPAdead))
+plot.ndead.spread <- plot.ndead %>% ungroup()  %>% group_by(plot, mort.scheme, scenario, time) #%>% spread(df, value = ntree)
 plot.prop.dead <- plot.ndead.spread %>% group_by(plot, mort.scheme, scenario, time) %>% mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)))
 
 plot.prop.dead %>% filter(dead < 0) %>% select(plot) %>% distinct()
@@ -961,17 +827,18 @@ ggsave("outputs/prop_dead_by_plot.png")
 ggplot(plot.prop.dead %>% filter(time == 17), aes(x =  prop.dead))+geom_histogram()+facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")
 
 # plot size distribution of living and dead trees in 2018
-plot.mort.rate2001.2020 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time) %>% filter(time == 17)
+plot.mort.rate2001.2020 <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, scenario, time) %>% filter(time == 17)
 
 
 # calculate a 10 year mortality rate, from 2001-2010 and from 2011-2020 to compare:
-all.trees.2001.2010 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time) %>% filter(time %in% 1:10)%>% 
-  summarise(ntree = sum(TPA))%>%ungroup()  %>% 
-  group_by(plot, mort.scheme, scenario, time) %>% spread(df, value = ntree)%>% group_by(plot, mort.scheme, scenario, time) %>% 
+all.trees.2001.2010 <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, scenario, time) %>% filter(time %in% 10)%>% 
+  summarise(live = sum(TPA), 
+            dead = sum(TPAdead))%>% group_by(plot, mort.scheme, scenario, time) %>% 
   mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)),
          avg.dead.rate = prop.dead/10)# gets # dead for each plot in each year
 png(height = 4, width = 6, units = "in", res = 200, "outputs/Plot_pct_mortality_forecasted_2001_2010.png")
-ggplot()+geom_histogram(data = all.trees.2001.2010, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2001-2010 forecasted plot mortality rates")
+ggplot()+geom_histogram(data = all.trees.2001.2010, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2001-2010 forecasted plot mortality rates")+
+  geom_vline(aes(xintercept = median(all.trees.2001.2010$avg.dead.rate*100)), color = "red", linetype = "dashed")
 dev.off()
 
 hist(all.trees.2001.2010$avg.dead.rate*100, main = "2001-2010 forecasted plot mortality rates", xlab = "Plot level average yearly mortality rates (%)")
@@ -980,11 +847,12 @@ summary(all.trees.2001.2010$avg.dead.rate*100)
 saveRDS(all.trees.2001.2010, "all.trees.2001.2010.FIAperiodic_singleCC_1.full.rds")
 all.trees.2001.2010 <- readRDS("all.trees.2001.2010.FIAperiodic_singleCC_1.full.rds")
 
-all.trees.2011.2020 <- allplots.treeDIAMsubset %>% group_by(df,plot,  mort.scheme, scenario, time) %>% filter(time %in% 11:20)%>%
-  summarise(ntree = sum(TPA))%>%ungroup()  %>% 
-  group_by(plot, mort.scheme, scenario, time) %>% spread(df, value = ntree)%>% group_by(plot, mort.scheme, scenario, time) %>% 
+all.trees.2011.2020 <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, scenario, time) %>% filter(time %in% 20)%>%
+  summarise(live = sum(TPA), 
+            dead = sum(TPAdead))%>% group_by(plot, mort.scheme, scenario, time) %>% 
+  group_by(plot, mort.scheme, scenario, time) %>% 
   mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)),
-         avg.dead.rate = prop.dead/10)# gets # dead for each plot in each year
+         avg.dead.rate = prop.dead/20)# gets # dead for each plot in each year
 
 hist(all.trees.2011.2020$avg.dead.rate*100)
 summary(all.trees.2011.2020$avg.dead.rate*100)
@@ -992,10 +860,13 @@ summary(all.trees.2011.2020$avg.dead.rate*100)
 all.trees.2011.2020 %>% filter(avg.dead.rate <=0)
 
 png(height = 4, width = 6, units = "in", res = 200, "outputs/Plot_pct_mortality_forecasted_2011_2020.png")
-ggplot()+geom_histogram(data = all.trees.2011.2020, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2011-2020 forecasted plot mortality rates")
+ggplot()+geom_histogram(data = all.trees.2011.2020, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2011-2020 forecasted plot mortality rates")+
+  geom_vline(aes(xintercept = median(all.trees.2011.2020$avg.dead.rate*100)), color = "red", linetype = "dashed")
 
 #hist(all.trees.2011.2020$avg.dead.rate*100, main = "2011-2020 forecasted plot mortality rates", xlab = "Plot level average yearly mortality rates (%)")
 dev.off()
+
+
 
 
 median(all.trees.2001.2010$avg.dead.rate)*100

@@ -529,11 +529,21 @@ data$z <- z[keeps,]
 
 cov.data.regional <- cov.data.full.scaled[keeps,]
 
+
+time_data$tmaxAprMayJun2002.2013 <- time_data$tmax.AprMayJun[keeps,37:48]
+time_data$wintP.wateryr2002.2013 <- time_data$wintP.wateryr[keeps,37:48]
+time_data$tmaxAprMayJunscaled2002.2013 <- time_data$tmax.AprMayJun.scaled[keeps,37:48]
+time_data$wateryrscaled2002.2013 <- time_data$wateryr.scaled[keeps,37:48]
+
 time_data$tmaxAprMayJunscaled <- time_data$tmax.AprMayJun.scaled[keeps,1:36]
 time_data$wateryrscaled <- time_data$wateryr.scaled[keeps,1:36]
 time_data$SDIscaled <- time_data$SDI.scaled[keeps,1:36]
 time_data$tmaxAprMayJun <- time_data$tmax.AprMayJun[keeps,1:36]
 time_data$wintP.wateryr <- time_data$wintP.wateryr[keeps,1:36]
+
+
+
+
 #time_data$SDIscaled <- time_data$SDI.scaled[keeps,1:36]
 
 
