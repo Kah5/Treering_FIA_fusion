@@ -1,7 +1,7 @@
 biomass.sensitivity.periodic <- function(plt.num, # = plot, 
                                          density.dependent = TRUE, 
                                          density.independent = TRUE, 
-                                         scenario = "rcp26", 
+                                         scenario = scenario, 
                                          SDI.ratio.DD = 0.7, 
                                          aggressiveCC = FALSE, 
                                          scale.mort.prob = 1, 
@@ -321,7 +321,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
       if(length(unique(fut.clim.scen$year)) < 80){
         #print("less than 80 years of future data")
       }else{
-        #scenario <- "rcp26"
+        #scenario <- scenario
         
         #fut.clim.scen <- fut.clim.plot %>% filter(rcp %in% scenario)
         #print("sampling by model")
@@ -493,7 +493,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    density.independent = TRUE, 
                                    plt.number = plt.num, 
                                    # other information
-                                   scenario = "rcp26", 
+                                   scenario = scenario, 
                                    SDI.ratio.DD = 0.6, 
                                    scale.mort.prob = 1, 
                                    # set to true for the no climate change scenario
@@ -522,7 +522,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    density.independent = TRUE, 
                                    
                                    # other information
-                                   scenario = "rcp26", 
+                                   scenario = scenario, 
                                    SDI.ratio.DD = 0.6, 
                                    scale.mort.prob = 1, 
                                    # set to true for the no climate change scenario
@@ -552,7 +552,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     density.independent = TRUE, 
                                     
                                     # other information
-                                    scenario = "rcp26", 
+                                    scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario
@@ -580,7 +580,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     density.independent = TRUE, 
                                     
                                     # other information
-                                    scenario = "rcp26", 
+                                    scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario
@@ -646,7 +646,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     density.independent = TRUE, 
                                     
                                     # other information
-                                    scenario = "rcp26", 
+                                    scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
                                     scale.mort.prob = 1, 
                                     # set to true for the no climate change scenario

@@ -11,13 +11,15 @@ plot2AGB <- function(combined,
                      yrvec = 2001:2098, 
                      scenario = "rcp26",
                      cc.scenario = "singleCC", 
-                     p = NULL, 
-                     p.inc = NULL, 
+                     #p = NULL, 
+                     #p.inc = NULL, 
                      SDI.ratio.DD, 
                      plt.design = "periodic", 
                      folder.name, 
                      parse.type, 
-                     mort.prob.reduced) {
+                     mort.prob.reduced, 
+                     index.trees.data, 
+                     cored.remeas) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -75,7 +77,7 @@ plot2AGB <- function(combined,
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >7){
+  if(length(combined) >9){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -566,6 +568,8 @@ plot2AGB <- function(combined,
        tpa.dd, 
        tpa.di,
        mort.prob.reduced,
+       index.trees.data,
+       cored.remeas,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
        file = file.path(paste0(folder.name ,"/plot2AGB_",mort.scheme,".",plot.id,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".", parse.type, ".Rdata")))

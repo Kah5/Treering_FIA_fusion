@@ -899,7 +899,7 @@ remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYE
 biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[122],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
-                             scenario = "rcp26", 
+                             scenario = "rcp45", 
                              SDI.ratio.DD = 0.6, 
                              aggressiveCC = FALSE, 
                              scale.mort.prob = 1, 
