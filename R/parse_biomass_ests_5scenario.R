@@ -521,9 +521,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
  
     cat("reading in GD by 10 results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GT.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GD.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GT.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GD.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -751,9 +751,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
 # Growth Dependent mortality scaled by 20
     cat("reading in GD by 20 results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GT.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GD.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GT.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GD.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -1249,16 +1249,20 @@ DIDD.parse.df.60 <- do.call(rbind, DIDD.parse.list.60)
 saveRDS(DIDD.parse.df.60, "outputs/temporary.DIDD.parse.df.60.rds")
 DIDD.parse.df.60 <- readRDS( "outputs/temporary.DIDD.parse.df.60.rds")
 
-# DIDD.rcp85.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC" , scale.mort.prob = 1)})
-# DIDD.rcp45.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC" , scale.mort.prob = 1)})
-# DIDD.rcp60.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC" , scale.mort.prob = 1)})
+DIDD.rcp85.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC" , scale.mort.prob = 1)})
+DIDD.rcp45.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC" , scale.mort.prob = 1)})
+DIDD.rcp60.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC" , scale.mort.prob = 1)})
 #DIDD.parse.df.60.ncol <- do.call(ncol, DIDD.parse.list.60)
 
 
 
-# DIDD.rcp45.parse.df.60 <- do.call(rbind, DIDD.rcp45.parse.list.60)
-# DIDD.rcp60.parse.df.60 <- do.call(rbind, DIDD.rcp60.parse.list.60)
-# DIDD.rcp85.parse.df.60 <- do.call(rbind, DIDD.rcp85.parse.list.60)
+DIDD.rcp45.parse.df.60 <- do.call(rbind, DIDD.rcp45.parse.list.60)
+DIDD.rcp60.parse.df.60 <- do.call(rbind, DIDD.rcp60.parse.list.60)
+DIDD.rcp85.parse.df.60 <- do.call(rbind, DIDD.rcp85.parse.list.60)
+
+
+DIDD.parse.df.60 <- rbind(DIDD.parse.df.60, DIDD.rcp45.parse.df.60, DIDD.rcp60.parse.df.60, DIDD.rcp85.parse.df.60)
+
 unique(DIDD.parse.df.60$plot)
 
 rm(future.clim.subset.26, future.clim.subset.45, future.clim.subset.60, future.clim.subset.85)
@@ -1386,10 +1390,10 @@ nrow(TREE %>% filter(PLT_CN %in% unique(DIDD.parse.df.60$plot)) %>% distinct(PLT
 unique(DIDD.parse.df.60$plot)
 
 #parse.ratio.agb
-parse.DIDD.mort.60 <- rbind( DIDD.parse.df.60)#, 
-                            # DIDD.rcp45.parse.df.60, 
-                             #DIDD.rcp60.parse.df.60, 
-                             #DIDD.rcp85.parse.df.60)
+parse.DIDD.mort.60 <- rbind( DIDD.parse.df.60, 
+                             DIDD.rcp45.parse.df.60, 
+                             DIDD.rcp60.parse.df.60, 
+                             DIDD.rcp85.parse.df.60)
 #saveRDS( DIDD.parse.df.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 
 saveRDS(parse.DIDD.mort.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
@@ -1507,7 +1511,8 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
       
       all.tpa <- left_join(full.di.dd.tpa, tpa.dead.m)
       all.tpa$PLT_CN <- as.character(plot)
-      all.tpa
+      all.tpa <- all.tpa %>% mutate(TPAmsb = ifelse(TPAdead - (TPAdi + TPAdd) < 0, 0, TPAdead - (TPAdi + TPAdd)))
+     
       
       i <- 1
       mplot <- 1
@@ -1515,16 +1520,18 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
       nrep    <- 3
       # sequentially add up:
       # branchdead, then foliage, then stembark, then branchlive, then stemwood
-      mAGB.dead <- sAGB.dead <- mAGB.dead.dd <- mAGB.dead.di <- sAGB.dead.dd <- sAGB.dead.di<- matrix(NA, mplot, nt)
+      mAGB.dead <- sAGB.dead <- mAGB.dead.dd <- mAGB.dead.di <- sAGB.dead.dd <- sAGB.dead.di <- mAGB.dead.msb <- sAGB.dead.msb <- matrix(NA, mplot, nt)
       #mNPP.dead <- sNPP.dead  <- matrix(NA, mplot,nt)
-      lowAGB.dead <- hiAGB.dead  <- lowAGB.dead.di <- hiAGB.dead.di <-  lowAGB.dead.dd <- hiAGB.dead.dd  <-matrix(NA, mplot, nt)
+      lowAGB.dead <- hiAGB.dead  <- lowAGB.dead.di <- hiAGB.dead.di <-  lowAGB.dead.dd <- hiAGB.dead.dd <- hiAGB.dead.msb <- lowAGB.dead.msb  <- matrix(NA, mplot, nt)
       #lowNPP.dead <- hiNPP.dead  <-matrix(NA, mplot,nt)
-      AGB.dead.dd <- AGB.dead.di <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
+      AGB.dead.msb <- AGB.dead.dd <- AGB.dead.di <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
       
       
       # need to create a matrix for tpadead.dd & tpadead.di
       tpa.dead.dd  <- tpa.dd.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdd) %>% select(`1`:`99`)
       tpa.dead.di  <- tpa.di.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdi) %>% select(`1`:`99`)
+      tpa.dead.msb  <- all.tpa %>% select(treeno, time, TPAmsb)%>% ungroup() %>% group_by(time) %>% 
+        spread(time, TPAmsb) %>% select(`1`:`99`)
       
       
       for (g in seq_len(nrep)) {
@@ -1533,6 +1540,7 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
         AGB.dead[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
         AGB.dead.di[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.di[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
         AGB.dead.dd[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.dd[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+        AGB.dead.msb[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.msb[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
         
       }
       
@@ -1550,6 +1558,7 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
       mAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ], 2, median, na.rm = TRUE)
       sAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ]  , 2, sd, na.rm = TRUE)
       
+      
       lowAGB.dead.di[i,]<- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.025)
       hiAGB.dead.di[i,] <- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.975)
       
@@ -1560,10 +1569,17 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
       lowAGB.dead.dd[i,]<- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.025)
       hiAGB.dead.dd[i,] <- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.975)
       
+      
+      mAGB.dead.msb[i, ] <- apply(AGB.dead.msb[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead.msb[i, ] <- apply(AGB.dead.msb[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead.msb[i,]<- apply(AGB.dead.msb[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead.msb[i,] <- apply(AGB.dead.msb[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
       # get total dead: 
       tpa.dead.dd.sum <- colSums(tpa.dead.dd)
       tpa.dead.di.sum <- colSums(tpa.dead.di)
-      
+      tpa.dead.msb.sum <- colSums(tpa.dead.msb)
       
       yrvec <- 2001:2099
       # okay now add all to a dataframe:
@@ -1575,26 +1591,29 @@ parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6,
                                year = yrvec, 
                                tpa.dead.dd =  tpa.dead.dd.sum, 
                                tpa.dead.di = tpa.dead.di.sum , 
-                               
+                               tpa.dead.msb = tpa.dead.msb.sum , 
                                
                                mAGB.dead  = mAGB.dead[i,],
                                mAGB.dead.dd = mAGB.dead.dd[i,], 
                                mAGB.dead.di = mAGB.dead.di[i,], 
+                               mAGB.dead.msb = mAGB.dead.msb[i,],
                                
                                lowAGB.dead = lowAGB.dead[i,], 
                                lowAGB.dead.dd = lowAGB.dead.dd[i,], 
                                lowAGB.dead.di = lowAGB.dead.di[i,], 
+                               lowAGB.dead.msb = lowAGB.dead.msb[i,],
                                
                                hiAGB.dead = hiAGB.dead[i,], 
                                hiAGB.dead.dd = hiAGB.dead.dd[i,], 
-                               hiAGB.dead.di = hiAGB.dead.di[i,])
+                               hiAGB.dead.di = hiAGB.dead.di[i,],
+                               hiAGB.dead.msb = hiAGB.dead.msb[i,])
       
       total.plot
     }
     
   }
 }
-
+parse_mortality_ests (plot = unique(plots)[4], mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)
 
 # get parsing for full climate change scenario
 mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
@@ -1605,29 +1624,30 @@ mort.26 <- do.call(rbind, mort.26.list)
 saveRDS(mort.26, "outputs/parse.mort.26.60.tempfile.full.rds")
 rm(mort.26, mort.26.list)
 
-# mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full"  , scale.mort.prob = 1)})
-# mort.45.test <- do.call(rbind, mort.45.list)
-# saveRDS(mort.45.test, "outputs/parse.mort.45.60.tempfile.full.rds")
-# rm(mort.45.test, mort.45.list)
-# 
-# 
-# mort.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full", scale.mort.prob = 1)})
-# mort.60.test <- do.call(rbind, mort.60.list)
-# saveRDS(mort.60.test, "outputs/parse.mort.60.60.tempfile.full.rds")
-# rm(mort.60.test, mort.60.list)
+mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full"  , scale.mort.prob = 1)})
+mort.45.test <- do.call(rbind, mort.45.list)
+saveRDS(mort.45.test, "outputs/parse.mort.45.60.tempfile.full.rds")
+rm(mort.45.test, mort.45.list)
 
-# mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
-# mort.85.test <- do.call(rbind, mort.85.list)
-# saveRDS(mort.85.test, "outputs/parse.mort.85.60.tempfile.full.rds")
-# rm(mort.85.list)
+
+mort.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full", scale.mort.prob = 1)})
+mort.60.test <- do.call(rbind, mort.60.list)
+saveRDS(mort.60.test, "outputs/parse.mort.60.60.tempfile.full.rds")
+rm(mort.60.test, mort.60.list)
+
+mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
+mort.85.test <- do.call(rbind, mort.85.list)
+saveRDS(mort.85.test, "outputs/parse.mort.85.60.tempfile.full.rds")
+rm(mort.85.list)
 
 mort.26 <- readRDS("outputs/parse.mort.26.60.tempfile.full.rds")
-#mort.45.test <- readRDS("outputs/parse.mort.45.60.tempfile.full.rds")
-#mort.60.test <- readRDS("outputs/parse.mort.60.60.tempfile.full.rds")
-mort.full.parse <- rbind(mort.26)#, 
-                         #mort.45.test, 
-                         #mort.60.test, 
-                        # mort.85.test)
+mort.45.test <- readRDS("outputs/parse.mort.45.60.tempfile.full.rds")
+mort.60.test <- readRDS("outputs/parse.mort.60.60.tempfile.full.rds")
+mort.85.test <- readRDS("outputs/parse.mort.85.60.tempfile.full.rds")
+mort.full.parse <- rbind(mort.26,
+                         mort.45.test, 
+                         mort.60.test, 
+                        mort.85.test)
 #mort.full.parse <- mort.26
 saveRDS(mort.full.parse, "outputs/mort.full.parse.all.rds")
 rm(mort.full.parse, mort.26, mort.45.test, mort.60.test, mort.85.test)
@@ -1638,21 +1658,21 @@ plot = 3172745010690
 mort.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
 mort.test.noCC <- do.call(rbind, mort.test.list.noCC)
 
-# mort.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
-# mort.45.test.noCC <- do.call(rbind, mort.45.list.noCC)
-# 
-# mort.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
-# mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
-# 
+mort.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
+mort.45.test.noCC <- do.call(rbind, mort.45.list.noCC)
 
-# mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
-# mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
+mort.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
+mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
+
+
+mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noCC" , scale.mort.prob = 1)})
+mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
 
 #mort.full.parse.noCC <- mort.test.noCC
-mort.full.parse.noCC <- rbind(mort.test.noCC)#, 
-                              #mort.45.test.noCC, 
-                              #mort.60.test.noCC, 
-                             # mort.85.test.noCC)
+mort.full.parse.noCC <- rbind(mort.test.noCC, 
+                              mort.45.test.noCC, 
+                              mort.60.test.noCC, 
+                              mort.85.test.noCC)
 saveRDS(mort.full.parse.noCC, "outputs/mort.full.pars.noCC.60.rds")
 rm(mort.full.parse.noCC, 
    mort.26.list.noCC, mort.26.test.noCC, 
@@ -1667,20 +1687,20 @@ rm(mort.full.parse.noCC,
 mort.test.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
 mort.test.DD.ramp <- do.call(rbind, mort.test.list.DD.ramp)
 
-# mort.45.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
-# mort.45.test.DD.ramp <- do.call(rbind, mort.45.list.DD.ramp)
-# 
-# mort.60.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
-# mort.60.test.DD.ramp <- do.call(rbind, mort.60.list.DD.ramp)
+mort.45.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
+mort.45.test.DD.ramp <- do.call(rbind, mort.45.list.DD.ramp)
 
-# mort.85.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
-# mort.85.test.DD.ramp <- do.call(rbind, mort.85.list.DD.ramp)
+mort.60.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
+mort.60.test.DD.ramp <- do.call(rbind, mort.60.list.DD.ramp)
+
+mort.85.list.DD.ramp <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "DD.ramp" , scale.mort.prob = 1)})
+mort.85.test.DD.ramp <- do.call(rbind, mort.85.list.DD.ramp)
 
 #mort.full.parse.DD.ramp <- mort.test.DD.ramp
-mort.full.parse.DD.ramp <- rbind(mort.test.DD.ramp)#, 
-                                 #mort.45.test.DD.ramp, 
-                                 #mort.60.test.DD.ramp, 
-                                 #mort.85.test.DD.ramp)
+mort.full.parse.DD.ramp <- rbind(mort.test.DD.ramp, 
+                                 mort.45.test.DD.ramp, 
+                                 mort.60.test.DD.ramp, 
+                                 mort.85.test.DD.ramp)
 saveRDS(mort.full.parse.DD.ramp, "outputs/mort.full.parse.DD.ramp.60.rds")
 rm( 
    mort.26.list.DD.ramp, mort.26.test.DD.ramp, 
@@ -1696,20 +1716,20 @@ rm(
 mort.test.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "GD.10" , scale.mort.prob = 1)})
 mort.test.GT.10 <- do.call(rbind, mort.test.list.GT.10)
 
-# mort.45.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "GT.10" , scale.mort.prob = 1)})
-# mort.45.test.GT.10 <- do.call(rbind, mort.45.list.GT.10)
-# 
-# mort.60.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "GT.10" , scale.mort.prob = 1)})
-# mort.60.test.GT.10 <- do.call(rbind, mort.60.list.GT.10)
+mort.45.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "GD.10" , scale.mort.prob = 1)})
+mort.45.test.GT.10 <- do.call(rbind, mort.45.list.GT.10)
 
-# mort.85.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "GT.10" , scale.mort.prob = 1)})
-# mort.85.test.GT.10 <- do.call(rbind, mort.85.list.GT.10)
+mort.60.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "GD.10" , scale.mort.prob = 1)})
+mort.60.test.GT.10 <- do.call(rbind, mort.60.list.GT.10)
+
+mort.85.list.GT.10 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "GD.10" , scale.mort.prob = 1)})
+mort.85.test.GT.10 <- do.call(rbind, mort.85.list.GT.10)
 
 mort.full.parse.GT.10 <- mort.test.GT.10
-mort.full.parse.GT.10 <- rbind(mort.test.GT.10)#,
-                               #mort.45.test.GT.10, 
-                               #mort.60.test.GT.10, 
-                               #mort.85.test.GT.10)
+mort.full.parse.GT.10 <- rbind(mort.test.GT.10,
+                               mort.45.test.GT.10, 
+                               mort.60.test.GT.10, 
+                               mort.85.test.GT.10)
 saveRDS(mort.full.parse.GT.10, "outputs/mort.full.parse.GT.10.60.rds")
 rm( 
   mort.26.list.GT.10, mort.26.test.GT.10, 
@@ -1725,20 +1745,20 @@ rm(
 mort.test.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "GD.20" , scale.mort.prob = 1)})
 mort.test.GT.20 <- do.call(rbind, mort.test.list.GT.20)
 
-# mort.45.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "GT.20" , scale.mort.prob = 1)})
-# mort.45.test.GT.20 <- do.call(rbind, mort.45.list.GT.20)
-# 
-# mort.60.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "GT.20" , scale.mort.prob = 1)})
-# mort.60.test.GT.20 <- do.call(rbind, mort.60.list.GT.20)
+mort.45.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "GD.20" , scale.mort.prob = 1)})
+mort.45.test.GT.20 <- do.call(rbind, mort.45.list.GT.20)
 
-# mort.85.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "GT.20" , scale.mort.prob = 1)})
-# mort.85.test.GT.20 <- do.call(rbind, mort.85.list.GT.20)
+mort.60.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "GD.20" , scale.mort.prob = 1)})
+mort.60.test.GT.20 <- do.call(rbind, mort.60.list.GT.20)
+
+mort.85.list.GT.20 <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "GD.20" , scale.mort.prob = 1)})
+mort.85.test.GT.20 <- do.call(rbind, mort.85.list.GT.20)
 
 #mort.full.parse.GT.20 <- mort.test.GT.20
-mort.full.parse.GT.20 <- rbind(mort.test.GT.20)#, 
-                               #mort.45.test.GT.20, 
-                               #mort.60.test.GT.20, 
-                               #mort.85.test.GT.20)
+mort.full.parse.GT.20 <- rbind(mort.test.GT.20, 
+                               mort.45.test.GT.20, 
+                               mort.60.test.GT.20, 
+                               mort.85.test.GT.20)
 saveRDS(mort.full.parse.GT.20, "outputs/mort.full.parse.GT.20.60.rds")
 rm( 
   mort.26.list.GT.20, mort.26.test.GT.20, 
@@ -1773,19 +1793,22 @@ C.convert.deadwood(mort.all.parse.60$mAGB.dead, C.frac = 0.4822)
 
 # get general summary of the total mortality in terms of C for each mortality type
 mort.test <- mort.all.parse.60 %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
-  summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){C.convert.deadwood(x)})) %>% 
+  summarise(across(c(mAGB.dead:hiAGB.dead.msb), function(x){C.convert.deadwood(x)})) %>% 
   ungroup() %>% # sum across all the PLT_CNs
   group_by(rcp, mort.scheme, year, parse) %>%
-  summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
+  summarise(across(c(mAGB.dead:hiAGB.dead.msb), sum))
 
-summary(mort.test$mAGB.dead.di)
+summary(mort.test$mAGB.dead.msb)
 
 #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
 
 ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
   geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
+  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.msb, ymax = hiAGB.dead.msb, fill = "Mature Stand Boundary"))+
   facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
-  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", 
+                                            "Density Independent" = "#d95f02",
+                                            "Mature Stand Boundary" = "green3"))+
   ylab("Dead Wood carbon (Tg C)")
 
 ggsave(height = 6, width = 10, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic_60MaxSDIthresh_1_test.png"))
@@ -1794,7 +1817,6 @@ ggsave(height = 6, width = 10, units = "in", here("outputs/", "Dead_Carbon_by_DI
 
 ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
   geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
-  
   #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
   facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
   # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
@@ -1833,8 +1855,25 @@ ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax
 
 ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DD_total_parse_periodic_60MaxSDIthresh_1.1.png"))
 
+
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.msb, ymax = hiAGB.dead.msb, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.msb, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C) \n Mature Stand Boundary Mortality")+scale_fill_manual( name = "Scenario",
+                                                                                    values =c("full"="#1b9e77","noCC"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","noCC"= "#d95f02", "DD.ramp"="#7570b3", "GD.10" = "grey", "GD.20" = "black"))
+
+
+ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_MSB_total_parse_periodic_60MaxSDIthresh_1.1.png"))
+
 #-------------- get the number and size for all dead trees for the SDI 60% threshold runs
 
+plot <- unique(plots)[1]
 parse_mortality_size <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8, rcp, cc.scenario = "singleCC", parse,  scale.mort.prob = 1){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
   
@@ -1896,7 +1935,8 @@ parse_mortality_size <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
       
       all.tpa <- left_join(full.di.dd.tpa, tpa.dead.m)
       all.tpa$PLT_CN <- as.character(plot)
-      #all.tpa
+      all.tpa <- all.tpa %>% mutate(TPAmsb = ifelse(TPAdead - (TPAdi + TPAdd) < 0, 0, TPAdead - (TPAdi + TPAdd)))
+      
       
       i <- 1
       mplot <- 1
@@ -1908,7 +1948,7 @@ parse_mortality_size <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
       tree.size.m <- reshape2::melt(diam.dead[1,,])
       colnames(tree.size.m ) <- c("treeno", "time", "diameter")
       
-      full.dead.diameter <- left_join(full.di.dd.tpa, tree.size.m)
+      full.dead.diameter <- left_join(all.tpa, tree.size.m)
       
       full.dead.diameter$PLT_CN <- plot
       full.dead.diameter$parse <- parse
@@ -1927,19 +1967,19 @@ parse_mortality_size <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8,
 mort.dbh.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
 mort.dbh.26 <- do.call(rbind, mort.dbh.26.list)
 
-# mort.dbh.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
-# mort.dbh.45.test <- do.call(rbind, mort.dbh.45.list)
-# 
-# mort.dbh.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
-# mort.dbh.60.test <- do.call(rbind, mort.dbh.60.list)
+mort.dbh.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.45.test <- do.call(rbind, mort.dbh.45.list)
 
-# mort.dbh.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
-# mort.dbh.85.test <- do.call(rbind, mort.dbh.85.list)
+mort.dbh.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.60.test <- do.call(rbind, mort.dbh.60.list)
 
-mort.dbh.full.parse <- rbind(mort.dbh.26) #, 
-                             #mort.dbh.45.test, 
-                             #mort.dbh.60.test, 
-                             #mort.dbh.85.test)
+mort.dbh.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.85.test <- do.call(rbind, mort.dbh.85.list)
+
+mort.dbh.full.parse <- rbind(mort.dbh.26, 
+                             mort.dbh.45.test,
+                             mort.dbh.60.test,
+                             mort.dbh.85.test)
 
 
 # get it for noCC:
@@ -1947,24 +1987,24 @@ mort.dbh.full.parse <- rbind(mort.dbh.26) #,
 mort.dbh.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noCC" )})
 mort.dbh.test.noCC <- do.call(rbind, mort.dbh.test.list.noCC)
 
-# mort.dbh.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noCC" )})
-# mort.dbh.45.test.noCC <- do.call(rbind, mort.dbh.45.list.noCC)
-# 
-# mort.dbh.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noCC" )})
-# mort.dbh.60.test.noCC <- do.call(rbind, mort.dbh.60.list.noCC)
+mort.dbh.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noCC" )})
+mort.dbh.45.test.noCC <- do.call(rbind, mort.dbh.45.list.noCC)
 
-# mort.dbh.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noCC" )})
-# mort.dbh.85.test.noCC <- do.call(rbind, mort.dbh.85.list.noCC)
+mort.dbh.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noCC" )})
+mort.dbh.60.test.noCC <- do.call(rbind, mort.dbh.60.list.noCC)
 
-
-mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC )#, 
-                                  #mort.dbh.45.test.noCC, 
-                                  #mort.dbh.60.test.noCC, 
-                                  #mort.dbh.85.test.noCC)
+mort.dbh.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noCC" )})
+mort.dbh.85.test.noCC <- do.call(rbind, mort.dbh.85.list.noCC)
 
 
-mort.dbh.all.parse <- rbind(mort.dbh.full.parse, 
-                            mort.dbh.full.parse.noCC)
+mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC , 
+                                  mort.dbh.45.test.noCC,
+                                  mort.dbh.60.test.noCC,
+                                  mort.dbh.85.test.noCC)
+
+
+# mort.dbh.all.parse <- rbind(mort.dbh.full.parse, 
+#                             mort.dbh.full.parse.noCC)
 
 # save as RDS:
 saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
