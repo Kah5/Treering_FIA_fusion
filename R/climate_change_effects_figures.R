@@ -15,10 +15,16 @@ mort.all.parse.60 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_1.RD
 # mort.all.parse.60.0.9 <- readRDS( here("outputs/", "all.plot.mort.C.60SDIthresh_0.9.RDS"))
 head(mort.all.parse.60)
 summary(mort.all.parse.60)
+unique(mort.all.parse.60$rcp)
+
+mort.all.parse.rcp2.6 <- mort.all.parse.60 %>% filter(rcp %in% "rcp26")
+mort.all.parse.rcp4.5 <- mort.all.parse.60 %>% filter(rcp %in% "rcp26")
+mort.all.parse.rcp6.0 <- mort.all.parse.60 %>% filter(rcp %in% "rcp26")
+mort.all.parse.rcp8.5 <- mort.all.parse.60 %>% filter(rcp %in% "rcp26")
 
 scale.mort.expns <- function(mort.df, parse = "full") {
   
-  AGB.dead <- mort.df %>% filter(parse == parse) # just get the full scernario
+  AGB.dead <- mort.df #%>% filter(parse == parse) # just get the full scernario
   colnames(AGB.dead)[1]<- "PLT_CN"
   AGB.dead$PLT_CN <- as.numeric(AGB.dead$PLT_CN)
   periodic.data <- periodic.data %>% filter(PLT_CN %in% unique(AGB.dead$PLT_CN))
@@ -72,21 +78,21 @@ scale.mort.expns <- function(mort.df, parse = "full") {
     #dplyr::mutate(across(mAGB.dead:hiAGB.dead.di, function(x){x*EXPNS})) %>%
     #group_by(PLT_CN, mort.scheme, rcp, year, parse) %>%
     group_by(year, ECOSUBCD, ESTN_UNIT_CN, ESTN_METHOD, STRATUM_CN, PLT_CN, mort.scheme, rcp, parse) %>%
-    mutate(across(mAGB.dead:hiAGB.dead.di, function(x){x*EXPNS})) %>%
+    mutate(across(mAGB.dead:hiAGB.dead.msb, function(x){x*EXPNS})) %>%
     # mutate(bioPlot = mAGB*EXPNS , # out mAGB is in kg (?), assuming acre plto
     #           carbPlot = bioPlot*0.501) %>%  ## Now we simply sum the values of each plot (expanded w/ EXPNS)
     ## to obtain population totals
-    summarise(across(mAGB.dead:hiAGB.dead.di, function(x){C.convert.deadwood(x)})) %>% 
+    summarise(across(mAGB.dead:hiAGB.dead.msb, function(x){C.convert.deadwood(x)})) %>% 
     ungroup() %>% # sum across all the PLT_CNs
     group_by(rcp, mort.scheme, year, parse) %>%
-    summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
+    summarise(across(c(mAGB.dead:hiAGB.dead.msb), sum))
   
   
   mort.test
 }
 
-full.1 <- scale.mort.expns(mort.df = mort.all.parse.60, parse = "full")
-
+full.1 <- scale.mort.expns(mort.df = mort.all.parse.rcp2.6, parse = "full")
+#noCC.1 <- scale.mort.expns(mort.df = mort.all.parse.rcp2.6, parse = "noCC")
 
 ending.mort.1 <- full.1 %>% filter(parse %in% c("full", "noCC", "DD.ramp","GD.10","GD.20"))# & year %in% 2098)
 
@@ -100,18 +106,6 @@ ggplot(full.low.high, aes(x = year, y = mAGB.dead/1000000000, color = parse))+ge
 ggplot(full.low.high, aes(x = year, y = hiAGB.dead/1000000000, color =  parse))+geom_line()+facet_wrap(~rcp)
 ggplot(full.low.high, aes(x = year, y = lowAGB.dead/1000000000, color = parse))+geom_line()+facet_wrap(~rcp)
 
-# full.low.high.diffs <- full.low.high.m %>% group_by(rcp, mort.scheme, year, scaled.mortality, variable)%>%
-#   spread(scaled.mortality, value) %>% mutate(INC.10 = ((`tuned to historic` - `+ 10%`)/`tuned to historic`)*-100, 
-#                                              DEC.10 = ((`tuned to historic` - `- 10%`)/`tuned to historic`)*-100,
-#                                              HISTORIC = ((`tuned to historic` - `tuned to historic`)/`tuned to historic`)*100) %>% select(rcp, mort.scheme, year, variable, HISTORIC, INC.10, DEC.10)
-# colnames(full.low.high.diffs)[4] <- "CI"
-
-# full.low.high.diffs.m <- reshape2::melt(full.low.high.diffs, id.vars = c("rcp", "mort.scheme", "year", "CI"))
-# dead.tree.sensitivity <- full.low.high.diffs.m %>% group_by(year, rcp, mort.scheme) %>% spread(CI, value) %>%
-#   group_by(year, rcp, mort.scheme, variable) %>% 
-#   mutate(low.DEAD = min(lowAGB.dead, hiAGB.dead), 
-#          high.DEAD = max(lowAGB.dead, hiAGB.dead), 
-#          mDEAD = mean(mAGB.dead))
 
 
 
@@ -126,7 +120,7 @@ AGB.1 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 #AGB  = AGB.0.9
 scale.all.live.expns <- function(AGB, parse = "full") {
   
-  AGB.live <- AGB %>% filter(parse == parse) # just get the full scernario
+  AGB.live <- AGB #%>% filter(parse == parse) # just get the full scernario
   colnames(AGB.live)[1]<- "PLT_CN"
   AGB.live$PLT_CN <- as.numeric(AGB.live$PLT_CN)
   periodic.data <- periodic.data %>% filter(PLT_CN %in% unique(AGB.live$PLT_CN))
@@ -163,7 +157,8 @@ scale.all.live.expns <- function(AGB, parse = "full") {
   live.test
 }
 
-full.live.1 <- scale.all.live.expns(AGB = AGB.1, parse = "full")
+AGB.2.6 <- AGB.1 %>% filter(rcp %in% "rcp26")
+full.live.1 <- scale.all.live.expns(AGB = AGB.2.6, parse = "full")
 
 # just get the last year
 full.low.high.live <- full.live.1 %>% filter(parse %in% c("full", "no climate change", "DD.ramp","GD.10","GD.20") & year %in% 2098) %>% 
@@ -211,11 +206,11 @@ low.high.dead <- full.low.high.dead.live %>% select(rcp, year, parse, lowAGB.dea
          "mAGB" = "mAGB.dead") %>%
   mutate(`Carbon Pool` = "Standing Dead C")
 
-low.high.live <- full.low.high.dead.live %>% select(rcp, year, parse, lowAGBtot, highAGBtot, mAGBtot) %>%
+low.high.live <- full.low.high.dead.live %>% select(rcp, year, parse, lowA, upA, mAGB) %>%
   rename(
-    "ci.low" = "lowAGBtot", 
-    "ci.hi" = "highAGBtot", 
-    "mAGB" = "mAGBtot") %>%
+    "ci.low" = "lowA", 
+    "ci.hi" = "upA", 
+    "mAGB" = "mAGB") %>%
   mutate(`Carbon Pool` = "Live Tree C")
 
 
@@ -267,16 +262,48 @@ totalC.barplot.parse
 
 ggsave(height = 4.5, width = 8, units = "in", "outputs/mean_total_C_live_dead_cc_vs_noCC.png")
 
-#-----------------------------------------------------
-# make a time series figure with the difference 
-#-----------------------------------------------------
+#-----------------------------------------------------------------------
+# make a time series figure with the totals for all the parse scenarios
+#-----------------------------------------------------------------------
+# full.low.high.live.all--live
+# full.low.high -- dead
 
-ending.mort.1 <- full.1 %>% filter(parse %in% c("full", "noCC"))
+# plot the live timeseries
+ggplot()+geom_line(data = full.low.high.live.all, aes(x = year, y = mAGB/1000000000, color = parse))+
+  geom_ribbon(data = full.low.high.live.all, aes(x = year, ymin = lowA/1000000000, ymax = upA/1000000000, fill = parse), alpha = 0.5)+
+  facet_wrap(~parse, ncol = 5)+theme_bw()+ ylab("Total Live Aboveground C (Tg)")+
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave(height = 4.5, width = 8, units = "in", "outputs/timeseries_rcp2.6-total_live_C_regiona.png")
 
-ending.mort.1$parse <- ifelse(ending.mort.1$parse %in% "noCC", "no climate change", ending.mort.1$parse)
+# plot the dead timeseries
+ggplot()+geom_line(data = full.low.high, aes(x = year, y = mAGB.dead/1000000000, color = parse))+
+  geom_ribbon(data = full.low.high, aes(x = year, ymin = lowAGB.dead/1000000000, ymax = hiAGB.dead/1000000000, fill = parse), alpha = 0.5)+
+  facet_wrap(~parse, ncol = 5)+theme_bw()+ ylab("Total Dead Aboveground C (Tg)")+
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave(height = 4.5, width = 8, units = "in", "outputs/timeseries_rcp2.6-total_dead_C_regiona.png")
+
+ggplot()+
+  geom_line(data = full.low.high.live.all, aes(x = year, y = mAGB/1000000000))+
+  geom_ribbon(data = full.low.high.live.all, aes(x = year, ymin = lowA/1000000000, ymax = upA/1000000000, fill = "Live Tree C"), alpha = 0.5)+
+
+  geom_line(data = full.low.high, aes(x = year, y = mAGB.dead/1000000000))+
+  geom_ribbon(data = full.low.high, aes(x = year, ymin = lowAGB.dead/1000000000, ymax = hiAGB.dead/1000000000, fill = "Standing Dead C"), alpha = 0.5)+
+  scale_fill_manual(values= c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  #scale_color_manual(values= c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  facet_wrap(~parse, ncol = 5)+theme_bw()+ ylab("Total Aboveground C (Tg) in each pool")+
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave(height = 4.5, width = 8, units = "in", "outputs/timeseries_rcp2.6-total_live_dead_C_regional.png")
+
+#--------------------------------------------------------------------------------
+# make a time series figure with the difference between no climate change and full
+#--------------------------------------------------------------------------------
+
+# ending.mort.1 <- full.1 %>% filter(parse %in% c("full", "noCC") & rcp %in% "rcp26")
+# 
+# ending.mort.1$parse <- ifelse(ending.mort.1$parse %in% "noCC", "no climate change", ending.mort.1$parse)
 
 full.low.high <- ending.mort.1 %>% 
-  select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead)
+  select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, mAGB.dead) %>% filter(parse %in% c("full", "no climate change") & rcp %in% "rcp26")
 
 
 full.low.high.live <- full.live.1 %>% filter(parse %in% c("full", "no climate change")) %>% 
@@ -298,19 +325,19 @@ full.low.high.live <- full.live.1 %>% filter(parse %in% c("full", "no climate ch
 full.low.high.dead.live <- left_join(full.low.high.live, full.low.high)
 
 # get the totals for up and down
-full.low.high.dead.live$totalUP <- full.low.high.dead.live$hiAGB.dead + full.low.high.dead.live$upA
-full.low.high.dead.live$totalDOWN <- full.low.high.dead.live$lowAGB.dead + full.low.high.dead.live$lowA
+# full.low.high.dead.live$totalUP <- full.low.high.dead.live$hiAGB.dead + full.low.high.dead.live$upA
+# full.low.high.dead.live$totalDOWN <- full.low.high.dead.live$lowAGB.dead + full.low.high.dead.live$lowA
 
 # parse this into total dead and total live
 
-full.low.high.dead.live$lowdeadAGBtot <- full.low.high.dead.live$totalUP - (full.low.high.dead.live$hiAGB.dead - full.low.high.dead.live$lowAGB.dead)
-full.low.high.dead.live$highdeadAGBtot <-  full.low.high.dead.live$totalUP 
-full.low.high.dead.live$lowAGBtot <- full.low.high.dead.live$highdeadAGBtot
-full.low.high.dead.live$upAGBtot <- full.low.high.dead.live$totalDOWN
+# full.low.high.dead.live$lowdeadAGBtot <- full.low.high.dead.live$totalUP - (full.low.high.dead.live$hiAGB.dead - full.low.high.dead.live$lowAGB.dead)
+# full.low.high.dead.live$highdeadAGBtot <-  full.low.high.dead.live$totalUP 
+# full.low.high.dead.live$lowAGBtot <- full.low.high.dead.live$highdeadAGBtot
+# full.low.high.dead.live$upAGBtot <- full.low.high.dead.live$totalDOWN
 
 # get midpoints:
-full.low.high.dead.live$mAGB.dead <- rowMeans(full.low.high.dead.live[,c("lowdeadAGBtot", "highdeadAGBtot")])
-full.low.high.dead.live$mAGB.live <- rowMeans(full.low.high.dead.live[,c("lowAGBtot", "upAGBtot")])
+# full.low.high.dead.live$mAGB.dead <- rowMeans(full.low.high.dead.live[,c("lowdeadAGBtot", "highdeadAGBtot")])
+# full.low.high.dead.live$mAGB.live <- rowMeans(full.low.high.dead.live[,c("lowAGBtot", "upAGBtot")])
 
 
 #full.low.high.dead.live %>% select(rcp, parse, mort.scheme, year, lowAGB.dead, hiAGB.dead, lowAGBtot, highAGBtot)
@@ -326,8 +353,8 @@ full.low.high.dead.live <- left_join(full.low.high.dead.live, df.parse)
 
 
 
-low.high.dead <- full.low.high.dead.live %>% select(rcp, year, parse, lowdeadAGBtot, highdeadAGBtot, mAGB.dead)
-low.high.live <- full.low.high.dead.live %>% select(rcp, year, parse, lowAGBtot, upAGBtot, mAGB.live)
+low.high.dead <- full.low.high.dead.live %>% select(rcp, year, parse, lowAGB.dead, hiAGB.dead, mAGB.dead)
+low.high.live <- full.low.high.dead.live %>% select(rcp, year, parse, lowA, upA, mAGB)
 
 low.high.dead$`Carbon Pool` <- "Standing Dead C"
 low.high.live$`Carbon Pool` <- "Live Tree C"
@@ -339,8 +366,10 @@ low.high.Cpools <- rbind( low.high.live, low.high.dead)
 
 # want a stacked ribbon over time showing the total range of C, colored by live vs standing dead C
 ggplot() + 
-  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`))+
-  facet_wrap(~parse)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  facet_wrap(~parse)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
   ylab("Total Aboveground C (Tg)")+
   xlab("Year")+
   theme_bw(base_size = 12)+
@@ -401,7 +430,8 @@ ggsave(height = 6, width = 10, units = "in", "outputs/total_contribution_of_clim
 
 # combine the results for RCP26:
 RCP.26.cc.nocc <- ggplot() + 
-  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`))+
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
   facet_wrap(~parse)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
   ylab("Total Aboveground C (Tg)")+
   xlab("Year")+
@@ -494,7 +524,7 @@ ggplot(data = full.growth.pool.diff, aes(x = year, y = mid/1000000000, fill = `D
   theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
         panel.grid = element_blank())
 
-ggsave(height = 6, width = 10, units = "in", "outputs/total_contribution_of_climate_change_toLive_DeadCpools.png")
+ggsave(height = 6, width = 10, units = "in", "outputs/total_contribution_of_climate_change_toDemographicCpools.png")
 
 ggplot(data = full.growth.pool.diff %>% filter(year <2051), aes(x = year, y = mid/1000000000, fill = `Demographic Pool`))+geom_bar(stat = "identity", width = 0.9)+
   geom_errorbar(data = full.growth.pool.diff%>% filter(year <2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000), width = 0.1, color = "lightgrey")+
@@ -505,7 +535,7 @@ ggplot(data = full.growth.pool.diff %>% filter(year <2051), aes(x = year, y = mi
   theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
         panel.grid = element_blank())
 
-ggsave(height = 6, width = 10, units = "in", "outputs/total_contribution_of_climate_change_toLive_DeadCpools_2001_2050.png")
+ggsave(height = 6, width = 10, units = "in", "outputs/total_contribution_of_climate_change_toDemographicCpools_2001_2050.png")
 
 
 # calculate loss of Carbon due to climate change:
