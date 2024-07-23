@@ -2003,8 +2003,8 @@ mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC ,
                                   mort.dbh.85.test.noCC)
 
 
-# mort.dbh.all.parse <- rbind(mort.dbh.full.parse, 
-#                             mort.dbh.full.parse.noCC)
+mort.dbh.all.parse <- rbind(mort.dbh.full.parse,
+                            mort.dbh.full.parse.noCC)
 
 # save as RDS:
 saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
@@ -2018,12 +2018,15 @@ mort.dbh.all.parse <- mort.dbh.all.parse  %>%
 n.mort.dbh.class <- mort.dbh.all.parse %>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>%
   summarise(n.mort.dd = sum(TPAdd, na.rm = TRUE), 
             n.mort.di = sum(TPAdi, na.rm = TRUE), 
+            n.mort.msb = sum(TPAmsb, na.rm =TRUE),
             n.total = sum(TPAfull, na.rm = TRUE))
 
 pct.mort.dbh.class <- n.mort.dbh.class  %>% group_by(mort.scheme, rcp, time, parse) %>% mutate(total.trees.dead.dd = sum(n.mort.dd), 
-                                                                                               total.trees.dead.di = sum(n.mort.di))%>%
+                                                                                               total.trees.dead.di = sum(n.mort.di), 
+                                                                                               total.trees.dead.msb = sum(n.mort.msb))%>%
   ungroup()%>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>% mutate(pct.mort.dd = n.mort.dd/total.trees.dead.dd, 
-                                                                             pct.mort.di =  n.mort.di/total.trees.dead.di)
+                                                                             pct.mort.di =  n.mort.di/total.trees.dead.di, 
+                                                                             pct.mort.msb = n.mort.msb/total.trees.dead.msb)
 
 
 parse.names <- data.frame(parse = c("full", "noCC"), 
@@ -2055,6 +2058,10 @@ ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, col = dbh.class, fill = db
   facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
 ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic_60SDIthresh.png"))
 
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.msb, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_MSB_parse_periodic_60SDIthresh.png"))
+
 
 ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
   facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
@@ -2064,6 +2071,11 @@ ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_
 ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
   facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
 ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.msb, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_MSB_parse_periodic_60SDIthresh.png"))
 
 #------------------------get regional differences for the Components-----------------------------------
 # sum up across plots, then take parse differences:
