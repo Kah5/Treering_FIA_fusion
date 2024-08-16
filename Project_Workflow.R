@@ -1,3 +1,8 @@
+require(magrittr)
+require(DiagrammeR)
+require(DiagrammeRsvg)
+require(xml2)
+require(rsvg)
 
 
 DiagrammeR::grViz("digraph {
@@ -91,4 +96,7 @@ predictplotAGB -> predictregionAGB
 population -> predictregionAGB
 climate_change_effects_figures -> predictregionAGB
 
-}")
+}") %>% export_svg %>% charToRaw %>% rsvg_png("project_workflow.png")
+
+
+
