@@ -4,7 +4,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                          scenario = scenario, 
                                          SDI.ratio.DD = 0.7, 
                                          aggressiveCC = FALSE, 
-                                         scale.mort.prob = 1, 
+                                         scale.mort.prob = scale.mort.prob, 
                                          cov.data.regional.df, # = cov.data.regional, 
                                          TREE.FIA, # = TREE, 
                                          ci.names.df, # = ci.names, 
@@ -495,7 +495,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # other information
                                    scenario = scenario, 
                                    SDI.ratio.DD = 0.6, 
-                                   scale.mort.prob = 1, 
+                                   scale.mort.prob = scale.mort.prob, 
                                    # set to true for the no climate change scenario
                                    detrended.clim = FALSE, 
                                    SDI.mean.scale = SDI.mean.all, 
@@ -524,7 +524,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # other information
                                    scenario = scenario, 
                                    SDI.ratio.DD = 0.6, 
-                                   scale.mort.prob = 1, 
+                                   scale.mort.prob = scale.mort.prob, 
                                    # set to true for the no climate change scenario
                                    detrended.clim = FALSE, 
                                    SDI.mean.scale = SDI.mean.all, 
@@ -554,7 +554,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # other information
                                     scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
-                                    scale.mort.prob = 1, 
+                                    scale.mort.prob = scale.mort.prob, 
                                     # set to true for the no climate change scenario
                                     detrended.clim = FALSE, 
                                     SDI.mean.scale = SDI.mean.all, 
@@ -582,7 +582,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # other information
                                     scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
-                                    scale.mort.prob = 1, 
+                                    scale.mort.prob = scale.mort.prob, 
                                     # set to true for the no climate change scenario
                                     detrended.clim = FALSE, 
                                     SDI.mean.scale = SDI.mean.all, 
@@ -648,7 +648,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                     # other information
                                     scenario = scenario, 
                                     SDI.ratio.DD = 0.6, 
-                                    scale.mort.prob = 1, 
+                                    scale.mort.prob = scale.mort.prob, 
                                     # set to true for the no climate change scenario
                                     detrended.clim = TRUE, 
                                     SDI.mean.scale = SDI.mean.all, 

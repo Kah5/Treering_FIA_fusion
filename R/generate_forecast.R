@@ -67,7 +67,7 @@ generate.plot.forecast <- function(index.trees.df,
                                    SDI.sd.scale, 
                                    MSB = TRUE, 
                                    parse = "full"){
-
+######################## Setting up data
 rm(forecast.combined, p.inc, p.dbh, p.diam.tpa, p.SDI, p.dbh.validate, p.TPA.all,
    p.TPA.allmort, p.TPA.MSB, p.TPA.DI, p.TPA.DD, cored.remeas)
 ni <- ncol(all.dbh.df)#/4 # number of individuals per plot (divide by 4 because its the #years in the data)
@@ -115,12 +115,14 @@ for(i in 1:ni){
 }
 
 
-
+######################## for each year t
 for(t in 1:nt){ # for each year t in the # of trees
   
   
   mort.code <- 0
   # loop through all of the trees for year t
+  
+######################## for each tree i
   for (i in 1:ni){ # for each tree i in the n of trees
     
     SUBPLOT.index <- index.trees.df[ni,]$SUBP # select the subplot for the tree:
@@ -144,6 +146,7 @@ for(t in 1:nt){ # for each year t in the # of trees
       }else{
         tree.alpha <- betas.all.df$alpha
       }
+######################## iterate the statespace model for 1 year
       increment[i,,t+1] <- iterate_statespace.incpred(x = dbh.pred[i,,t],  
                                                       betas.all = betas.all.df, 
                                                       alpha = tree.alpha, 
@@ -178,8 +181,7 @@ for(t in 1:nt){ # for each year t in the # of trees
   } # closes loop for growth model around all individual trees i
  
   
-  
-  # implement either SDI or MSB based mortality, given maxes are met:
+######################## implement either SDI or MSB based mortality, given maxes are met:
   if(density.dependent == TRUE){
     
     if(MSB == TRUE){
@@ -375,8 +377,9 @@ for(t in 1:nt){ # for each year t in the # of trees
     }# if MSB == TRUE
     
   } # closes if(density.dependent == TRUE) statement   
- 
- # if t > 2 & density.independent == TRUE, allow Growth-dependent mortality to happen 
+
+  
+######################## if t > 2 & density.independent == TRUE, allow Growth-dependent mortality to happen 
   if(t >= 2 ){
     
     # default is that mort.prob == 0 (i.e. no mortality)
@@ -403,7 +406,7 @@ for(t in 1:nt){ # for each year t in the # of trees
         
         mort.prob <-  1 - psurv
         
-        mort.prob.reduced[i,,t] <- mort.prob*scale.DImort/(scale.mort.prob) # check what the distribution is of this
+        mort.prob.reduced[i,,t] <- mort.prob*scale.DImort*(scale.mort.prob) # check what the distribution is of this
         mort.code <- rbinom(1,1, prob = min(1, mort.prob*scale.DImort))#(mort.prob.reduced[i,,t])) # to tone down, reduce mort.prob 
         
         
@@ -491,8 +494,7 @@ for(t in 1:nt){ # for each year t in the # of trees
     }# closes density independent if statement
   } # closes the t > 2 statement
   
-  
-  ### After adding in mortality, recalculate SDI
+######################## After adding in mortality, recalculate SDI
   for(s in sdi.subplot.df[,1]){ # for each subplot s in the # of subplots
     # need to index dbh.pred trees by by the subplot:
     trees.subplot <- as.numeric(rownames(index.trees.df[index.trees.df$SUBP == s,]))
@@ -524,7 +526,7 @@ if(density.dependent == TRUE & density.independent == TRUE){
   }}
 
 
-
+######################## summarise the time series
 cc.scenario <- "singleCC"
 
 
@@ -762,6 +764,8 @@ if(ramp.density == FALSE & scale.DImort == 10 & detrended.clim == FALSE){
 if(ramp.density == FALSE & scale.DImort == 10 & detrended.clim == TRUE){
   parse = "detrendedCC"
 }
+
+######################## all plot2AGB_kayeFVS to get the biomass
 source("R/plot2AGB_kayeFVS.R")
 #print("start biomass estimates full model")
 forecast.combined <- plot2AGB(combined = combined, 

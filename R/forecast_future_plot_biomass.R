@@ -896,7 +896,7 @@ source("R/biomass.sensitivity.periodic_4scenarios.R")
 remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYEAR_T2 > 2001)
 
 #biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
-biomass.sensitivity.periodic(plt.num = as.character(remeasured.trees.plts$PLT_CN)[122],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+biomass.sensitivity.periodic(plt.num = unique(plots)[98],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
                              density.dependent = TRUE, 
                              density.independent = TRUE, 
                              scenario = "rcp45", 
@@ -930,8 +930,8 @@ system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plot
                                                                   SDIscaled.matrix = SDIscaled,
                                                                   time_data_list = time_data)}))
 
-unique(plots) %in% "2471324010690"
-system.time(lapply(X = unique(plots)[65:675],
+unique(plots) %in% "2558835010690"
+system.time(lapply(X = unique(plots)[1:675],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
                                                                       density.dependent = TRUE, 
                                                                       density.independent = TRUE, 
@@ -971,6 +971,23 @@ system.time(lapply(X = unique(plots)[1:675],
                    FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
                                                                       density.dependent = TRUE, 
                                                                       density.independent = TRUE, 
+                                                                      scenario = "rcp60", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
                                                                       scenario = "rcp85", 
                                                                       SDI.ratio.DD = 0.6, 
                                                                       aggressiveCC = FALSE, 
@@ -985,6 +1002,100 @@ system.time(lapply(X = unique(plots)[1:675],
                                                                       time_data_list = time_data)}))
 
 
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+
+# run for scale_mort_prob = 1.1 (10% increase)
+# run for all of the remeasured trees
+
+unique(plots) %in% 2553276010690
+system.time(lapply(X = unique(plots)[245:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp26", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp45", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp60", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+# run for scale_mort_prob = 0.9 (10% decrease)
 ########################################################################################
 # read in the predicted cored values from the SSM plus mortality forecasts
 ########################################################################################
