@@ -236,7 +236,9 @@ for(t in 1:nt){ # for each year t in the # of trees
          log.fun.msb <-  data.frame(MSB.mort.log = 1/ (1+ exp(-0.1*(2:70 - 35))), 
                                     Diameter = 2:70)
         
-         ggplot(log.fun.msb, aes(x = Diameter, y = MSB.mort.log))+geom_point()
+         ggplot(log.fun.msb, aes(x = Diameter, y = MSB.mort.log))+geom_point()+ylab("Probability of Mortality")+
+           xlab("Diameter (cm)")+theme_bw()+theme(panel.grid = element_blank())
+         ggsave("output/MSB_p_mort_curve.png")
          
          # if the QMD is high, use logistic curve to estimate mortality 
         RIP.mort.MSB <-  1/ (1+ exp(-0.1*(rowMeans(DBH.plt) - 35)))

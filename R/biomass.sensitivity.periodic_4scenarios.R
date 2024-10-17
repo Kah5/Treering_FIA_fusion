@@ -664,7 +664,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    DD.ramp$p.inc + ggtitle("ramping DD only"), 
                                    noClim$p.inc+ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/increments_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    #cowplot::save_plot(inc.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/increments_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     # SDI tracking plots
@@ -674,7 +674,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    DD.ramp$p.SDI + ggtitle("ramping DD only"), 
                                    noClim$p.SDI +ggtitle("no climate change"), align="hv", ncol = 2)
     
-    cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    #cowplot::save_plot(SDI.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/SUBPLOT_SDI_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     # TPA tracking plots
     TPA.plts <- cowplot::plot_grid(full$p.TPA.DD, 
@@ -688,7 +688,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
                                    # noClim$p.SDI +ggtitle("no climate change")
                                     align="hv", ncol = 2)
                                    # 
-    cowplot::save_plot(TPA.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/TPA_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    #cowplot::save_plot(TPA.plts, base_height = 10, device = "png",filename=  paste0("plot_level_images_MSB/TPA_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     # DIAMETER plots
@@ -720,7 +720,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
     
     pred.obs.cored <- ggplot()+geom_point(data = all.scen.cored, aes(x = DIA_cm_T2, y = predDBH_T2, color = forecast.type))+
       geom_errorbar(data = all.scen.cored, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi, color = forecast.type))
-    cowplot::save_plot( pred.obs.cored, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/cored_tree_validation_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    #cowplot::save_plot( pred.obs.cored, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/cored_tree_validation_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     }
     
     full$forecast$forecast.type <- "full"
@@ -739,7 +739,7 @@ biomass.sensitivity.periodic <- function(plt.num, # = plot,
       theme_bw()
     
     abg.plt <- cowplot::plot_grid(AGB.plt, AGB.ded.plot, align="hv")
-    cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/agb_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
+    #cowplot::save_plot(abg.plt, base_height = 5, device = "png", filename= paste0("plot_level_images_MSB/agb_",plt.num, "_", scenario, "_", scale.mort.prob, ".png"))
     
     
     

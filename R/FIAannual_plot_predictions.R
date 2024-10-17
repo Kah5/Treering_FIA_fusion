@@ -53,7 +53,7 @@ PIPO.ll.REMEAS <- PIPO.ll %>% filter(!is.na(PREV_PLT_CN))
 #PLOTS <- PLOT %>% filter(CN %in% unique(cov.data.regional$PLT_CN))
 TREEinPLOTS <- TREE %>% filter(PLT_CN %in% unique(PIPO.ll.REMEAS$CN))
 length(TREEinPLOTS$CN)
-# 17968 trees! 
+# 89248 trees! 
 
 #TREEinPLOTS <- TREE %>% filter(AGENTCD >= 0 & STATUSCD ==1 & DIA > 1) %>% filter( PLT_CN %in% unique(PIPO.ll.REMEAS$CN))
 #length(TREEinPLOTS$CN)
@@ -261,48 +261,147 @@ SDIscaled[,3:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,
 x.mat$MAP.scaled <- standardize.vector(x.mat$MAP)
 x.mat$MAT.scaled <-  standardize.vector(x.mat$MAT)
 
-#--------------------------------------------------------------------------------------------- 
-# Read in the posterior parameter estimates
-#--------------------------------------------------------------------------------------------- 
-# this model models increment, not diameter...
-# I didnt save the Xvals for this model, but just using it to get the code setup
+#######################################################
+# READ IN STAN OUTPUT SUMMARY
+#######################################################
+#STAN.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
+model.params <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.betas.rds")
+colnames(model.params)[1] <- "L1"
 
-library(rjags)
-#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/Regional_mu_testing_mvn-2022-05-19-20-07-51.6/IGFRegional_mvnmu_revCorr_xfixed.rds"))
-jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
+# read in alphas
+alphas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.alpha_TREES.rds")
+colnames(alphas)[1] <- "L1"
 
-output.base.name <- "Regional_incifelse_T0"
-out <- as.matrix(jags.comb)
-summary(out)
-betas <- out[,grep(pattern = "beta",colnames(out))]
-# just get the fixed effects:
+output.base.name <- "Regional_model_6"
 
-betas.df <- data.frame(betas)
-betas.random <- betas.df[, grep(patter = "betaX_PLOT", colnames(betas))]
-names.fixed <- names(betas.df)[!(names(betas.df) %in% colnames(betas.random))] # get the names of fixed effects
-betas.fixed <- betas.df[,names.fixed]
+sigmas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.sigmas.rds")
 
-betas.fixed.m <- reshape2::melt(betas.fixed)
-model.params <- betas.fixed.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5), 
-                                                                   ci.lo = quantile(value, 0.025), 
-                                                                   ci.hi = quantile(value, 0.975))
-colnames(model.params)[1]<- c("Parameter")
+mus <- model.params %>% filter(L1 %in% c("mutree","sigma_TREE"))
+betas <- model.params %>% filter(!L1%in% c("mutree","sigma_TREE"))
+# get year and tree random effects from STAN model
+sigma.INC <- sigmas %>% filter(variable %in% "sigma_inc")
+sigma.DBH <- sigmas %>% filter(variable %in% "sigma_dbh")
+
+iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
+  
+  xscaled <- (x - 31.63)/10.61
+  
+  
+  # pseudocode for now
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
+    # normal fixed effects
+    betas.all$bMAP*covariates$MAP + 
+    betas.all$bMAT*covariates$MAT +
+    
+    # size and SDI fixed
+    betas.all$bSDI*covariates$SDI + 
+    betas.all$bX*(xscaled) + 
+    
+    # climate fixed effects
+    betas.all$bppt*covariates$ppt + 
+    betas.all$btmax*covariates$tmax + 
+    
+    # MAP interactions
+    betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
+    #betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
+    
+    betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
+    betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
+    
+    # MAT interactions
+    #betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
+    betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
+    
+    betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
+    
+    
+    # tmax and precip interactions
+    betas.all$btmax_ppt*covariates$tmax*covariates$ppt +
+    
+    # SDI interactions
+    betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
+    
+    # X interactions
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled 
+  
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+  
+  treegrowth  <-  ifelse( treegrowth  < 0.001, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 2, 2,  treegrowth ) # we shouldn't need this but keeping in
+  
+  # Stochastic process model
+  #incpred <- treegrowth
+  
+  xpred <- rnorm(length(treegrowth), (treegrowth + x), SDdbh)
+  
+  
+  xpred
+  
+}
+iterate_statespace.incpred <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
+  
+  xscaled <- (x - 31.63)/10.61
+  
+  
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
+    # normal fixed effects
+    betas.all$bMAP*covariates$MAP + 
+    betas.all$bMAT*covariates$MAT +
+    
+    # size and SDI fixed
+    betas.all$bSDI*covariates$SDI + 
+    betas.all$bX*(xscaled) + 
+    
+    # climate fixed effects
+    betas.all$bppt*covariates$ppt + 
+    betas.all$btmax*covariates$tmax + 
+    
+    # MAP interactions
+    betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
+    #betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
+    
+    betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
+    betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
+    
+    # MAT interactions
+    #betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
+    betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
+    
+    betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
+    
+    
+    # tmax and precip interactions
+    betas.all$btmax_ppt*covariates$tmax*covariates$ppt +
+    
+    # SDI interactions
+    betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
+    
+    # X interactions
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled
+  
+  # Stochastic process model
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+  
+  treegrowth  <-  ifelse( treegrowth  <= 0.02, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 2, 2,  treegrowth ) # we shouldn't need this but keeping in
+  
+  
+  #xpred
+  treegrowth
+}
 
 
-dotplot.fixed <- ggplot(model.params, aes(x= Parameter, y = median ))+geom_point()+geom_hline(aes(yintercept = 0), color = "lightgrey", linetype = "dashed")+
-  geom_errorbar(aes(x = Parameter, ymin = ci.lo, ymax = ci.hi), width = 0.01)+theme_bw(base_size = 12)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())+ylab("Coefficient  Value")
-
-alphas <- out[,grep(pattern = "alpha",colnames(out))]
-alpha.m <- reshape2::melt(alphas)
-
-alpha.summary <- alpha.m %>% group_by(Var2) %>% summarise(mean = mean(value, na.rm = TRUE), 
-                                                          ci.lo = quantile(value, 0.025, na.rm =TRUE), 
-                                                          ci.hi = quantile(value, 0.975, na.rm =TRUE))
-
-mus <- out[,c("mu","tau_TREE")]
-tau_dbh <- out[,c("tau_dbh")]#out[,grep(pattern = "tau",colnames(out))]
-
+#cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
 #------------------------------------------------------------------------------------
 # Start to make tree/plot forecasts with mortality in them
@@ -328,7 +427,7 @@ tau_dbh <- out[,c("tau_dbh")]#out[,grep(pattern = "tau",colnames(out))]
 #allom.components
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
-source("R/Allom_Ave.R")
+source("R/AllomAve.R")
 source("R/read.allom.data.R")
 source("R/query.allom.data.R")
 source("R/allom.BayesFit.R")
@@ -339,11 +438,6 @@ kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
 # had to read in the kaye_pipo csv...should just upload to the data
 kaye.parm <- read.csv("data/kaye_pipo.csv")
 
-# allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
-# allom.stembark = load.allom("Allom.PIPO.5.Rdata")
-# allom.branchlive = load.allom("Allom.PIPO.8.Rdata")
-# allom.branchdead = load.allom("Allom.PIPO.12.Rdata")
-# allom.foliage = load.allom("Allom.PIPO.18.Rdata")
 
 allom.stemwood = load("Allom.PIPO.4.Rdata")
 allom.stembark = load("Allom.PIPO.5.Rdata")
@@ -352,11 +446,9 @@ allom.branchdead = load("Allom.PIPO.12.Rdata")
 allom.foliage = load("Allom.PIPO.18.Rdata")
 
 dbh = 1:50 # vector of DBH values to predict over
-
-
+#source("data/output/validation.time.dbh.changingsdi.zero.SDIscaled.R")
 #validation.time.dbh.changingsdi.zeroinc.SDIscaled( plot = unique(plots)[6])
 #lapply(unique(plots)[1:2], validation.time.dbh.changingsdi.zeroinc.SDIscaled)
-
 
 
 # we need the list of trees (combined), 
@@ -372,56 +464,42 @@ rcp <- "rcp26"
 set.seed(22)
 source("R/plot2AGB_kayeFVS.R")
 source("R/biomass.changing.SDI.FIAannual.R")
-iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha, SDdbh, SDinc = 0, covariates) {
-  
-  
-  
-  # pseudocode for now
-  tree.growth <- alpha + # sampled from tree level alpha randome effect
-    # normal fixed effects
-    betas.all$bMAP*covariates$MAP + 
-    betas.all$bMAT*covariates$MAT +
-    
-    # size and SDI fixed
-    betas.all$bSDI*covariates$SDI + 
-    betas.all$bX*(x-30) + 
-    
-    # climate fixed effects
-    betas.all$bppt*covariates$ppt + 
-    betas.all$btmax*covariates$tmax + 
-    
-    # MAP interactions
-    betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
-    betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
-    
-    betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
-    betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
-    
-    # MAT interactions
-    betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
-    betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
-    
-    betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
-    
-    
-    # tmax and precip interactions
-    betas.all$btmax_ppt*covariates$tmax*covariates$ppt +
-    
-    # SDI interactions
-    betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
-    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt  
-  
-  tree.growth <-  ifelse(tree.growth < 0, 0, tree.growth)
-  
-  # Stochastic process model
-  xpred <- rnorm(length(tree.growth), (tree.growth + x), SDinc) 
-  
-  
-  xpred
-  
-}
+plt.num = unique(unique.plts$PLT_CN) #2224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+density.dependent = TRUE 
+density.independent = TRUE 
+scenario = "rcp26" 
+SDI.ratio.DD = 0.6 
+aggressiveCC = FALSE 
+scale.mort.prob = 1 
+#cov.data.regional.df = cov.data.regional 
+TREE.FIA = TREE 
+ci.names.df = ci.names 
+ci.names.noncored.df = ci.names.noncored 
+mean.pred.cored.df = mean.pred.cored
+#xmat2 = xmat2, 
+SDIscaled.matrix = SDIscaled
+time_data_list = time_data
 
-plot <- "12280908010690"
+#biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
+biomass.sensitivity.annual(plt.num = as.character(remeasured.trees.plts$PLT_CN)[122],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+                             density.dependent = TRUE, 
+                             density.independent = TRUE, 
+                             scenario = "rcp26", 
+                             SDI.ratio.DD = 0.6, 
+                             aggressiveCC = FALSE, 
+                             scale.mort.prob = 1, 
+                             cov.data.regional.df = cov.data.regional, 
+                             TREE.FIA = TREE, 
+                             ci.names.df = ci.names, 
+                             ci.names.noncored.df = ci.names.noncored, 
+                             mean.pred.cored.df = mean.pred.cored,
+                             #xmat2 = xmat2, 
+                             SDIscaled.matrix = SDIscaled,
+                             time_data_list = time_data)
+
+
+
+
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})
 lapply(unique(unique.plts$PLT_CN)[1:417],FUN = function(x){biomass.changingsdi.SDIscaled.FIA (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26", SDI.ratio.DD = 0.7)})

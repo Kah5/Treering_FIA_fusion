@@ -351,7 +351,7 @@ dev.off()
 prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE) %>% summarise(n()) %>% 
   ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/`0`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
-
+saveRDS(TREE_remeas, "outputs/TREE_remeas_FIA_PIPO_plots.rds")
 hist(prop.dead$prop.dead)
 
 

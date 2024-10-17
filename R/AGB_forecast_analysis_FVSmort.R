@@ -291,7 +291,7 @@ saveRDS(all10plots, "all.AGB.fiaperiodic_singleCC_60thresh_full_1_scale_mort.RDS
 all10plots <- readRDS("all.AGB.fiaperiodic_singleCC_60thresh_full_1_scale_mort.RDS")
 
 
-all10plots <- DIDD.AGB.60thresh.df
+#all10plots <- DIDD.AGB.60thresh.df
 ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
 ten.plot.medians <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
@@ -315,20 +315,14 @@ AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year < 2050 ), aes(
 AGB.lines
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGB_lines_log_MSBfn_2000_2050.png")
 
-AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year < 2025), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)#+
+AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year < 2050), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)#+
 #geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA, ymax = upA, group = mort.scheme, fill = mort.scheme))+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 AGB.lines
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGB_lines_log_MSBfn_2000_2050.png")
 
 
-# summarise
-all10plots
-ggplot()+geom_line(data = all10plots, aes(year, mAGB*0.001, group = plot), alpha = 0.5)+
-theme_bw()+facet_wrap(~rcp, ncol = 5)#+
-#geom_ribbon(data = ten.plot.summary, aes(year, ymin = lowA, ymax = upA, group = mort.scheme, fill = mort.scheme))+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 
-
-
+# summarise here
 all.10.plots.diff <- all10plots %>% filter(year == 2098 | year == 2002 | year == 2050) %>% group_by(plot, rcp, mort.scheme) %>% 
   select(plot, mort.scheme, rcp, year, mAGB) %>% spread(year, mAGB) %>% mutate(diff = `2098`-`2002`,
                                                                                diff.50 = `2050` - `2002`)
@@ -337,11 +331,14 @@ hist(all.10.plots.diff$diff*0.001)
 hist(all.10.plots.diff$diff.50*0.001)
 summary(all.10.plots.diff$diff.50*0.001)
 ggplot()+geom_histogram(data = all.10.plots.diff, aes(x = diff*0.001))+
-  geom_vline(aes(xintercept = median(all.10.plots.diff$diff*0.001)), color = "red", linetype = "dashed")+xlab("AGB (Mg) difference \n 2098-2002")
+  #geom_vline(aes(xintercept = median(all.10.plots.diff$diff*0.001)), color = "red", linetype = "dashed")+
+  xlab("AGB (Mg) difference \n 2098-2002")+
+  facet_wrap(~rcp)
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGBdiff_2002_2098.png")
 
 ggplot()+geom_histogram(data = all.10.plots.diff, aes(x = diff.50*0.001))+
-  geom_vline(aes(xintercept = median(all.10.plots.diff$diff.50*0.001)), color = "red", linetype = "dashed")+xlab("AGB (Mg) difference \n 2098-2002")
+  #geom_vline(aes(xintercept = median(all.10.plots.diff$diff.50*0.001)), color = "red", linetype = "dashed")+
+xlab("AGB (Mg) difference \n 2098-2002")+facet_wrap(~rcp)
 ggsave(height = 4, width = 6, units = "in", "outputs/allplots_AGBdiff_2002_2050.png")
 
 AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB*0.001, group = mort.scheme), color = "forestgreen")+theme_bw()+
@@ -361,12 +358,13 @@ dev.off()
 AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter( ! plot %in% highAGBplots$plot), aes(year, mAGB*0.001, group = plot), alpha = 0.5)+theme_bw()+facet_wrap(~rcp, ncol = 5)+
   geom_line(data = ten.plot.medians, aes(year, y = mAGB*0.001, group = mort.scheme), color = "forestgreen", size = 2)+ylab("Total AGB for all plots \n (kg/acre), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 AGB.lines
-ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcp2.6_with_median.png")
+ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcpall_with_median.png")
 
 AGB.lines <- ggplot()+geom_line(data = all10plots %>% filter(year <= 2052 &  ! plot %in% highAGBplots$plot), aes(year, mAGB*0.001, group = plot), alpha = 0.25, color = "black")+theme_bw()+facet_wrap(~rcp, ncol = 5)+
   geom_line(data = ten.plot.medians %>% filter(year <= 2052), aes(year, y = mAGB*0.001, group = mort.scheme), color = "forestgreen", size = 2)+ylab("Total per plot live AGB \n (Mg/hectoare), RCP 2.6")+facet_wrap(~rcp, ncol = 5)#+ylim(0,1.7e7)
 AGB.lines
-ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcp2.6_with_median_2002_2050.png")
+
+ggsave(height = 4, width = 6, units = "in", "outputs/Average_plot_AGB_rcpall_with_median_2002_2050.png")
 
 
 # plot out the differences:
@@ -397,7 +395,7 @@ change.map <- ggplot()+
   geom_point(data = all.diff.ll, aes(x = LON, y = LAT, color = `change in live AGB`))+
   theme_bw()+
   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+
-  scale_color_viridis_c(option = "B")
+  scale_color_viridis_c(option = "B")+facet_wrap(~rcp)
 png(height = 7, width = 10, units = "in", res = 150, "outputs/allplotsChange_2098.png")
 change.map
 dev.off()
@@ -416,7 +414,7 @@ change.map.2050 <- ggplot()+
   geom_point(data = all.diff.ll, aes(x = LON, y = LAT, color = `change in live AGB 2001-2050`))+
   theme_bw()+
   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+
-  scale_color_viridis_b(option = "B")
+  scale_color_viridis_b(option = "B")+facet_wrap(~rcp)
 png(height = 7, width = 12, units = "in", res = 150, "outputs/allplotsChange_2050.png")
 change.map.2050
 dev.off()
@@ -665,9 +663,10 @@ btst.DIAMS.DIDD.26 <- lapply(unique(plots)[1:675], FUN = function(x){get_tree_di
 btst.DIAMS.DIDD.26.df <- do.call(rbind, btst.DIAMS.DIDD.26)
 saveRDS(btst.DIAMS.DIDD.26.df, "btst.DIAMS.DIDD.26.df.tempfile.RDS")
 rm(btst.DIAMS.DIDD.26)
+
 btst.DIAMS.DIDD.26.df <- readRDS( "btst.DIAMS.DIDD.26.df.tempfile.RDS")
 live.diams <- btst.DIAMS.DIDD.26.df %>% filter(status %in% "live")
-large.dia.plots <- live.diams %>% filter(DBH > 90) %>% select(plot) %>% distinct()
+large.dia.plots <- live.diams %>% filter(DBH > 100) %>% select(plot) %>% distinct()
 saveRDS(large.dia.plots, "outputs/large.dia.plots.rds")
 
 # validation with live trees in PIPO record
@@ -767,10 +766,10 @@ btst.DIAMS.DIDD.60.df <- readRDS("btst.DIAMS.DIDD.60.df.tempfile.RDS")
 btst.DIAMS.DIDD.85.df <- readRDS("btst.DIAMS.DIDD.85.df.tempfile.RDS")
 
 rcp26.DIAMS <- btst.DIAMS.DIDD.26.df
-rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df) #, 
-                      # btst.DIAMS.DIDD.45.df, 
-                      # btst.DIAMS.DIDD.60.df, 
-                      #btst.DIAMS.DIDD.85.df)
+rcp26.DIAMS <-  rbind(btst.DIAMS.DIDD.26.df, 
+                      btst.DIAMS.DIDD.45.df,
+                      btst.DIAMS.DIDD.60.df,
+                      btst.DIAMS.DIDD.85.df)
 saveRDS(rcp26.DIAMS, "periodicFIA.btst.DIAMS.allrcps_1.RDS")
 
 # # checking to see if the mort trees are being labeled properly:
@@ -802,18 +801,18 @@ rm(btst.DIAMS.nomort.26 , btst.DIAMS.DIonly.26 , btst.DIAMS.DDonly.26 , btst.DIA
    btst.DIAMS.nomort.60 , btst.DIAMS.DIonly.60 , btst.DIAMS.DDonly.60 , btst.DIAMS.DIDD.60 ,
    btst.DIAMS.nomort.85 , btst.DIAMS.DIonly.85 , btst.DIAMS.DDonly.85 , btst.DIAMS.DIDD.85) 
 #
-
+rcp26.DIAMS <- readRDS("outputs/allplots.treeDiam.forecast.periodicFIA.full_1.RDS")
 allplots.treeDIAMsubset <- rcp26.DIAMS
 # need to redo this somehow?
 region.ndead <- allplots.treeDIAMsubset %>% group_by(mort.scheme, scenario, time) %>% summarise(ntree = sum(TPA), 
                                                                                                          ntree.dead = sum(TPAdead))
 ggplot()+geom_point(data = region.ndead %>% filter(ntree > 0), aes(x = time, y = ntree), color = "forestgreen")+
   geom_point(data = region.ndead %>% filter(ntree.dead > 0 ), aes(x = time, y = ntree.dead), color = "brown")+
-  facet_wrap(~mort.scheme)
+  facet_wrap(~scenario)
 ggsave("outputs/ntree_dead_live.png")
 # summarize the dead tree mortality rate by plot, and compare to the results of FIA data analyses
 # 
-plot.ndead <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, scenario, time) %>% summarise(live = sum(TPA), 
+plot.ndead <- allplots.treeDIAMsubset %>% group_by(plot,   mort.scheme, scenario, time) %>% summarise(live = sum(TPA), 
                                                                                                      dead = sum(TPAdead))
 plot.ndead.spread <- plot.ndead %>% ungroup()  %>% group_by(plot, mort.scheme, scenario, time) #%>% spread(df, value = ntree)
 plot.prop.dead <- plot.ndead.spread %>% group_by(plot, mort.scheme, scenario, time) %>% mutate(prop.dead = ifelse(is.na(dead), 1, dead/(live + dead)))
@@ -838,7 +837,8 @@ all.trees.2001.2010 <- allplots.treeDIAMsubset %>% group_by(plot,  mort.scheme, 
          avg.dead.rate = prop.dead/10)# gets # dead for each plot in each year
 png(height = 4, width = 6, units = "in", res = 200, "outputs/Plot_pct_mortality_forecasted_2001_2010.png")
 ggplot()+geom_histogram(data = all.trees.2001.2010, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2001-2010 forecasted plot mortality rates")+
-  geom_vline(aes(xintercept = median(all.trees.2001.2010$avg.dead.rate*100)), color = "red", linetype = "dashed")
+  #geom_vline(aes(xintercept = median(all.trees.2001.2010$avg.dead.rate*100)), color = "red", linetype = "dashed")
+  theme_bw()
 dev.off()
 
 hist(all.trees.2001.2010$avg.dead.rate*100, main = "2001-2010 forecasted plot mortality rates", xlab = "Plot level average yearly mortality rates (%)")
@@ -861,8 +861,8 @@ all.trees.2011.2020 %>% filter(avg.dead.rate <=0)
 
 png(height = 4, width = 6, units = "in", res = 200, "outputs/Plot_pct_mortality_forecasted_2011_2020.png")
 ggplot()+geom_histogram(data = all.trees.2011.2020, aes(avg.dead.rate*100))+facet_wrap(~scenario)+ggtitle("2011-2020 forecasted plot mortality rates")+
-  geom_vline(aes(xintercept = median(all.trees.2011.2020$avg.dead.rate*100)), color = "red", linetype = "dashed")
-
+  #geom_vline(aes(xintercept = median(all.trees.2011.2020$avg.dead.rate*100)), color = "red", linetype = "dashed")
+theme_bw()
 #hist(all.trees.2011.2020$avg.dead.rate*100, main = "2011-2020 forecasted plot mortality rates", xlab = "Plot level average yearly mortality rates (%)")
 dev.off()
 
@@ -888,96 +888,11 @@ hist(plot.mort.rate.2011.2020$mortality.rate)
 
 summary(plot.mort.rate.2011.2020$mortality.rate)
 
-# plot-level mortality ranges from 0-5% mortality in from 2001-2010
-ggplot(plot.mort.rate2001.2020, aes(x =  mortality.rate_2010, y =mortality.rate_2010_2020))+geom_point()
-
-# plot-level mortality ranges from 0-5% mortality in from 2001-2010
-ggplot(plot.mort.rate2001.2020, aes(x =  mortality.rate_2010))+geom_histogram()
-# and the range is about the same from 2011-2020
-ggplot(plot.mort.rate2001.2020, aes(x =  mortality.rate_2010_2020))+geom_histogram()
-
-# # goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
+#goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
 # # compare these to biomass estimates
 # # get a static estimate of SDI, which includes the dead trees:
 
-static_SDI_pltcn <- TREE %>% ungroup() %>%  filter(DIA > 1) %>%
-  group_by(PLT_CN, STATECD, PLOT, COUNTYCD,  MEASYR) %>%
-  summarise(ntrees_static = n(),
-            TPA_static =sum(TPA_UNADJ), 
-            Dq_static = sqrt(sum(DIA^2, na.rm = TRUE)/ntrees_static), 
-            SDIdq_static = ((Dq_static/10)^1.6)*TPA_static, #calculate SDI (Summation Method) on the subplot:
-            SDIs_static = sum(TPA_UNADJ*((DIA/10)^1.6), na.rm = TRUE))#, ## calculate SDI (Quadratic mean diameter) on the subplot:
 
-
-hist(static_SDI_pltcn$SDIs_static) 
-
-TREE$SDIs_static <- static_SDI_pltcn$SDIs_static[match(TREE$PLT_CN, static_SDI_pltcn$PLT_CN)]
-# join up the SDI static with the forecasts:
-# this is the most recent SDI in the dataset, not the SDI estimated by the forecast
-allplots.treeDIAMsubset$SDIs_static <- static_SDI_pltcn$SDIs_static[match(allplots.treeDIAMsubset$plot, static_SDI_pltcn$PLT_CN)]
-
-allplots.treeDIAMsubset <- allplots.treeDIAMsubset %>% mutate(SDIbin=cut(SDIs_static, breaks=c(0,135, 270,450, Inf), labels=c("0-135","136-270","270-450", ">450")))
-
-allplots.treeDIAMsubset$DIA <- allplots.treeDIAMsubset$DBH/2.54
-allplots.treeDIAMsubset <- allplots.treeDIAMsubset %>% mutate(DIAbin=cut(DIA, breaks=c(0,5,10, 15,20,25,30,35,40, 45,Inf), labels=c("0-5","5-10","10-15", "15-20", "20-25", "25-30", 
-                                                                                                                                    "30-35", "35-40", "40-45", ">45")))
-prop.dead.2020 <- allplots.treeDIAMsubset %>% group_by(SDIbin, DIAbin, df, mort.scheme, scenario) %>% filter(time %in% 1:20) %>% summarise(ntree = sum(TPA)) %>% 
-  ungroup() %>% group_by (SDIbin, DIAbin, mort.scheme, scenario) %>% spread(`ntree`, key = df) %>% mutate(prop.dead = `dead`/(`dead`+`live`)) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead),
-                                                                                                                                                         mort.rate = prop.dead/20)
-
-prop.dead.2020$total = prop.dead.2020$dead + prop.dead.2020$live
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/scatter_mort_rate_by_dia_sdi_lines_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = mort.rate, color = SDIbin, group = SDIbin))+
-  geom_point()+geom_line()+theme_bw()+ylab("mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/scatter_total_by_dia_sdi_lines_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes(x = DIAbin, y = total, color = SDIbin, group = SDIbin))+
-  geom_point()+geom_line()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_totals_rate_by_dia_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = total, x = DIAbin))+
-  geom_boxplot()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_mort_rate_by_dia_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = mort.rate, x = DIAbin))+
-  geom_boxplot()+theme_bw()+ylab("mortality rate")+xlab("Diameter Class (in)")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_mort_rate_by_sdi_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = mort.rate, x = SDIbin))+
-  geom_boxplot()+theme_bw()+ylab("mortality rate")+xlab("SDI Class")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/boxplot_total_by_sdi_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin)), aes( y = total, x = SDIbin))+
-  geom_boxplot()+theme_bw()+ylab("total number of trees (live and dead)")+xlab("SDI Class")+theme(panel.grid = element_blank())+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/tile_prop_mort_by_dia_sdi_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = mort.rate))+
-  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "outputs/tile_total_by_dia_sdi_forecast_all_singleCC.png")
-ggplot(prop.dead.2020 %>% filter(!is.na(DIAbin) & !is.na(SDIbin)), aes( x = DIAbin, y = SDIbin, fill = total))+
-  geom_raster()+scale_fill_gradientn(colors = c("#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"))+
-  facet_grid(rows = vars(mort.scheme), cols = vars(scenario), scales = "free_y")+theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-dev.off()
 #------------------------------------------------------------------------------------
 # Make a pretty figure of total biomass by different components across all the stands in the region
 #------------------------------------------------------------------------------------

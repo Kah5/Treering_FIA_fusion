@@ -653,260 +653,271 @@ cov.data.regional.export <- cov.data.regional %>%dplyr::select(CORE_CN, PLT_CN, 
 cov.data.regional.export
 
 write_delim(cov.data.regional.export, "data/CORED_TREES_FOR_DIA_MATCH.txt")
+
+rm(all.pipo)
+rm(fiadb)
+rm(all.region.data)
+rm(COND)
+
+rm(nm.rwl)
+rm(nm.meta)
+
+rm(plots.in.region)
+
 # get the datasets 
-#-----------------------------------------------------------------------------------------
-# make some maps of growth, diameter to check expected growth patterns
-#-----------------------------------------------------------------------------------------
-plt.averages <- cov.data.regional
-plt.averages$FIA_LAT <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$LAT
-plt.averages$FIA_LON <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$LON
-plt.averages$DESIGNCD <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$DESIGNCD
-colnames(plt.averages)
-
-plt.averages$avg_RW <- rowMeans(data$y, na.rm =TRUE)
-plt.averages$avg_DIA_inc <- rowMeans(data$y*2, na.rm =TRUE)
-
-# get averages for trees on the plot:
-TREE.summaries <- TREE %>% filter(PLT_CN %in% unique(plt.averages$PLT_CN) & STATUSCD == 1)%>%
-                          group_by(PLT_CN, SPCD) %>% summarise(n.tree = n(), 
-                                                         avg_DIA = mean(DIA*2.54, na.rm =TRUE), 
-                                                         max_DIA = max(DIA*2.54, na.rm =TRUE), 
-                                                         QMD = sqrt(sum(DIA^2, na.rm =TRUE)/n()),
-                                                         sd_DIA = sd(DIA*2.54, na.rm =TRUE), 
-                                                         BA_sq_ft = sum((DIA^2)*0.005454), 
-                                                         TPA.tot = sum(TPA_UNADJ, na.rm =TRUE)) %>% filter(SPCD %in% 122)
-TREE.summaries$PLT_CN
-plt.averages <- left_join(plt.averages, TREE.summaries)
-TREE.summaries$BA_sq_ft
-
-MSB.ll <- data.frame(TPA.tot = 1:1500, 
-                     MSB.longleaf = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+2, 
-                     MSB.shifted = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+9)
-# # they shifted the curve so that most of the obs would fall inside it
-# MSB.pp <- data.frame(TPA.tot = 1:1500, 
-#                      MSB = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+9)
-
-#plt.averages$sd_RW <- rowMeans(data$y, na.rm =TRUE)
-ggplot(data = TREE.summaries, aes(TPA.tot, QMD))+geom_point()+
-  geom_line(data = MSB.ll, aes(TPA.tot, MSB.longleaf), color = "red")+
-  geom_line(data = MSB.ll, aes(TPA.tot, MSB.shifted), color = "forestgreen")+xlab("TPA")
-ggsave("outputs/Mature_stand_boundary_FIA_data.png")
-
-ggplot(TREE.summaries, aes(TPA.tot, avg_DIA), color = "red")+geom_point()+
-  geom_line(data = MSB.ll, aes(TPA.tot, MSB))
-# get quantile regression of TPA.total & QMD
-
-
-plt.averages$avg_cored_DIA <- rowMeans(data$z, na.rm =TRUE)
-
-
-library(mapdata)
-all_states <- map_data("state")
-states <- subset(all_states, region %in% c( "arizona", "utah", "new mexico", "colorado","idaho", "wyoming", "montana", "nevada", 
-                                            "california", "oregon", "washington", "texas", "kansas", 
-                                            "nebraska", "north dakota", "south dakota", "oklahoma") )
-canada <- map_data("worldHires", "Canada")
-mexico <- map_data("worldHires", "Mexico")
-
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = MAT))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/MAT_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = MAP))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/MAP_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = n.tree))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/ntrees_plot_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_DIA))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/avg_DIA_plot_map_cored_plots.png")
-
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = BA_sq_ft))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/BA_sq_ft_plot_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_RW))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/avg_RW_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_cored_DIA))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
-ggsave(height = 15, width = 10, "outputs/avg_RW_map_cored_plots.png")
-
-ggplot()+
-  geom_polygon(data = states, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = mexico, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white") +
-  geom_polygon(data = canada, 
-               aes(x=long, y=lat, group = group), 
-               color = "black", fill = "white")+
-  geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = as.character(DESIGNCD)))+theme_bw()+
-  coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())
-ggsave(height = 15, width = 10, "outputs/DESIGNCD_map_cored_plots.png")
-
-saveRDS(plt.averages, "outputs/plt.avgs.for.plotting.AGB.against.rds")
-plt.averages <- readRDS( "outputs/plt.avgs.for.plotting.AGB.against.rds")
-# read in the predicted AGB 
-DIDD.parse.df.60 <- readRDS( "outputs/temporary.DIDD.parse.df.60.rds")
-DIDD.parse.df.60$PLT_CN <- as.numeric(DIDD.parse.df.60$plot)
-AGB.proj <- left_join(DIDD.parse.df.60,plt.averages)
-a <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = n.tree, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-b <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_DIA_inc, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-c <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_DIA, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-d <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = BA_sq_ft, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-
-e <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_RW, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-f <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = MAT, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-g <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = MAP, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-h <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = as.factor(DESIGNCD), y = mAGB/1000))+geom_jitter()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
-
-png(height = 6, width = 10, units = "in", res = 150, "outputs/mAGB_2098_vs_plot_attributes.png")
-cowplot::plot_grid(a, b,c,
-                   d, e, f,
-                   g,h, ncol = 4, align = "hv")
-dev.off()
-
-
-cov.data.regional$
-
-alphas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.alpha_TREES.rds")
-colnames(alphas)[1] <- "L1"
-alphas$treeid <- 1:length(alphas$L1)
-
-alphas.df <- left_join(alphas, cov.data.regional[,c("PLT_CN", "treeid")])
-
- ggplot(data = alphas.df, aes(x = treeid, y = median, color = PLT_CN %in% unique(high.plts$plot)))+geom_point()+
-  geom_errorbar(data = alphas.df, aes(x = treeid, ymin = ci.lo, ymax = ci.hi, color = PLT_CN %in% unique(high.plts$plot)))+ylab("TREE Random Effect")+
-   theme(legend.position = "bottom")
-
-ggsave(height = 4, width =6, units = "in", "outputs/alphas_colored_by_highAGB.png")
-
-
-future.climate.high <- future.clim.subset.26 %>% filter(PLT_CN %in% unique(high.plts$plot) & year <= 2098)
-
-ggplot(future.climate.high, aes(x = year, y = tmax.corrected, group = PLT_CN))+geom_line()+facet_wrap(~model)
-ggplot(future.climate.high, aes(x = year, y = ppt.corrected, group = PLT_CN))+geom_line()+facet_wrap(~model)
-
-ggplot(future.clim.subset.26, aes(x = year, y = tmax.corrected, group = PLT_CN, color = PLT_CN %in% unique(high.plts$plot) ))+geom_line()+facet_wrap(~model)
-ggplot(future.clim.subset.26, aes(x = year, y = ppt.corrected, group = PLT_CN, color = PLT_CN %in% unique(high.plts$plot) ))+geom_line()+facet_wrap(~model)
-
-
-ggplot(future.clim.subset.26, aes(y = tmax.corrected, fill = PLT_CN %in% unique(high.plts$plot) ))+geom_histogram()+facet_wrap(~model, ncol = 7)+theme(legend.position = "bottom")
-ggsave(height = 5, width = 12, units = "in", "outputs/Future_tmax_high_agb_plots.png")
-ggplot(future.clim.subset.26, aes(y = ppt.corrected, fill = PLT_CN %in% unique(high.plts$plot) ))+geom_histogram()+facet_wrap(~model, ncol = 7)+theme(legend.position = "bottom")
-ggsave(height = 5, width = 12, units = "in", "outputs/Future_ppt_high_agb_plots.png")
-
-max.AGB.df <- AGB.proj %>% group_by(plot, n.tree, avg_DIA_inc, avg_DIA, BA_sq_ft, avg_RW, MAT, MAP, DESIGNCD, parse) %>% summarise(maxAGB = max(mAGB)/1000)
-ggplot(max.AGB.df, aes(x = n.tree, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = avg_DIA_inc, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = avg_DIA, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = BA_sq_ft, y = maxAGB))+geom_point()+facet_wrap(~parse)
-
-ggplot(max.AGB.df, aes(x = avg_RW, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = MAT, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = MAP, y = maxAGB))+geom_point()+facet_wrap(~parse)
-ggplot(max.AGB.df, aes(x = as.factor(DESIGNCD), y = maxAGB))+geom_jitter()+facet_wrap(~parse)
-
-high.plts <- as.character(unique(AGB.proj %>% filter(mAGB/1000 > 350 ) %>%dplyr::select(PLT_CN) %>% distinct())$PLT_CN)
-View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR) %>% summarise(n(), 
-                                                                                       avg.TPA = avg(TPA_UNADJ)))
-
-View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR, TPA_UNADJ) %>% summarise(n()))
-
-
-View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR) %>% summarise(avg))
-View(PLOT %>% filter(CN %in% high.plts) %>% group_by(CN, MEASYEAR) %>% summarise(n()))
-#-----------------------------------------------------------------------------------------
-# set up held out diameters (AZ only)
-#-----------------------------------------------------------------------------------------
-# cov.data.regional<- cov.data.regional  %>% mutate(ST_CT_PLT_SUBP = paste0(STATECD,"_", COUNTYCD, "_", PLOT, "_", SUBP))
-# df.validation <- df.validation %>% mutate(ST_CT_PLT_SUBP = paste0("4_", COUNTYCD, "_", PlotNo, "_", SUBP))
-# df.validation$ST_CT_PLT_SUBP
-# colnames(df.validation)[5] <- "DIA"
-# colnames(df.validation)[3] <- "TreeNo"
-# #View(cov.data.regional %>% filter(ST_CT_PLT_SUBP %in% unique(df.validation$ST_CT_PLT_SUBP)))
+# #-----------------------------------------------------------------------------------------
+# # make some maps of growth, diameter to check expected growth patterns
+# #-----------------------------------------------------------------------------------------
+# plt.averages <- cov.data.regional
+# plt.averages$FIA_LAT <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$LAT
+# plt.averages$FIA_LON <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$LON
+# plt.averages$DESIGNCD <- PLOT[match(plt.averages$PLT_CN, PLOT$CN),]$DESIGNCD
+# colnames(plt.averages)
 # 
-# # join up by the first diameter and the STATE-COUNTY_PLOT_SUBPLOT code
-# join.held.out.AZ.dia <- left_join(cov.data.regional%>%dplyr::select(ST_CT_PLT_SUBP, DIA, DIA_cm, TREE), df.validation)
+# plt.averages$avg_RW <- rowMeans(data$y, na.rm =TRUE)
+# plt.averages$avg_DIA_inc <- rowMeans(data$y*2, na.rm =TRUE)
 # 
-# join.held.out.AZ.dia %>% filter(!is.na(T2_DIA))
+# # get averages for trees on the plot:
+# TREE.summaries <- TREE %>% filter(PLT_CN %in% unique(plt.averages$PLT_CN) & STATUSCD == 1)%>%
+#                           group_by(PLT_CN, SPCD) %>% summarise(n.tree = n(), 
+#                                                          avg_DIA = mean(DIA*2.54, na.rm =TRUE), 
+#                                                          max_DIA = max(DIA*2.54, na.rm =TRUE), 
+#                                                          QMD = sqrt(sum(DIA^2, na.rm =TRUE)/n()),
+#                                                          sd_DIA = sd(DIA*2.54, na.rm =TRUE), 
+#                                                          BA_sq_ft = sum((DIA^2)*0.005454), 
+#                                                          TPA.tot = sum(TPA_UNADJ, na.rm =TRUE)) %>% filter(SPCD %in% 122)
+# TREE.summaries$PLT_CN
+# plt.averages <- left_join(plt.averages, TREE.summaries)
+# TREE.summaries$BA_sq_ft
 # 
-# saveRDS(join.held.out.AZ.dia, "data/held_out_diameters.RDS")
+# MSB.ll <- data.frame(TPA.tot = 1:1500, 
+#                      MSB.longleaf = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+2, 
+#                      MSB.shifted = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+9)
+# # # they shifted the curve so that most of the obs would fall inside it
+# # MSB.pp <- data.frame(TPA.tot = 1:1500, 
+# #                      MSB = (18.68-20.63*exp(-13.25*(1:1500)^(-0.503)))+9)
+# 
+# #plt.averages$sd_RW <- rowMeans(data$y, na.rm =TRUE)
+# ggplot(data = TREE.summaries, aes(TPA.tot, QMD))+geom_point()+
+#   geom_line(data = MSB.ll, aes(TPA.tot, MSB.longleaf), color = "red")+
+#   geom_line(data = MSB.ll, aes(TPA.tot, MSB.shifted), color = "forestgreen")+xlab("TPA")
+# ggsave("outputs/Mature_stand_boundary_FIA_data.png")
+# 
+# ggplot(TREE.summaries, aes(TPA.tot, avg_DIA), color = "red")+geom_point()+
+#   geom_line(data = MSB.ll, aes(TPA.tot, MSB))
+# # get quantile regression of TPA.total & QMD
+# 
+# 
+# plt.averages$avg_cored_DIA <- rowMeans(data$z, na.rm =TRUE)
+# 
+# 
+# library(mapdata)
+# all_states <- map_data("state")
+# states <- subset(all_states, region %in% c( "arizona", "utah", "new mexico", "colorado","idaho", "wyoming", "montana", "nevada", 
+#                                             "california", "oregon", "washington", "texas", "kansas", 
+#                                             "nebraska", "north dakota", "south dakota", "oklahoma") )
+# canada <- map_data("worldHires", "Canada")
+# mexico <- map_data("worldHires", "Mexico")
+# 
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = MAT))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/MAT_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = MAP))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/MAP_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = n.tree))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/ntrees_plot_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_DIA))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/avg_DIA_plot_map_cored_plots.png")
+# 
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = BA_sq_ft))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/BA_sq_ft_plot_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_RW))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/avg_RW_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = avg_cored_DIA))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())+scale_color_viridis_c()
+# ggsave(height = 15, width = 10, "outputs/avg_RW_map_cored_plots.png")
+# 
+# ggplot()+
+#   geom_polygon(data = states, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = mexico, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white") +
+#   geom_polygon(data = canada, 
+#                aes(x=long, y=lat, group = group), 
+#                color = "black", fill = "white")+
+#   geom_point(data = plt.averages, aes(x = FIA_LON, y = FIA_LAT, color = as.character(DESIGNCD)))+theme_bw()+
+#   coord_sf(xlim = c(-118, -103), ylim = c(32, 49))+theme(axis.title = element_blank())
+# ggsave(height = 15, width = 10, "outputs/DESIGNCD_map_cored_plots.png")
+# 
+# saveRDS(plt.averages, "outputs/plt.avgs.for.plotting.AGB.against.rds")
+# plt.averages <- readRDS( "outputs/plt.avgs.for.plotting.AGB.against.rds")
+# # read in the predicted AGB 
+# DIDD.parse.df.60 <- readRDS( "outputs/temporary.DIDD.parse.df.60.rds")
+# DIDD.parse.df.60$PLT_CN <- as.numeric(DIDD.parse.df.60$plot)
+# AGB.proj <- left_join(DIDD.parse.df.60,plt.averages)
+# a <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = n.tree, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# b <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_DIA_inc, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# c <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_DIA, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# d <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = BA_sq_ft, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# 
+# e <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = avg_RW, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# f <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = MAT, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# g <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = MAP, y = mAGB/1000))+geom_point()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# h <- ggplot(AGB.proj %>% filter(year == 2098 & parse %in% "full"), aes(x = as.factor(DESIGNCD), y = mAGB/1000))+geom_jitter()+facet_wrap(~parse)+ylab("AGB in 2099 (Mg/ha)")
+# 
+# png(height = 6, width = 10, units = "in", res = 150, "outputs/mAGB_2098_vs_plot_attributes.png")
+# cowplot::plot_grid(a, b,c,
+#                    d, e, f,
+#                    g,h, ncol = 4, align = "hv")
+# dev.off()
+# 
+# 
+# cov.data.regional$
+# 
+# alphas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.alpha_TREES.rds")
+# colnames(alphas)[1] <- "L1"
+# alphas$treeid <- 1:length(alphas$L1)
+# 
+# alphas.df <- left_join(alphas, cov.data.regional[,c("PLT_CN", "treeid")])
+# 
+#  ggplot(data = alphas.df, aes(x = treeid, y = median, color = PLT_CN %in% unique(high.plts$plot)))+geom_point()+
+#   geom_errorbar(data = alphas.df, aes(x = treeid, ymin = ci.lo, ymax = ci.hi, color = PLT_CN %in% unique(high.plts$plot)))+ylab("TREE Random Effect")+
+#    theme(legend.position = "bottom")
+# 
+# ggsave(height = 4, width =6, units = "in", "outputs/alphas_colored_by_highAGB.png")
+# 
+# 
+# future.climate.high <- future.clim.subset.26 %>% filter(PLT_CN %in% unique(high.plts$plot) & year <= 2098)
+# 
+# ggplot(future.climate.high, aes(x = year, y = tmax.corrected, group = PLT_CN))+geom_line()+facet_wrap(~model)
+# ggplot(future.climate.high, aes(x = year, y = ppt.corrected, group = PLT_CN))+geom_line()+facet_wrap(~model)
+# 
+# ggplot(future.clim.subset.26, aes(x = year, y = tmax.corrected, group = PLT_CN, color = PLT_CN %in% unique(high.plts$plot) ))+geom_line()+facet_wrap(~model)
+# ggplot(future.clim.subset.26, aes(x = year, y = ppt.corrected, group = PLT_CN, color = PLT_CN %in% unique(high.plts$plot) ))+geom_line()+facet_wrap(~model)
+# 
+# 
+# ggplot(future.clim.subset.26, aes(y = tmax.corrected, fill = PLT_CN %in% unique(high.plts$plot) ))+geom_histogram()+facet_wrap(~model, ncol = 7)+theme(legend.position = "bottom")
+# ggsave(height = 5, width = 12, units = "in", "outputs/Future_tmax_high_agb_plots.png")
+# ggplot(future.clim.subset.26, aes(y = ppt.corrected, fill = PLT_CN %in% unique(high.plts$plot) ))+geom_histogram()+facet_wrap(~model, ncol = 7)+theme(legend.position = "bottom")
+# ggsave(height = 5, width = 12, units = "in", "outputs/Future_ppt_high_agb_plots.png")
+# 
+# max.AGB.df <- AGB.proj %>% group_by(plot, n.tree, avg_DIA_inc, avg_DIA, BA_sq_ft, avg_RW, MAT, MAP, DESIGNCD, parse) %>% summarise(maxAGB = max(mAGB)/1000)
+# ggplot(max.AGB.df, aes(x = n.tree, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = avg_DIA_inc, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = avg_DIA, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = BA_sq_ft, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# 
+# ggplot(max.AGB.df, aes(x = avg_RW, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = MAT, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = MAP, y = maxAGB))+geom_point()+facet_wrap(~parse)
+# ggplot(max.AGB.df, aes(x = as.factor(DESIGNCD), y = maxAGB))+geom_jitter()+facet_wrap(~parse)
+# 
+# high.plts <- as.character(unique(AGB.proj %>% filter(mAGB/1000 > 350 ) %>%dplyr::select(PLT_CN) %>% distinct())$PLT_CN)
+# View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR) %>% summarise(n(), 
+#                                                                                        avg.TPA = avg(TPA_UNADJ)))
+# 
+# View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR, TPA_UNADJ) %>% summarise(n()))
+# 
+# 
+# View(TREE %>% filter(PLT_CN %in% high.plts) %>% group_by(PLT_CN, MEASYR) %>% summarise(avg))
+# View(PLOT %>% filter(CN %in% high.plts) %>% group_by(CN, MEASYEAR) %>% summarise(n()))
+# #-----------------------------------------------------------------------------------------
+# # set up held out diameters (AZ only)
+# #-----------------------------------------------------------------------------------------
+# # cov.data.regional<- cov.data.regional  %>% mutate(ST_CT_PLT_SUBP = paste0(STATECD,"_", COUNTYCD, "_", PLOT, "_", SUBP))
+# # df.validation <- df.validation %>% mutate(ST_CT_PLT_SUBP = paste0("4_", COUNTYCD, "_", PlotNo, "_", SUBP))
+# # df.validation$ST_CT_PLT_SUBP
+# # colnames(df.validation)[5] <- "DIA"
+# # colnames(df.validation)[3] <- "TreeNo"
+# # #View(cov.data.regional %>% filter(ST_CT_PLT_SUBP %in% unique(df.validation$ST_CT_PLT_SUBP)))
+# # 
+# # # join up by the first diameter and the STATE-COUNTY_PLOT_SUBPLOT code
+# # join.held.out.AZ.dia <- left_join(cov.data.regional%>%dplyr::select(ST_CT_PLT_SUBP, DIA, DIA_cm, TREE), df.validation)
+# # 
+# # join.held.out.AZ.dia %>% filter(!is.na(T2_DIA))
+# # 
+# # saveRDS(join.held.out.AZ.dia, "data/held_out_diameters.RDS")
