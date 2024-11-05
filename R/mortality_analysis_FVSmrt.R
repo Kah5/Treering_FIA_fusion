@@ -245,13 +245,17 @@ b.growth <- m2$coefficients[2]
 b.dbh <- m2$coefficients[3]
 saveRDS(m2, "m2_pipo_surv_year.rds")
 
-psurv <- as.vector(inv.logit(alpha.surv + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
+psurv <- as.vector(boot::inv.logit(alpha.surv + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
 
 growth.sim$psurv <- psurv
 growth.sim <- as.data.frame(growth.sim)
 class(growth.sim$growth)
-DBH.responses <- ggplot(growth.sim, aes(DBH_cm, psurv, color = growth, group = growth))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter (cm)")
-growth.responses <- ggplot(growth.sim, aes(growth, psurv, color = DBH_cm, group = DBH_cm))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter growth (cm)")
+DBH.responses <- ggplot(growth.sim, aes(DBH_cm, psurv, color = growth, group = growth))+geom_line()+ 
+  scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  ylab("Probability of survival")+xlab("Diameter (cm)")
+growth.responses <- ggplot(growth.sim, aes(growth, psurv, color = DBH_cm, group = DBH_cm))+geom_line()+ 
+  scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  ylab("Probability of msurvival")+xlab("Diameter growth (cm)")
 
 png(height = 4, width = 8, units = "in", res = 300, "outputs/mortality_FIA_derived_logistic_model_survival.png")
 cowplot::plot_grid(DBH.responses, growth.responses, ncol = 2, align = "hv")

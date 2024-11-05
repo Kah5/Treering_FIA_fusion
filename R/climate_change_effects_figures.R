@@ -34,7 +34,7 @@ scale.mort.expns <- function(parse = "full", scale.prob.mort = 1) {
   plot.periodic <- unique(periodic.data[, c("ECOSUBCD", "ESTN_UNIT_CN", "ESTN_METHOD", "STRATUM_CN", "PLT_CN", "EXPNS")])
   nrow(plot.periodic) # 535 unique plots:
   
-  AGB.dead.EXPNS <- left_join(AGB.dead, plot.periodic)
+  AGB.dead.EXPNS <- left_join(AGB.dead %>% distinct(), plot.periodic)
   
   
   # ## Estimate Tree totals
@@ -122,7 +122,7 @@ scale.all.live.expns <- function( parse = "full", scale.prob.mort = 1) {
   plot.periodic <- unique(periodic.data[, c("ECOSUBCD", "ESTN_UNIT_CN", "ESTN_METHOD", "STRATUM_CN", "PLT_CN", "EXPNS")])
   nrow(plot.periodic) # 535 unique plots:
   
-  AGB.live.EXPNS <- left_join(AGB.live, plot.periodic)
+  AGB.live.EXPNS <- left_join(AGB.live %>% distinct(), plot.periodic)
   
   
   
