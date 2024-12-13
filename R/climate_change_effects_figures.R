@@ -402,7 +402,7 @@ low.high.Cpools.real <- rbind( low.high.live.real, low.high.dead.real)
 # generate function to make the difference figures
 parse1 <- "full"
 parse2 <- "no climate change"
-parse_differences_regional_C <- function(parse1, parse2){
+parse_differences_regional_C <- function(parse1, parse2, out.plot = NA){
     low.high.Cpools.real.CC <- low.high.Cpools.real %>% filter(parse %in% parse1)
     low.high.Cpools.real.noCC <- low.high.Cpools.real %>% filter(parse %in% parse2)
     colnames(low.high.Cpools.real.CC)[5:6] <- c("CC.low", "CC.hi") 
@@ -426,7 +426,7 @@ parse_differences_regional_C <- function(parse1, parse2){
     
     #View(pool.summary)
     #ggplot(Full.pool.diff, aes(x = year, ymin = CC.effect.low, ymax = CC.effect.hi, fill = `Carbon Pool`))+geom_ribbon()+facet_wrap(~rcp)
-    ggplot(data = Full.pool.diff, aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+    p.2099 <- ggplot(data = Full.pool.diff, aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
       geom_errorbar(data = Full.pool.diff, aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
       facet_wrap(~rcp, nrow = 4)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
       ylab(paste0("difference of ", parse1, "-", parse2,"\n on C pools (Tg)"))+
@@ -435,9 +435,9 @@ parse_differences_regional_C <- function(parse1, parse2){
       theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
             panel.grid = element_blank())
     
-    ggsave(height = 10, width = 10, units = "in", paste0("outputs/total_contribution_of_",parse1,"_", parse2,"_toLive_DeadCpools.png"))
+    ggsave(plot = p.2099,height = 10, width = 10, units = "in", paste0("outputs/total_contribution_of_",parse1,"_", parse2,"_toLive_DeadCpools.png"))
     
-    ggplot(data = Full.pool.diff %>% filter(year <2051), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+   p.2050 <-  ggplot(data = Full.pool.diff %>% filter(year <2051), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
       geom_errorbar(data = Full.pool.diff%>% filter(year <2051), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
       facet_wrap(~rcp, nrow = 4)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
       ylab(paste0("difference of ", parse1, "-", parse2,"\n on C pools (Tg)"))+
@@ -445,54 +445,100 @@ parse_differences_regional_C <- function(parse1, parse2){
       theme_bw(base_size = 12)+
       theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
             panel.grid = element_blank())
-    ggsave(height = 10, width = 10, units = "in", paste0("outputs/total_contribution_of_",parse1,"_", parse2,"_toLive_DeadCpools_2001_2050.png"))
-}
+    ggsave(plot = p.2050, height = 10, width = 10, units = "in", paste0("outputs/total_contribution_of_",parse1,"_", parse2,"_toLive_DeadCpools_2001_2050.png"))
+plot.return <- ifelse(out.plot == "2050", p.2050, p.2099)
+plot.return
+    }
 
 # differences with climate change
-parse_differences_regional_C(parse1 = "full", parse2 = "no climate change")
-parse_differences_regional_C(parse1 = "DD.ramp", parse2 = "no climate change")
-parse_differences_regional_C(parse1 = "GD.10", parse2 = "no climate change")
-parse_differences_regional_C(parse1 = "GD.20", parse2 = "no climate change")
+full.nocc.df <- parse_differences_regional_C(parse1 = "full", parse2 = "no climate change", out.plot = "2050")
+dd.ramp.nocc.df <- parse_differences_regional_C(parse1 = "DD.ramp", parse2 = "no climate change", out.plot = "2050")
+gd.10.nocc.df <- parse_differences_regional_C(parse1 = "GD.10", parse2 = "no climate change", out.plot = "2050")
+gd.20.nocc.df <- parse_differences_regional_C(parse1 = "GD.20", parse2 = "no climate change", out.plot = "2050")
 
 # differences between the other climate change scenarios
-parse_differences_regional_C(parse1 = "full", parse2 = "DD.ramp")
-parse_differences_regional_C(parse1 = "full", parse2 = "GD.10")
-parse_differences_regional_C(parse1 = "full", parse2 = "GD.20")
+parse_differences_regional_C(parse1 = "full", parse2 = "DD.ramp",out.plot = "2050")
+parse_differences_regional_C(parse1 = "full", parse2 = "GD.10",out.plot = "2050")
+parse_differences_regional_C(parse1 = "full", parse2 = "GD.20",out.plot = "2050")
 
 # other differences
 parse_differences_regional_C(parse1 = "GD.20", parse2 = "GD.10")
 parse_differences_regional_C(parse1 = "DD.ramp", parse2 = "GD.20")
 parse_differences_regional_C(parse1 = "DD.ramp", parse2 = "GD.10")
 
+#############################################################################
+# combine all of the plots together for the rcps
+#############################################################################
+# for each RCP scenario, make a big figure of the differences
 
-# # combine the results for RCP26:
-# RCP.26.cc.nocc <- ggplot() + 
-#   geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
-#   geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
-#   facet_wrap(~parse)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
-#   ylab("Total Aboveground C (Tg)")+
-#   xlab("Year")+
-#   theme_bw(base_size = 12)+
-#   theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
-#         panel.grid = element_blank(), 
-#         axis.text.x = element_text(angle = 45, hjust = 1))
-# 
-# CC.contribution.RCP26 <- ggplot(data = Full.pool.diff %>% filter(rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
-#   geom_errorbar(data = Full.pool.diff %>% filter(rcp %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
-#   facet_wrap(~rcp, nrow = 4)+scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
-#   ylab("Effect of Climate Change on \nStanding Live & Dead C pools (Tg)")+
-#   xlab("Year")+
-#   theme_bw(base_size = 12)+
-#   theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
-#         panel.grid = element_blank(), legend.position = "bottom")
-# 
-# library(cowplot)
-# Cpool.legend <- get_legend(CC.contribution.RCP26)
-# png(height = 4.5, width = 9.2, units = "in", res = 300, "outputs/RCP2.6_CC_effects_combined_figure.png")
-# plot_grid(plot_grid(RCP.26.cc.nocc + theme(legend.position = "none"), 
-#           CC.contribution.RCP26 + theme(legend.position = "none"), align = "hv"), 
-#           Cpool.legend, rel_heights = c(0.9, 0.05), ncol = 1)
-# dev.off()
+total.p <- ggplot() + 
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full", "no climate change") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full", "no climate change") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  facet_wrap(~parse)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab("Total Aboveground C (Tg)")+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
+
+full.nocc.p <- ggplot(data = full.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+  geom_errorbar(data = full.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
+  #facet_wrap(~rcp, nrow = 4)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab(paste0("Full - No Climate Change \n Difference of C pools (Tg)"))+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        legend.position = c(0.2,0.2))
+
+
+dd.nocc.p <- ggplot(data = dd.ramp.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+  geom_errorbar(data = dd.ramp.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
+  #facet_wrap(~rcp, nrow = 4)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab(paste0("DD.ramp - No Climate Change \n Difference of C pools (Tg)"))+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        legend.position = "none")
+
+
+gd10.nocc.p <- ggplot(data = gd.10.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+  geom_errorbar(data = gd.10.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
+  #facet_wrap(~rcp, nrow = 4)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab(paste0("GD.10 - No Climate Change \n Difference of C pools (Tg)"))+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        legend.position = "none")
+
+gd20.nocc.p <- ggplot(data = gd.20.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
+  geom_errorbar(data = gd.20.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
+  #facet_wrap(~rcp, nrow = 4)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab(paste0("GD.20 - No Climate Change \n Difference of C pools (Tg)"))+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        legend.position = "none")
+
+## save the draft figure for figure 3--note no insets here
+png(height = 10, width = 15, units = "in", res = 300, "outputs/dead_live_parse_mortality_cc_scenario.png")
+cowplot::plot_grid(
+cowplot::plot_grid(total.p, full.nocc.p, align = "h", labels = c("A", "B")),
+                   
+         cowplot::plot_grid( dd.nocc.p, gd20.nocc.p, gd10.nocc.p, align = "h", labels = c("C", "D", "E"), ncol = 3), 
+nrow = 2)
+
+dev.off()
 
 
 
