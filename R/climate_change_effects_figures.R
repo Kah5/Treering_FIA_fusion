@@ -4,7 +4,8 @@ library(here)
 library(tidyverse)
 library(rFIA)
 library(sf)
-
+library(cowplot)
+library(gt)
 # read in periodic data from mortality_parse_figure.R
 # note that this is created in R/mortality_parse_figure.R
 periodic.data <- readRDS("INWE_FIA_PLO_TREE_COND_POP_STRATUM_ESNT_UNIT.RDS")
@@ -495,6 +496,18 @@ full.nocc.p <- ggplot(data = full.nocc.df[[1]] %>% filter(year <2051 & rcp %in% 
         panel.grid = element_blank(), 
         legend.position = c(0.2,0.2))
 
+total.inset.dd <- ggplot() + 
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("DD.ramp", "no climate change") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("DD.ramp", "no climate change") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  facet_wrap(~parse)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab("Total Aboveground C (Tg)")+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
 
 dd.nocc.p <- ggplot(data = dd.ramp.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
   geom_errorbar(data = dd.ramp.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
@@ -507,6 +520,18 @@ dd.nocc.p <- ggplot(data = dd.ramp.nocc.df[[1]] %>% filter(year <2051 & rcp %in%
         panel.grid = element_blank(), 
         legend.position = "none")
 
+total.inset.gd.10 <- ggplot() + 
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("GD.10", "no climate change") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("GD.10", "no climate change") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  facet_wrap(~parse)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab("Total Aboveground C (Tg)")+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
 
 gd10.nocc.p <- ggplot(data = gd.10.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
   geom_errorbar(data = gd.10.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
@@ -519,6 +544,19 @@ gd10.nocc.p <- ggplot(data = gd.10.nocc.df[[1]] %>% filter(year <2051 & rcp %in%
         panel.grid = element_blank(), 
         legend.position = "none")
 
+total.inset.gd.20 <- ggplot() + 
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("GD.20", "no climate change") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("GD.20", "no climate change") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  facet_wrap(~parse)+
+  scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
+  ylab("Total Aboveground C (Tg)")+
+  xlab("Year")+
+  theme_bw(base_size = 16)+
+  theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
+        panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
+
 gd20.nocc.p <- ggplot(data = gd.20.nocc.df[[1]] %>% filter(year <2051 & rcp %in% "rcp26"), aes(x = year, y = CC.effect.mid/1000000000, fill = `Carbon Pool`))+geom_bar(stat = "identity", width = 0.9)+
   geom_errorbar(data = gd.20.nocc.df[[1]] %>% filter(year <2051 %in% "rcp26"), aes(x = year, ymin = CC.effect.low/1000000000, ymax = CC.effect.hi/1000000000), width = 0.1, color = "lightgrey")+
   #facet_wrap(~rcp, nrow = 4)+
@@ -529,6 +567,8 @@ gd20.nocc.p <- ggplot(data = gd.20.nocc.df[[1]] %>% filter(year <2051 & rcp %in%
   theme(plot.margin = unit(c(1, 1, 4, 1), "lines"), 
         panel.grid = element_blank(), 
         legend.position = "none")
+# total.inset.grob <- cowplot::as_grob(total.inset.gd.10)
+# gd20.nocc.p + cowplot::draw_grob(grob = total.inset.grob, x = 0.1, y = 0.1)
 
 ## save the draft figure for figure 3--note no insets here
 png(height = 10, width = 15, units = "in", res = 300, "outputs/dead_live_parse_mortality_cc_scenario.png")
