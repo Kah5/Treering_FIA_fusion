@@ -201,11 +201,35 @@ nrow(x.mat)
 #m <- 1
 # get time series data:
 # read in the larger region climate data:
-#pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v5.csv")
-#pipo.clim <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/pipo_all_tmean_ppt_v5.csv"))
-#pipo.clim  <- readRDS("data/pipo.cores.with.downscaled.hydro.ppt.climatev4.rds")
-#pipo.clim$cov.data
-head(pipo.clim)
+pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v5.csv")
+
+colnames(pipo.clim)
+
+pipo.clim.one <- pipo.clim %>% filter(year %in% 1950)
+
+#ggplot(pipo.clim.one, aes(lon, lat))+geom_point()
+
+pipo.clim$wintP.NovAug <- rowSums(pipo.clim[,c("PPT_8", "PPT_9", "PPT_10", "PPT_11")])
+pipo.clim$wintP.wateryr <- rowSums(pipo.clim[,c("PPT_1", "PPT_2", "PPT_3", "PPT_4", "PPT_5", "PPT_6", "PPT_7", "PPT_8", "PPT_9", "PPT_10", "PPT_11", "PPT_12")])
+pipo.clim$wintP.NM <- rowSums(pipo.clim[,c("PPT_11", "PPT_12", "PPT_1", "PPT_2", "PPT_3")])
+pipo.clim$wintP.JJ <- rowSums(pipo.clim[,c("PPT_6", "PPT_7")])
+
+pipo.clim$tmax.fallspr <- rowMeans(pipo.clim[,c( "TMAX_9", "TMAX_10", "TMAX_11", "TMAX_12", "TMAX_1", "TMAX_2", "TMAX_3",  "TMAX_4")])
+pipo.clim$tmax.JanA <- rowMeans(pipo.clim[,c("TMAX_1", "TMAX_2", "TMAX_3", "TMAX_4", "TMAX_5", "TMAX_6", "TMAX_7", "TMAX_8")])
+pipo.clim$tmax.MJul <- rowMeans(pipo.clim[,c("TMAX_5", "TMAX_6", "TMAX_7")])
+pipo.clim$tmax.AprMayJun <- rowMeans(pipo.clim[,c("TMAX_4","TMAX_5", "TMAX_6")])
+pipo.clim$tmax.fall <- rowMeans(pipo.clim[,c("TMAX_9","TMAX_10","TMAX_11")])
+pipo.clim$tmax.monsoon <- rowMeans(pipo.clim[,c("TMAX_7","TMAX_8", "TMAX_9")])
+pipo.clim$TMAX <- rowMeans(pipo.clim[,c("TMAX_1", "TMAX_2", "TMAX_3", "TMAX_4", "TMAX_5", "TMAX_6", "TMAX_7", "TMAX_8", "TMAX_9", "TMAX_10", "TMAX_11", "TMAX_12")])
+pipo.clim$TMEAN <- rowMeans(pipo.clim[,c("TMEAN_1", "TMEAN_2", "TMEAN_3", "TMEAN_4", "TMEAN_5", "TMEAN_6", "TMEAN_7", "TMEAN_8", "TMEAN_9", "TMEAN_10", "TMEAN_11", "TMEAN_12")])
+
+require(dplyr)
+pipo.clim %>% dplyr::select(lon, lat, name, year, PPT_1, PPT_2, PPT_3, PPT_4, PPT_5, PPT_6, PPT_7, PPT_8, PPT_9, PPT_10, PPT_11, PPT_12,
+                            TMAX_1, TMAX_2, TMAX_3, TMAX_4, TMAX_5, TMAX_6, TMAX_7, TMAX_8, TMAX_9, TMAX_10, TMAX_11, TMAX_12,
+                            wintP.NovAug , 
+                            wintP.wateryr , wintP.NM ,    wintP.JJ,       tmax.fallspr  , tmax.JanA,     
+                            tmax.MJul    ,  tmax.AprMayJun ,tmax.fall,      tmax.monsoon,   TMAX, TMEAN   )
+
 # will need to match the core_CN from the plot
 pipo.climate.pltcn <- merge(pipo.clim, cov.data.regional[,c("CORE_CN", "PLT_CN", "STATECD", "COUNTYCD", "plotid", "PLOTSTATE")],by.x = "name", by.y = "CORE_CN")
 
@@ -727,16 +751,12 @@ ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
 #------------------------- match up with the plot information:
 
 # make sure we have tree ids for the noncored trees:
-
-
 plots <- unique(x.mat$plotid)
 
 saveRDS(x.mat,"outputs/x.mat.RDS")
 
-# #select the covvariate data for the cored and uncored trees:
-
 # select the outdata for the cored and uncored trees:
-sel.noncored <- which(ci.names.noncored $row %in% y)
+sel.noncored <- which(ci.names.noncored$row %in% y)
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 plot <- cov.data.regional$PLT_CN[1]
@@ -898,7 +918,7 @@ source("R/plot_level_forecaster.R")
 #i.e. only the climate change parameters, all other params are set to 0 or their site means
 # probably need to try it a few ways
 
-system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+system.time(lapply(X = unique(plots)[1:2],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
                    FUN = function(pltid){predict_avg_growth (plt.num = pltid, #2469918010690 , 
                                                                      
                                                                       scenario = "rcp26", 
@@ -993,6 +1013,7 @@ relgrowth.list <- lapply(X = unique(plots)[1:675],
                                                              scenario = "rcp26"
                                                              )})
 rel.growth.df <- do.call(rbind, relgrowth.list)
+rel.growth.df$scenario <- "rcp26"
 
 # RCP 4.5
 relgrowth.list <- lapply(X = unique(plots)[1:675],
@@ -1000,6 +1021,7 @@ relgrowth.list <- lapply(X = unique(plots)[1:675],
                                                                     scenario = "rcp45"
                          )})
 rel.growth.df.45 <- do.call(rbind, relgrowth.list)
+rel.growth.df.45$scenario <- "rcp45"
 
 # RCP 6.0
 relgrowth.list <- lapply(X = unique(plots)[1:675],
@@ -1007,14 +1029,21 @@ relgrowth.list <- lapply(X = unique(plots)[1:675],
                                                                     scenario = "rcp60"
                          )})
 rel.growth.df.60 <- do.call(rbind, relgrowth.list)
-
+rel.growth.df.60$scenario <- "rcp60"
 # RCP 8.5
 relgrowth.list <- lapply(X = unique(plots)[1:675],
                          FUN = function(pltid){get.relative.growth (plt.number = pltid, 
                                                                     scenario = "rcp85"
                          )})
-rel.growth.df.85 <- do.call(rbind, relgrowth.list)
+rel.growth.df.85 <- do.call(rbind, relgrowth.list) 
+rel.growth.df.85$scenario <- "rcp85"
 
+saveRDS(rel.growth.df, "outputs/relative_growth/rcp_2.6_relative_growth_pred.rds")
+saveRDS(rel.growth.df.45, "outputs/relative_growth/rcp_4.5_relative_growth_pred.rds")
+saveRDS(rel.growth.df.60, "outputs/relative_growth/rcp_6.0_relative_growth_pred.rds")
+saveRDS(rel.growth.df.85, "outputs/relative_growth/rcp_8.5_relative_growth_pred.rds")
+
+rm(fiadb, x.mat, x.mat2, numeric_matrix)
 # combine together
 rel.growth.df <- rbind(rel.growth.df, rel.growth.df.45, rel.growth.df.60, rel.growth.df.85)
 
@@ -1028,26 +1057,192 @@ rel.growth.summary <- rel.growth.df %>% group_by(time, scenario) %>% summarise(r
 rel.growth.summary.plt <- rel.growth.df %>% group_by(time, scenario, PLT_CN) %>% summarise(rel.growth.mean = mean(rel.INC.median), 
                                                                      rel.growth.ci.lo = mean(rel.INC.ci.lo), 
                                                                      rel.growth.ci.hi = mean(rel.INC.ci.hi))
+year.data.frame <- data.frame(time = 1:102, 
+                              year = 2001:2102)
+
+rel.growth.summary <- left_join(rel.growth.summary, year.data.frame)
+rel.growth.summary.plt <- left_join(rel.growth.summary.plt, year.data.frame)
+
+rel.growth.summary$forecast <- ifelse(rel.growth.summary$year <= 2020, "historical", "forecast")
+ggplot(data = rel.growth.summary)+geom_line(aes(x = year, y = rel.growth.mean), color = "black")+
+  geom_ribbon(data = rel.growth.summary, aes(x = year, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi, group = forecast, fill = forecast), alpha = 0.5)+
+  ylab("Mean Relative Change in Tree Growth (cm)")+theme_bw(base_size = 12)+theme(panel.grid = element_blank()) + 
+  geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+facet_wrap(~scenario, ncol = 4)+
+  scale_fill_manual(values = c("historical" = "black", "forecast" = "forestgreen"), name = "")
+ggsave(height = 4, width = 12, units = "in", "outputs/average_predicted_growth_declines.png")
+
+rcp.26.rel.growth.change <- ggplot()  +geom_line(data = rel.growth.summary.plt, aes(x = year, y = rel.growth.mean, group = PLT_CN), color = "grey")+
+  geom_line(data = rel.growth.summary %>% filter(scenario %in% "rcp26"), aes(x = year, y = rel.growth.mean), color = "darkblue")+
+  geom_ribbon(data = rel.growth.summary %>% filter(scenario %in% "rcp26"), aes(x = year, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.60, fill = "forestgreen")+
+  geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+
+  ylab("Relative Change in Tree Growth")+xlab("Year")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())#+ylim(-0.17,0.25)
+rcp.26.rel.growth.change
 
 
-ggplot()+geom_line(data = rel.growth.summary, aes(x = time, y = rel.growth.mean))+
-  geom_ribbon(data = rel.growth.summary, aes(x = time, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.5)+
-  ylab("Relative Change in Tree Growth")+theme_bw()+facet_wrap(~scenario)
+rcp.45.rel.growth.change <- ggplot() + geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+geom_line(data = rel.growth.summary.plt, aes(x = year, y = rel.growth.mean, group = PLT_CN), color = "grey")+
+  geom_line(data = rel.growth.summary %>% filter(scenario %in% "rcp45"), aes(x = year, y = rel.growth.mean), color = "darkblue")+#facet_wrap(~scenario)+
+  geom_ribbon(data = rel.growth.summary %>% filter(scenario %in% "rcp45"), aes(x = year, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.60, fill = "forestgreen")+
+  ylab("Relative Change in Tree Growth")+xlab("Year")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())#+ylim(-0.17,0.07)
+rcp.45.rel.growth.change
+
+rcp.60.rel.growth.change <- ggplot() + geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+geom_line(data = rel.growth.summary.plt, aes(x = year, y = rel.growth.mean, group = PLT_CN), color = "grey")+
+  geom_line(data = rel.growth.summary %>% filter(scenario %in% "rcp60"), aes(x = year, y = rel.growth.mean), color = "darkblue")+#facet_wrap(~scenario)+
+  geom_ribbon(data = rel.growth.summary %>% filter(scenario %in% "rcp60"), aes(x = year, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.60, fill = "forestgreen")+
+  ylab("Relative Change in Tree Growth")+xlab("Year")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())+ylim(-0.17,0.07)
+rcp.60.rel.growth.change
+
+rcp.85.rel.growth.change <- ggplot() + geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+geom_line(data = rel.growth.summary.plt, aes(x = year, y = rel.growth.mean, group = PLT_CN), color = "grey")+
+  geom_line(data = rel.growth.summary %>% filter(scenario %in% "rcp85"), aes(x = year, y = rel.growth.mean), color = "darkblue")+#facet_wrap(~scenario)+
+  geom_ribbon(data = rel.growth.summary %>% filter(scenario %in% "rcp85"), aes(x = year, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.60, fill = "forestgreen")+
+  ylab("Relative Change in Tree Growth")+xlab("Year")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())+ylim(-0.17,0.07)
+rcp.85.rel.growth.change
 
 
-
-rcp.26.rel.growth.change <- ggplot() +geom_abline(aes(slope = 0, intercept = 0), linetype = "dashed")+geom_line(data = rel.growth.summary.plt, aes(x = time, y = rel.growth.mean, group = PLT_CN), color = "grey")+
-  geom_line(data = rel.growth.summary, aes(x = time, y = rel.growth.mean), color = "darkblue")+
-  geom_ribbon(data = rel.growth.summary, aes(x = time, ymin = rel.growth.ci.lo, ymax = rel.growth.ci.hi), alpha = 0.60, fill = "forestgreen")+
-  ylab("Relative Change in Tree Growth")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())+facet_wrap(~scenario)
+cowplot::plot_grid(rcp.26.rel.growth.change, rcp.45.rel.growth.change, rcp.60.rel.growth.change, rcp.26.rel.growth.change, 
+          ncol = 4, align = "hv")
 
 
 ###########################################################################################
 # make mean forecasts at the tree-level with only changing climate (i.e. no change in SDI)
 ###########################################################################################
-
-
-
 # plot level AGBI trends with climate change only
+pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
+source("R/AllomAve.R")
+source("R/read.allom.data.R")
+source("R/query.allom.data.R")
+source("R/allom.BayesFit.R")
+# Run AllomAve for each component in Kaye
+kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
+                     parm = "data/kaye_pipo.csv")
 
+# had to read in the kaye_pipo csv...should just upload to the data
+kaye.parm <- read.csv("data/kaye_pipo.csv")
+
+
+allom.stemwood = load("Allom.PIPO.4.Rdata")
+allom.stembark = load("Allom.PIPO.5.Rdata")
+allom.branchlive = load("Allom.PIPO.8.Rdata")
+allom.branchdead = load("Allom.PIPO.12.Rdata")
+allom.foliage = load("Allom.PIPO.18.Rdata")
+source("R/plot2AGB_kaye_nomort.R")
+
+
+colnames()
+
+get.Plot.AGBI <- function(plt.number, scenario){
+  if(file.exists(paste0("no_mortality_sims/Predictions_", plt.number, "_", scenario ,".Rdata"))){
+    load(paste0("no_mortality_sims/Predictions_", plt.number, "_", scenario ,".Rdata"))
+    #dbh.inc.index
+    
+    out.mean <- t(dbh.inc.index %>% ungroup() %>%  select(DBH.ci.lo, DBH.median, DBH.ci.hi))
+    combined <-  dbh.inc.index %>% ungroup() %>% select(treeno, SUBP, CN, TPA_UNADJ) %>% distinct()
+    # get a TPA out:
+   
+    TPAlive <-  t(dbh.inc.index %>% ungroup() %>% select(TPA_UNADJ) )
+    total.plot.AGB <- plot2AGB_nomort(combined,
+                    out = out.mean,
+                    tpa.live = TPAlive,
+                    mort.scheme,
+                    allom.stats,
+                    unit.conv = 1, # no unit converseion
+                    plot = plt.number,
+                    yrvec = 2001:2098,
+                    scenario = scenario)
+  }else{
+    cat("no existing future climate data") 
+    col.names.df <-  c("plot",            "year" ,           "mAGB" ,           "mAGB.stemwood",   "mAGB.stembark",   "mAGB.branchlive",
+     "mAGB.branchdead", "mAGB.foliage",    "upA",             "lowA",          "upA.stemwood" ,   "upA.stembark"  ,
+     "upA.branchlive" , "upA.branchdead",  "upA.foliage",     "lowA.stemwood",   "lowA.stembark",   "lowA.branchlive",
+    "lowA.branchdead", "lowA.foliage",    "mNPP" ,           "mNPP.stemwood" ,  "mNPP.stembark" ,  "mNPP.branchlive",
+     "mNPP.branchdead", "mNPP.foliage",    "up"   ,           "low" ,            "up.stemwood",     "up.stembark" ,   
+     "up.branchlive", "up.branchdead" ,  "up.foliage",      "low.stemwood",    "low.stembark" ,   "low.branchlive" ,
+     "low.branchdead",  "low.foliage")
+    
+    empty.df <- data.frame(matrix(data = NA, nrow = 1, ncol = 38))
+    colnames(empty.df) <- col.names.df
+   
+    
+  }
+}
+
+# get the plot AGB and AGBI
+single.agb <- get.Plot.AGBI(plt.number = unique(plots)[534], scenario = "rcp26")
+
+ggplot(single.agb, aes(x = year, y = mAGB, group = plot))+geom_line()
+# for RCP 2.6
+AGBI.list <- lapply(X = unique(plots)[1:675],
+                         FUN = function(pltid){get.Plot.AGBI(plt.number = pltid, 
+                                                             scenario = "rcp26"
+                         )})
+AGBI.df <- do.call(rbind, AGBI.list)
+AGBI.df$scenario <- "rcp26"
+ggplot(AGBI.df %>% filter(plot %in% unique(plots)[1:600]), aes(x = year, y = mAGB, group = plot))+geom_line()
+
+# RCP 4.5
+AGBI.45.list <- lapply(X = unique(plots)[1:675],
+                    FUN = function(pltid){get.Plot.AGBI(plt.number = pltid, 
+                                                        scenario = "rcp45"
+                    )})
+AGBI.45.df <- do.call(rbind, AGBI.45.list)
+AGBI.45.df$scenario <- "rcp45"
+
+# RCP 6.0
+AGBI.60.list <- lapply(X = unique(plots)[1:675],
+                       FUN = function(pltid){get.Plot.AGBI(plt.number = pltid, 
+                                                           scenario = "rcp60"
+                       )})
+AGBI.60.df <- do.call(rbind, AGBI.60.list)
+AGBI.60.df$scenario <- "rcp60"
+
+# RCP 8.5
+AGBI.85.list <- lapply(X = unique(plots)[1:675],
+                       FUN = function(pltid){get.Plot.AGBI(plt.number = pltid, 
+                                                           scenario = "rcp85"
+                       )})
+AGBI.85.df <- do.call(rbind, AGBI.85.list)
+AGBI.85.df$scenario <- "rcp85"
+
+
+AGBI.all.df <- rbind(AGBI.df, AGBI.45.df, AGBI.60.df, AGBI.85.df)
+saveRDS(AGBI.all.df, "outputs/relative_growth/AGBI_all_plots.rds")
+ggplot(AGBI.all.df, aes(x = year, y = mAGB, group = plot))+geom_line()+facet_wrap(~scenario)
+ggplot(AGBI.all.df, aes(x = year, y = mNPP, group = plot))+geom_line()+facet_wrap(~scenario)
+
+
+AGBI.all.summary <-
+  AGBI.all.df %>% group_by(year, scenario) %>% summarise(mNPP.avg = median(mNPP),
+                                                         mNPP.sd = sd(mNPP)) %>%
+  
+  # these are in kg/acre, need to convert to Mg/Ha
+  mutate(
+    mNPP.avg.kg_acre = (mNPP.avg / 1000) * 2.471,
+    sdNPP.avg.kg_acre = (mNPP.sd / 1000) * 2.471
+  ) # divide to convert kg to Mg and multiply to convert to Ha
+
+ggplot()+geom_line(data = AGBI.all.summary, aes(x = year, y = mNPP.avg.kg_acre, color = scenario))+theme_bw(base_size = 12)+
+  ylab("Average Aboveground Biomass Increment (Mg/ha)")
+ggsave("outputs/AGBI_without_mortality.png")
+
+##############################################################################
 # plot level AGBI trends with mortality
+##############################################################################
+
+AGB <- readRDS(paste0("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS"))
+
+AGBIw.mort.all.summary <-
+  AGB %>% group_by(year, rcp, parse) %>% summarise(mNPP.avg = median(mNPP),
+                                                         mNPP.sd = sd(mNPP)) %>%
+  
+  # these are in kg/acre, need to convert to Mg/Ha
+  mutate(
+    mNPP.avg.kg_acre = (mNPP.avg / 1000) * 2.471,
+    sdNPP.avg.kg_acre = (mNPP.sd / 1000) * 2.471
+  ) # divide to convert kg to Mg and multiply to convert to Ha
+
+ggplot()+geom_line(data = AGBIw.mort.all.summary, aes(x = year, y = mNPP.avg.kg_acre, color = rcp))+theme_bw(base_size = 12)+
+  ylab("Average Aboveground Biomass Increment (Mg/ha)")+facet_wrap(~parse)
+ggsave("outputs/AGBI_with_mortality_all_parse.png")
+
+ggplot()+geom_line(data = AGBIw.mort.all.summary %>% filter(parse %in% "full"), aes(x = year, y = mNPP.avg.kg_acre, color = rcp))+theme_bw(base_size = 12)+
+  ylab("Average Aboveground Biomass Increment (Mg/ha)")+facet_wrap(~parse)
+ggsave("outputs/AGBI_with_mortality.png")
