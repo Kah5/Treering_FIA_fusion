@@ -1411,42 +1411,42 @@ AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, 
                                  cc.GD.20 = GD.20 - `no climate change`, 
                                  cc.DD.ramp = DD.ramp - `no climate change`)
 
-AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(rcp, mort.scheme, year) %>% 
-  summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
-            climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
-            
-            cc.GD.10diff.median = median(cc.GD.10, na.rm =TRUE),
-            cc.GD.10diff.sd = sd(cc.GD.10, na.rm =TRUE),
-            # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
-            # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
-            cc.GD.20diff.median = median(cc.GD.20, na.rm =TRUE),
-            cc.GD.20diff.sd = sd(cc.GD.20, na.rm =TRUE),
-            
-            cc.DD.ramp.diff.median = median(cc.DD.ramp, na.rm =TRUE),
-            cc.DD.ramp.diff.sd = sd(cc.DD.ramp, na.rm =TRUE))
-
-ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median, color = mort.scheme))+geom_line()+
-  geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
-
-
-ggplot(data = AGB.parse.dCC, aes(x = year, y = climatechangediff, color = mort.scheme, group = plot))+geom_line()+
-  #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
-
-
-ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.DD.ramp, color = mort.scheme, group = plot))+geom_line()+
-  #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
-
-ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.GD.10, color = mort.scheme, group = plot))+geom_line()+
-  #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
-
-ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.GD.20, color = mort.scheme, group = plot))+geom_line()+
-  #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
-  facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
-
+# AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(rcp, mort.scheme, year) %>% 
+#   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
+#             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
+#             
+#             cc.GD.10diff.median = median(cc.GD.10, na.rm =TRUE),
+#             cc.GD.10diff.sd = sd(cc.GD.10, na.rm =TRUE),
+#             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
+#             # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
+#             cc.GD.20diff.median = median(cc.GD.20, na.rm =TRUE),
+#             cc.GD.20diff.sd = sd(cc.GD.20, na.rm =TRUE),
+#             
+#             cc.DD.ramp.diff.median = median(cc.DD.ramp, na.rm =TRUE),
+#             cc.DD.ramp.diff.sd = sd(cc.DD.ramp, na.rm =TRUE))
+# 
+# ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median, color = mort.scheme))+geom_line()+
+#   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
+#   facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
+# 
+# 
+# ggplot(data = AGB.parse.dCC, aes(x = year, y = climatechangediff, color = mort.scheme, group = plot))+geom_line()+
+#   #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
+#   facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
+# 
+# 
+# ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.DD.ramp, color = mort.scheme, group = plot))+geom_line()+
+#   #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
+#   facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
+# 
+# ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.GD.10, color = mort.scheme, group = plot))+geom_line()+
+#   #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
+#   facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
+# 
+# ggplot(data = AGB.parse.dCC, aes(x = year, y = cc.GD.20, color = mort.scheme, group = plot))+geom_line()+
+#   #geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = climatechangediff.median - climatechangediff.sd, ymax = climatechangediff.median + climatechangediff.sd,  fill = mort.scheme))+
+#   facet_grid(cols = vars(rcp), rows = vars(mort.scheme))
+# 
 
 ###########################################################################################################################################
 #------------------------- Parse DI and DD mortality contributions for 60% max SDI threshold--------------------------------------

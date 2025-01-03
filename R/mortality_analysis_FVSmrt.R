@@ -221,6 +221,15 @@ hist(PIPO.surv.data$DIA)
 ggplot(PIPO.surv.data, aes(DIA, S))+geom_point()+stat_smooth()
 ggplot(PIPO.surv.data, aes(growth, S))+geom_point()+stat_smooth()
 
+m1a <- glm(S ~ DBH_cm ,family=binomial(link='logit'),data=PIPO.surv.data)
+summary(m1a)
+anova(m1a)
+alpha <- m1$coefficients[1]
+b.growth <- m1$coefficients[2]
+# save the mortality analysis equation:
+saveRDS(m1, "outputs/PIPO_growth_model.RDS")
+
+
 m1 <- glm(S ~ growth ,family=binomial(link='logit'),data=PIPO.surv.data)
 summary(m1)
 anova(m1)
@@ -230,7 +239,7 @@ b.growth <- m1$coefficients[2]
 saveRDS(m1, "outputs/PIPO_growth_model.RDS")
 
 
-m2 <- glm(S ~ growth + DBH_cm,family=binomial(link='logit'),data=PIPO.surv.data)
+m2 <- glm(S ~ growth + DBH_cm,family=binomial(link='logit'), data=PIPO.surv.data)
 
 growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
                           DBH_cm = seq(5, 60, length = 20))
@@ -268,7 +277,7 @@ hist(rbinom(n = 1000, prob = pmort, size = 1))
      
 # use this to sample mortality probabilities??
 
-m3 <- glm(M ~ growth + DBH_cm + growth*DBH_cm, family=binomial(link='logit'), data=PIPO.mort.data)
+m3 <- glm(S ~ growth + DBH_cm + growth*DBH_cm, family=binomial(link='logit'), data=PIPO.surv.data)
 summary(m3)
 alpha.growth <- m3$coefficients[1]
 b.growth <- m3$coefficients[2]
@@ -285,9 +294,9 @@ class(growth.sim$growth)
 ggplot(growth.sim, aes(DBH_cm, pmort, color = growth, group = growth))+geom_line()
 ggplot(growth.sim, aes(growth, pmort, color = DBH_cm, group = DBH_cm))+geom_line()
 
-saveRDS(m3, "model3_logistic_mortality_FIA.RDS")
+saveRDS(m3, "model3_logistic_survival_FIA.RDS")
 
-m3 <- readRDS("model3_logistic_mortality_FIA.RDS")
+m3 <- readRDS("model3_logistic_survivial_FIA.RDS")
 alpha.mort <- m3$coefficients[1]
 b.growth <- m3$coefficients[2]
 b.dbh <- m3$coefficients[3]
@@ -296,9 +305,9 @@ b.growth.dbh <- m3$coefficients[4]
 # AUC is not bad for one predictor
 library(ROCR)
 
-get_AUC <- function(m, newdata = PIPO.mort.data){
-    p <- predict(m, newdata=PIPO.mort.data, type="response")
-    pr <- prediction(p, PIPO.mort.data$M)
+get_AUC <- function(m, newdataframe = PIPO.surv.data){
+    p <- predict(m, newdata=newdataframe, type="response")
+    pr <- prediction(p, newdataframe$S)
     prf <- performance(pr, measure = "tpr", x.measure = "fpr")
     plot(prf)
     auc <- performance(pr, measure = "auc")
@@ -307,9 +316,20 @@ get_AUC <- function(m, newdata = PIPO.mort.data){
 }
 
 
-get_AUC(m1, newdata = PIPO.mort.data)
-get_AUC(m2, newdata = PIPO.mort.data)
-get_AUC(m3, newdata = PIPO.mort.data)
+# get AUC statistics
+auc.1a <- get_AUC(m = m1a, newdataframe = PIPO.surv.data)
+auc.1 <- get_AUC(m = m1, newdataframe = PIPO.surv.data)
+auc.2 <- get_AUC(m = m2, newdataframe = PIPO.surv.data)
+auc.3 <- get_AUC(m = m3, newdataframe = PIPO.surv.data)
+
+logistic.mortality.model.df <- data.frame(Model = 1:4, 
+           AUC = c(auc.1a, auc.1, auc.2, auc.3), 
+           `Model formula` = c("S ~ DBH_cm", 
+                             "S ~ growth", 
+                             "S ~ growth + DBH_cm", 
+                             "S ~ growth + DBH_cm + growth*DBH_cm"))
+
+logistic.mortality.model.df |> gt() |> gtsave(filename = "output/logistic_regression_annual_FIA_mortality.html")
 # goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
 # compare these to biomass estimates
 # get a static estimate of SDI, which includes the dead trees:

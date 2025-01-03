@@ -891,6 +891,10 @@ source("R/get_objects.R")
 source("R/generate_forecast.R")
 source("R/biomass.sensitivity.periodic_4scenarios.R")
 
+#################################################################################
+# make forecasts at the tree-level with no mortality
+#################################################################################
+
 
 # run all the plots for this scenario and 60% max SDI
 remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYEAR_T2 > 2001)

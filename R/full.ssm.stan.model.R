@@ -607,7 +607,7 @@ rm(fit_ssm_df, model.5) # remove from memory
 # run model 6: TREE Size effect + Tmax + Precip + SDI
 model.name <- "model_6"
 start.time <- Sys.time()
-model.6 <- stan(file = "model_6_nomissing_xscaled.stan", 
+model.6 <- stan(file = "modelcode/model_6_nomissing_xscaled.stan", 
                 data = mod.data,
                 iter = 2000, chains = 3, verbose=FALSE, control =  list(max_treedepth = 15),#
                 sample_file = model.name, 

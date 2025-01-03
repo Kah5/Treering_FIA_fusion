@@ -52,7 +52,7 @@ generate.plot.forecast <- function(index.trees.df,
                                    # read in designCD.table
                                    DESIGNCD.table.plot,  #= DESIGNCD.table,
                                    ramp.density, # = TRUE, # if true, will decrease the SDImax threshold 
-                                   scale.DImort = 10, # scaler to multiply DI mortality by
+                                   scale.DImort = 1, # scaler to multiply DI mortality by
                                    # keep these set to true
                                    density.dependent = TRUE, 
                                    density.independent = TRUE, 
