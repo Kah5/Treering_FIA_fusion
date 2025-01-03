@@ -1,13 +1,18 @@
 library(viridis)
+library(here)
+library(tidyverse)
+
+data <- readRDS("data/regional_pipo_jags_formatted_data.RDS")
+cov.data.regional <- data$cov.data.regional
 #Parse apart the SDI and climate change effects sensitivity effects on AGB
-parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7, rcp, cc.scenario = "doubleCC" ){
+parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7, rcp, cc.scenario = "doubleCC", scale.mort.prob = 1 ){
   cat(paste0("getting pred vs obs for ",as.character(plot)))
   
   oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   if(nrow(oldTREE) <=1){
    cat("less than 2 trees on the first plot")
   }else{
-    if(!file.exists(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
+    if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
      cat("no existing future climate data") 
     }else{
     # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
@@ -41,9 +46,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
     
       if(cc.scenario == "doubleCC"){
     
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       #load(paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
@@ -268,8 +273,22 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
                              low.branchlive = low.branchlive[2:length(low.stemwood)],
                              low.branchdead = low.branchdead[2:length(low.stemwood)],
                              low.foliage = low.foliage[2:length(low.stemwood)])
-    
-    # obs.biomass <- data.frame(plot = c(plot,plot), 
+  
+    # ggplot()+geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA))+
+    #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    # tpa.live.df <- apply( tpa.live[i, , ] , 2, sum, na.rm = TRUE)
+    # tpa.live.df
+    # tpa.dead.df <- apply( tpa.dead[i, , ] , 2, sum, na.rm = TRUE)
+    # 
+    #  ggplot()+geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA))+
+    #    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    #  ggplot()+geom_point(data = tpa.live.df, aes(x = year, ymin = , ymax = upA))+
+    #    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead), fill = "red")  
+    # 
+    # 
+    # # obs.biomass <- data.frame(plot = c(plot,plot), 
     #                           DRYBIO_AG_lb_ha = c(sum(oldTREE$DRYBIO_AG*oldTREE$TPA_UNADJ), sum(STATUSCD_change$DRYBIO_AG*STATUSCD_change$TPA_UNADJ, na.rm =TRUE)),
     #                           year = c(unique(oldTREE$MEASYR), unique(STATUSCD_change$MEASYR)) )
     # 
@@ -282,9 +301,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
     
     cat("reading in no SDI results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noSDI_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".noSDI.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -520,9 +539,9 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
     
     cat("reading in no CC results")
     if(cc.scenario == "doubleCC"){
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
     }else{
-      load(paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      load(paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
       
     }
     # objects
@@ -770,49 +789,43 @@ parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7,
 }
 plots <- unique(cov.data.regional$PLT_CN)
 plot <- unique(plots)[2]
-mort.scheme = "DIonly"
-SDI.ratio.DD = 0.8
+mort.scheme = "DIDD"
+SDI.ratio.DD = 0.6
 cc.scenario = "singleCC"
 
-unique(plots) %in% 2584218010690
-DIonly.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
-DIonly.rcp85.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
-DIonly.rcp45.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC" )})
-DIonly.rcp60.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC" )})
+unique(plots) %in% 2469188010690
+# DIDD.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
+# DIDD.rcp85.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
+# DIDD.rcp45.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC" )})
+# DIDD.rcp60.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC" )})
+# 
+plot <- "2584218010690"
+# read in forecasts with the 60% threshold for SDI based mortality
+DIDD.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", scale.mort.prob = 1 )})
+DIDD.rcp85.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC" , scale.mort.prob = 1)})
+DIDD.rcp45.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC" , scale.mort.prob = 1)})
+DIDD.rcp60.parse.list.60 <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC" , scale.mort.prob = 1)})
 
 
-# get the no Density Dependent mortality forecasts too:
-DIonly.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC" )})
-DIonly.rcp85.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC" )})
-DIonly.rcp45.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC" )})
-DIonly.rcp60.parse.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC" )})
+DIDD.parse.df.60 <- do.call(rbind, DIDD.parse.list.60)
+DIDD.rcp45.parse.df.60 <- do.call(rbind, DIDD.rcp45.parse.list.60)
+DIDD.rcp60.parse.df.60 <- do.call(rbind, DIDD.rcp60.parse.list.60)
+DIDD.rcp85.parse.df.60 <- do.call(rbind, DIDD.rcp85.parse.list.60)
+
+parse.DIDD.mort.60 <- rbind( DIDD.parse.df.60, DIDD.rcp45.parse.df.60, DIDD.rcp60.parse.df.60, DIDD.rcp85.parse.df.60)
+#saveRDS( DIDD.parse.df.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
+
+saveRDS(parse.DIDD.mort.60, "outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
+parse.DIDD.mort.60 <- readRDS("outputs/parse.DIDD.mort.60SDIthreshold_1.RDS")
 
 
-#DDonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "DDonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
-#DIonly.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIonly",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
-#nomort.parse.list <- lapply(unique(plots)[1:43],FUN = function(x){parse_biomass_ests(plot = x, mort.scheme = "nomort",  SDI.ratio.DD = 0.7, cc.scenario = "singleCC" )})
-
-
-DIDD.parse.df <- do.call(rbind, DIDD.parse.list)
-DIDD.rcp45.parse.df <- do.call(rbind, DIDD.rcp45.parse.list)
-DIDD.rcp60.parse.df <- do.call(rbind, DIDD.rcp60.parse.list)
-DIDD.rcp85.parse.df <- do.call(rbind, DIDD.rcp85.parse.list)
-
-DIonly.parse.df <- do.call(rbind, DIonly.parse.list)
-DIonly.rcp45.parse.df <- do.call(rbind, DIonly.rcp45.parse.list)
-DIonly.rcp60.parse.df <- do.call(rbind, DIonly.rcp60.parse.list)
-DIonly.rcp85.parse.df <- do.call(rbind, DIonly.rcp85.parse.list)
-
-
-parse.all.mort <- rbind(DIDD.parse.df, DIDD.rcp45.parse.df, DIDD.rcp60.parse.df,DIDD.rcp85.parse.df,
-  DIonly.parse.df, DIonly.rcp45.parse.df, DIonly.rcp60.parse.df,DIonly.rcp85.parse.df)
-
-saveRDS(parse.all.mort, "outputs/parse.all.mortDI_DIDD.RDS")
-parse.all.mort <- readRDS("outputs/parse.all.mortDI_DIDD.RDS")
+parse.all.mort <- parse.DIDD.mort.60  #DIDD.parse.df.60  #<- DIDD.parse.df.60 
+parse.all.mort$plot <- as.character(parse.all.mort$plot)
 
 # subtract the scenarios from the full scenario for the mean AGB:
 AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, mAGB) %>% group_by(plot, mort.scheme, year, parse) %>%
-  spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`, 
+  spread(parse, mAGB) %>% mutate(climatechangediff = full - `no climate change`,
+                                 notclimatechange = full-climatechangediff, 
                                  #tmaxdiff = full - `no tmax`, 
                                  SDIdiff = full - `no SDI`, 
                                  climatechangediff.pct = ((full - `no climate change`)/full)*100, 
@@ -822,6 +835,8 @@ AGB.parse.dCC <- parse.all.mort %>% select(plot, rcp, mort.scheme, year, parse, 
 AGB.parse.dCC.summary <- AGB.parse.dCC %>% ungroup() %>% group_by(rcp, mort.scheme, year) %>% 
   summarise(climatechangediff.median = median(climatechangediff, na.rm =TRUE),
             climatechangediff.sd = sd(climatechangediff, na.rm =TRUE),
+            notclimatechangediff.median = median(notclimatechange, na.rm =TRUE),
+            notclimatechangediff.sd = sd(notclimatechange, na.rm =TRUE),
             # tmaxdiff.median = median(tmaxdiff, na.rm =TRUE),
             # tmaxdiff.sd = sd(tmaxdiff, na.rm =TRUE),
             SDIdiff.median = median(SDIdiff, na.rm =TRUE),
@@ -845,6 +860,755 @@ ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = climatechangediff.median,
 # ggplot(data = AGB.parse.dCC.summary, aes(x = year, y = SDIdiff.median, color = mort.scheme))+geom_line()+
 #   geom_ribbon(data = AGB.parse.dCC.summary, aes(x = year, ymin = SDIdiff.median - SDIdiff.sd, ymax = SDIdiff.median + SDIdiff.sd,  fill = mort.scheme))+
 #   facet_wrap(~mort.scheme)
+
+#------------------------- Parse DI and DD mortality contributions for 80% max SDI threshold--------------------------------------
+parse_mortality_ests <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.6, rcp, cc.scenario = "doubleCC", parse , scale.mort.prob = 1.1){
+  cat(paste0("getting pred vs obs for ",as.character(plot)))
+  
+  oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
+  if(nrow(oldTREE) <=1){
+    cat("less than 2 trees on the first plot")
+  }else{
+    
+    if(parse == "full"){
+      fn <- paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata")
+    }else{
+      if(parse == "noSDI"){
+        fn <- paste0("biomass_dataFIAperiodic_noSDI_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+           }else{
+        
+             fn <-  paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+        
+      }
+    }
+    
+    
+    
+    if(!file.exists(fn)){
+      cat("no existing future climate data") 
+    }else{
+   
+      load(fn)
+      
+      
+      
+      # get a TPA out:
+      #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
+      
+      tpa.di.m <- tpa.di %>% filter(time %in% 1:99)
+      tpa.di.m$id <- paste0("x[",tpa.di.m$treeno, ",", tpa.di.m$time,"]")
+      
+      TPA.DI.ordered <- tpa.di.m$id
+      
+      tpa.di.m.time <- tpa.di.m %>% dplyr::select(id, TPA) %>%  spread(key = id, value = TPA)
+      
+      
+      # for dd
+      tpa.dd.m <- tpa.dd %>% filter(time %in% 1:99)
+      colnames(tpa.dd.m)[3] <- "TPAdd"
+      
+      tpa.di.m <- tpa.di %>% filter(time %in% 1:99)
+      colnames(tpa.di.m)[3] <- "TPAdi"
+      
+      di.dd.tpa <- left_join(tpa.di.m, tpa.dd.m)
+      
+      tpa.full.m <- reshape2::melt(tpa.live)
+      colnames(tpa.full.m) <- c("quantile", "treeno", "time", "TPAfull")
+      tpa.full.m  <- tpa.full.m %>% filter(quantile == 2) %>% select(-quantile)
+      full.di.dd.tpa <- left_join(di.dd.tpa, tpa.full.m)
+      
+      tpa.dead.m <- reshape2::melt(tpa.dead)
+      colnames(tpa.dead.m) <- c("quantile", "treeno", "time", "TPAdead")
+      tpa.dead.m <- tpa.dead.m %>% filter(quantile == 2) %>% select(-quantile)
+      
+      all.tpa <- left_join(full.di.dd.tpa, tpa.dead.m)
+      all.tpa$PLT_CN <- as.character(plot)
+      all.tpa
+      
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      nrep    <- 3
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB.dead.dd <- mAGB.dead.di <- sAGB.dead.dd <- sAGB.dead.di<- matrix(NA, mplot, nt)
+      #mNPP.dead <- sNPP.dead  <- matrix(NA, mplot,nt)
+      lowAGB.dead <- hiAGB.dead  <- lowAGB.dead.di <- hiAGB.dead.di <-  lowAGB.dead.dd <- hiAGB.dead.dd  <-matrix(NA, mplot, nt)
+      #lowNPP.dead <- hiNPP.dead  <-matrix(NA, mplot,nt)
+      AGB.dead.dd <- AGB.dead.di <- AGB.dead <-  array(NA, c(mplot, nrep, nt))
+      
+      
+      # need to create a matrix for tpadead.dd & tpadead.di
+      tpa.dead.dd  <- tpa.dd.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdd) %>% select(`1`:`99`)
+      tpa.dead.di  <- tpa.di.m %>% ungroup() %>% group_by(time) %>% spread(time, TPAdi) %>% select(`1`:`99`)
+    
+      
+      for (g in seq_len(nrep)) {
+  
+        j <- 1
+      AGB.dead[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      AGB.dead.di[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.di[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      AGB.dead.dd[j, g, ] <- apply(biomass.dead[g,,]*tpa.dead.dd[,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
+      
+      }
+     
+      
+      # dead trees:
+
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # parse into dead from DI vs dead from DD
+      
+      mAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead.di[i, ] <- apply(AGB.dead.di[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead.di[i,]<- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead.di[i,] <- apply(AGB.dead.di[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      mAGB.dead.dd[i, ] <- apply(AGB.dead.dd[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead.dd[i, ] <- apply(AGB.dead.dd[i, , ]  , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead.dd[i,]<- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead.dd[i,] <- apply(AGB.dead.dd[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # get total dead: 
+      tpa.dead.dd.sum <- colSums(tpa.dead.dd)
+      tpa.dead.di.sum <- colSums(tpa.dead.di)
+      
+      
+      yrvec <- 2001:2099
+      # okay now add all to a dataframe:
+      total.plot <- data.frame(plot = plot, 
+                               mort.scheme = mort.scheme, 
+                               rcp = rcp,
+                               cc.scenario = cc.scenario,
+                               parse = parse,
+                               year = yrvec, 
+                               tpa.dead.dd =  tpa.dead.dd.sum, 
+                               tpa.dead.di = tpa.dead.di.sum , 
+                              
+                      
+                               mAGB.dead  = mAGB.dead[i,],
+                               mAGB.dead.dd = mAGB.dead.dd[i,], 
+                               mAGB.dead.di = mAGB.dead.di[i,], 
+                               
+                               lowAGB.dead = lowAGB.dead[i,], 
+                               lowAGB.dead.dd = lowAGB.dead.dd[i,], 
+                               lowAGB.dead.di = lowAGB.dead.di[i,], 
+                               
+                               hiAGB.dead = hiAGB.dead[i,], 
+                               hiAGB.dead.dd = hiAGB.dead.dd[i,], 
+                               hiAGB.dead.di = hiAGB.dead.di[i,])
+      
+      total.plot
+    }
+    
+  }
+}
+
+# 
+# mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
+# mort.26 <- do.call(rbind, mort.26.list)
+# 
+# mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
+# mort.45.test <- do.call(rbind, mort.45.list)
+# 
+# mort.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
+# mort.60.test <- do.call(rbind, mort.60.list)
+# 
+# mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
+# mort.85.test <- do.call(rbind, mort.85.list)
+# 
+# mort.full.parse <- rbind(mort.26, mort.45.test, mort.60.test, mort.85.test)
+# 
+# 
+# # get it for noCC
+# 
+# mort.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" )})
+# mort.test.noCC <- do.call(rbind, mort.test.list.noCC)
+# 
+# mort.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" )})
+# mort.45.test.noCC <- do.call(rbind, mort.45.list.noCC)
+# 
+# mort.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" )})
+# mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
+# 
+# mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" )})
+# mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
+# 
+# 
+# mort.full.parse.noCC <- rbind(mort.test.noCC, mort.45.test.noCC, mort.60.test.noCC, mort.85.test.noCC)
+# 
+# # get it for noSDI:
+# 
+# mort.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" )})
+# mort.test.noSDI <- do.call(rbind, mort.test.list.noSDI)
+# 
+# mort.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" )})
+# mort.45.test.noSDI <- do.call(rbind, mort.45.list.noSDI)
+# 
+# mort.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" )})
+# mort.60.test.noSDI <- do.call(rbind, mort.60.list.noSDI)
+# 
+# mort.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" )})
+# mort.85.test.noSDI <- do.call(rbind, mort.85.list.noSDI)
+# 
+# 
+# mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test.noSDI, mort.85.test.noSDI)
+# 
+# mort.all.parse <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
+# 
+# # save as RDS:
+# saveRDS(mort.all.parse, here("outputs/", "all.plot.mort.C.RDS"))
+# mort.all.parse <- readRDS( here("outputs/", "all.plot.mort.C.RDS"))
+# 
+# # create function to scale biomass to C and convert to Tg?
+# # Cfraction
+# C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000}
+# C.convert.deadwood(mort.all.parse$mAGB.dead, C.frac = 0.4822)
+# 
+# # get general summary of the total mortality in terms of C for each mortality type
+# mort.test <- mort.all.parse %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
+#                                 summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){C.convert.deadwood(x)})) %>% 
+#                                 ungroup() %>% # sum across all the PLT_CNs
+#                                 group_by(rcp, mort.scheme, year, parse) %>%
+#                                 summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
+# 
+# 
+# 
+# #mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
+# 
+# ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
+#   geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
+#   facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+#   scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+#   ylab("Dead Wood carbon (Tg C)")
+# 
+# ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic.png"))
+# 
+# # reorient it so it looks closer to the parse plots
+# 
+# ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+#   geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+#   
+#   #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+#   facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+#  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+#   ylab("Dead Wood carbon (Tg C)")+scale_fill_manual( name = "Scenario",
+#                                                     values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+#   scale_color_manual( name = "Scenario",
+#                       values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+# 
+#   
+# 
+# ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+#   geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+#   
+#   #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+#   facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+#   # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+#   ylab("Dead Wood carbon (Tg C) \n Density Independent Mortality")+scale_fill_manual( name = "Scenario",
+#                                                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+#   scale_color_manual( name = "Scenario",
+#                       values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+# 
+# ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_total_parse_periodic.png"))
+# 
+# 
+# ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+#   geom_line(data = mort.test, aes(x = year, y = mAGB.dead.dd, color = parse), alpha = 0.7)+
+#   
+#   #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+#   facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+#   # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+#   ylab("Dead Wood carbon (Tg C) \n Density Dependent Mortality")+scale_fill_manual( name = "Scenario",
+#                                                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+#   scale_color_manual( name = "Scenario",
+#                       values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+# 
+# 
+# ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DD_total_parse_periodic.png"))
+
+
+#------------------------- Parse DI and DD mortality contributions for 60% max SDI threshold--------------------------------------
+
+mort.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
+mort.26 <- do.call(rbind, mort.26.list)
+saveRDS(mort.26, "outputs/parse.mort.26.60.tempfile.full.rds")
+rm(mort.26, mort.26.list)
+
+mort.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full"  , scale.mort.prob = 1)})
+mort.45.test <- do.call(rbind, mort.45.list)
+saveRDS(mort.45.test, "outputs/parse.mort.45.60.tempfile.full.rds")
+rm(mort.45.test, mort.45.list)
+
+
+mort.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full", scale.mort.prob = 1)})
+mort.60.test <- do.call(rbind, mort.60.list)
+saveRDS(mort.60.test, "outputs/parse.mort.60.60.tempfile.full.rds")
+rm(mort.60.test, mort.60.list)
+
+mort.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" , scale.mort.prob = 1)})
+mort.85.test <- do.call(rbind, mort.85.list)
+saveRDS(mort.85.test, "outputs/parse.mort.85.60.tempfile.full.rds")
+rm(mort.85.list)
+
+mort.26 <- readRDS("outputs/parse.mort.26.60.tempfile.full.rds")
+mort.45.test <- readRDS("outputs/parse.mort.45.60.tempfile.full.rds")
+mort.60.test <- readRDS("outputs/parse.mort.60.60.tempfile.full.rds")
+mort.full.parse <- rbind(mort.26, mort.45.test, mort.60.test, mort.85.test)
+#mort.full.parse <- mort.26
+saveRDS(mort.full.parse, "outputs/mort.full.parse.all.rds")
+rm(mort.full.parse, mort.26, mort.45.test, mort.60.test, mort.85.test)
+unique(plots) %in% 3172745010690
+plot = 3172745010690
+# get it for noCC
+
+mort.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" , scale.mort.prob = 1)})
+mort.test.noCC <- do.call(rbind, mort.test.list.noCC)
+
+mort.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" , scale.mort.prob = 1)})
+mort.45.test.noCC <- do.call(rbind, mort.45.list.noCC)
+
+mort.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" , scale.mort.prob = 1)})
+mort.60.test.noCC <- do.call(rbind, mort.60.list.noCC)
+
+
+mort.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" , scale.mort.prob = 1)})
+mort.85.test.noCC <- do.call(rbind, mort.85.list.noCC)
+
+#mort.full.parse.noCC <- mort.test.noCC
+mort.full.parse.noCC <- rbind(mort.test.noCC, mort.45.test.noCC, mort.60.test.noCC, mort.85.test.noCC)
+saveRDS(mort.full.parse.noCC, "outputs/mort.full.pars.noCC.60.rds")
+rm(mort.full.parse.noCC, 
+   mort.26.list.noCC, mort.26.test.noCC, 
+   mort.45.list.noCC, mort.45.test.noCC, 
+   mort.60.list.noCC, mort.60.test.noCC, 
+   mort.85.list.noCC, mort.85.test.noCC)
+# get it for noSDI:
+#x <- unique(plots)[1]
+
+mort.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
+mort.test.noSDI <- do.call(rbind, mort.test.list.noSDI)
+
+mort.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
+mort.45.test.noSDI <- do.call(rbind, mort.45.list.noSDI)
+
+mort.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
+mort.60.test.noSDI <- do.call(rbind, mort.60.list.noSDI)
+
+mort.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" , scale.mort.prob = 1)})
+mort.85.test.noSDI <- do.call(rbind, mort.85.list.noSDI)
+
+mort.full.parse.noSDI <- mort.test.noSDI
+mort.full.parse.noSDI <- rbind(mort.test.noSDI, mort.45.test.noSDI, mort.60.test.noSDI, mort.85.test.noSDI)
+saveRDS(mort.full.parse.noSDI, "outputs/mort.full.parse.noSDI.60.rds")
+rm( 
+   mort.26.list.noSDI, mort.26.test.noSDI, 
+   mort.45.list.noSDI, mort.45.test.noSDI, 
+   mort.60.list.noSDI, mort.60.test.noSDI, 
+   mort.85.list.noSDI, mort.85.test.noSDI)
+#
+
+
+mort.full.parse <- readRDS("outputs/mort.full.parse.all.rds")
+mort.full.parse.noCC <- readRDS("outputs/mort.full.pars.noCC.60.rds")
+mort.all.parse.60 <- rbind(mort.full.parse, mort.full.parse.noSDI, mort.full.parse.noCC)
+
+# for just rcp 26
+#mort.all.parse.60 <- rbind(mort.26, mort.test.noCC, mort.test.noSDI)
+# save as RDS:
+saveRDS(mort.all.parse.60, "outputs/all.plot.mort.C.60SDIthresh_1.RDS")
+mort.all.parse.60 <- readRDS( "outputs/all.plot.mort.C.60SDIthresh_1.RDS")
+
+# create function to scale biomass to C and convert to Tg?
+# Cfraction
+C.convert.deadwood <- function(x, C.frac = 0.4822){(x*C.frac)/1000000}
+C.convert.deadwood(mort.all.parse.60$mAGB.dead, C.frac = 0.4822)
+
+# get general summary of the total mortality in terms of C for each mortality type
+mort.test <- mort.all.parse.60 %>% group_by(plot, mort.scheme, rcp, year, parse) %>%
+  summarise(across(c(mAGB.dead:hiAGB.dead.di), function(x){C.convert.deadwood(x)})) %>% 
+  ungroup() %>% # sum across all the PLT_CNs
+  group_by(rcp, mort.scheme, year, parse) %>%
+  summarise(across(c(mAGB.dead:hiAGB.dead.di), sum))
+
+summary(mort.test$mAGB.dead.di)
+
+#mort.test.m <- reshape2::melt(mort.test, id.vars = c("rcp", "mort.scheme", "year", "parse"))
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = "Density Independent"))+
+  geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = "Density Dependent"))+
+  facet_grid(cols = vars(parse), rows = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C)")
+
+ggsave(height = 6, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_DD_total_parse_periodic_60MaxSDIthresh_1_test.png"))
+
+# reorient it so it looks closer to the parse plots
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C)")+scale_fill_manual( name = "Scenario",
+                                                     values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.di, ymax = hiAGB.dead.di, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.di, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C) \n Density Independent Mortality")+scale_fill_manual( name = "Scenario",
+                                                                                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DI_total_parse_periodic_60MaxSDIthresh_1.1.png"))
+
+
+ggplot()+geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  geom_line(data = mort.test, aes(x = year, y = mAGB.dead.dd, color = parse), alpha = 0.7)+
+  
+  #geom_ribbon(data = mort.test, aes(x = year, ymin = lowAGB.dead.dd, ymax = hiAGB.dead.dd, fill = parse), alpha = 0.7)+
+  facet_grid(cols = vars(rcp))+theme_bw()+#theme(panel.grid = element_blank())+
+  # scale_fill_manual("Mortality", values = c("Density Dependent" = "#7570b3", "Density Independent" = "#d95f02"))+
+  ylab("Dead Wood carbon (Tg C) \n Density Dependent Mortality")+scale_fill_manual( name = "Scenario",
+                                                                                    values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  scale_color_manual( name = "Scenario",
+                      values =c("full"="#1b9e77","detrendedCC"= "#d95f02", "noSDI"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+
+
+ggsave(height = 3, width = 8, units = "in", here("outputs/", "Dead_Carbon_by_DD_total_parse_periodic_60MaxSDIthresh_1.1.png"))
+
+#--------------get the number & sizes of dead trees by mortality type and plot over time--------------------------
+
+parse = "full"
+parse_mortality_size <- function(plot, mort.scheme = "DIDD", SDI.ratio.DD = 0.8, rcp, cc.scenario = "singleCC", parse,  scale.mort.prob = 1){
+  cat(paste0("getting pred vs obs for ",as.character(plot)))
+  
+  oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
+  if(nrow(oldTREE) <=1){
+    cat("less than 2 trees on the first plot")
+  }else{
+    
+    if(parse == "full"){
+      fn <- paste0("biomass_dataFIAperiodic/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".", parse,".Rdata")
+    }else{
+      if(parse == "noSDI"){
+        fn <- paste0("biomass_dataFIAperiodic_noSDI/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+      }else{
+        
+        fn <-  paste0("biomass_dataFIAperiodic_noCC/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".", parse,".Rdata")
+        
+      }
+    }
+    
+    
+    
+    if(!file.exists(fn)){
+      cat("no existing future climate data") 
+    }else{
+      
+      load(fn)
+      
+      
+      
+      # get a TPA out:
+      #tpa.m$newVar3 <- rep(4:102, each = 100*ni)
+      
+      tpa.di.m <- tpa.di %>% filter(time %in% 1:99)
+      tpa.di.m$id <- paste0("x[",tpa.di.m$treeno, ",", tpa.di.m$time,"]")
+      
+      TPA.DI.ordered <- tpa.di.m$id
+      
+      tpa.di.m.time <- tpa.di.m %>% dplyr::select(id, TPA) %>%  spread(key = id, value = TPA)
+      
+      
+      # for dd
+      tpa.dd.m <- tpa.dd %>% filter(time %in% 1:99)
+      colnames(tpa.dd.m)[3] <- "TPAdd"
+      
+      tpa.di.m <- tpa.di %>% filter(time %in% 1:99)
+      colnames(tpa.di.m)[3] <- "TPAdi"
+      
+      di.dd.tpa <- left_join(tpa.di.m, tpa.dd.m)
+      
+      tpa.full.m <- reshape2::melt(tpa.live)
+      colnames(tpa.full.m) <- c("quantile", "treeno", "time", "TPAfull")
+      tpa.full.m  <- tpa.full.m %>% filter(quantile == 2) %>% select(-quantile)
+      full.di.dd.tpa <- left_join(di.dd.tpa, tpa.full.m)
+      
+      tpa.dead.m <- reshape2::melt(tpa.dead)
+      colnames(tpa.dead.m) <- c("quantile", "treeno", "time", "TPAdead")
+      tpa.dead.m <- tpa.dead.m %>% filter(quantile == 2) %>% select(-quantile)
+      
+      all.tpa <- left_join(full.di.dd.tpa, tpa.dead.m)
+      all.tpa$PLT_CN <- as.character(plot)
+      #all.tpa
+      
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      
+      # median
+      
+      tree.size.m <- reshape2::melt(diam.dead[1,,])
+      colnames(tree.size.m ) <- c("treeno", "time", "diameter")
+      
+      full.dead.diameter <- left_join(full.di.dd.tpa, tree.size.m)
+      
+      full.dead.diameter$PLT_CN <- plot
+      full.dead.diameter$parse <- parse
+      full.dead.diameter$rcp <- rcp
+      full.dead.diameter$mort.scheme <- mort.scheme
+      
+      
+      full.dead.diameter
+    }
+    
+  }
+}
+
+mort.dbh.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.26 <- do.call(rbind, mort.dbh.26.list)
+
+mort.dbh.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.45.test <- do.call(rbind, mort.dbh.45.list)
+
+mort.dbh.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.60.test <- do.call(rbind, mort.dbh.60.list)
+
+mort.dbh.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.85.test <- do.call(rbind, mort.dbh.85.list)
+
+mort.dbh.full.parse <- rbind(mort.dbh.26, mort.dbh.45.test, mort.dbh.60.test, mort.dbh.85.test)
+
+
+# get it for noCC:
+
+mort.dbh.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.test.noCC <- do.call(rbind, mort.dbh.test.list.noCC)
+
+mort.dbh.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.45.test.noCC <- do.call(rbind, mort.dbh.45.list.noCC)
+
+mort.dbh.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.60.test.noCC <- do.call(rbind, mort.dbh.60.list.noCC)
+
+mort.dbh.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.85.test.noCC <- do.call(rbind, mort.dbh.85.list.noCC)
+
+
+mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC, mort.dbh.45.test.noCC, mort.dbh.60.test.noCC, mort.dbh.85.test.noCC)
+
+# get it for noSDI:
+
+mort.dbh.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.test.noSDI <- do.call(rbind, mort.dbh.test.list.noSDI)
+
+mort.dbh.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.45.test.noSDI <- do.call(rbind, mort.dbh.45.list.noSDI)
+
+mort.dbh.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.60.test.noSDI <- do.call(rbind, mort.dbh.60.list.noSDI)
+
+mort.dbh.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.8, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.85.test.noSDI <- do.call(rbind, mort.dbh.85.list.noSDI)
+
+
+mort.dbh.full.parse.noSDI <- rbind(mort.dbh.test.noSDI, mort.dbh.45.test.noSDI, mort.dbh.60.test.noSDI, mort.dbh.85.test.noSDI)
+
+mort.dbh.all.parse <- rbind(mort.dbh.full.parse, mort.dbh.full.parse.noSDI, mort.dbh.full.parse.noCC)
+
+# save as RDS:
+saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.RDS"))
+mort.dbh.all.parse <- readRDS(here("outputs/", "all.plot.mort.dbh.N.RDS"))
+
+
+# generate plots of dead by size class
+mort.dbh.all.parse <- mort.dbh.all.parse  %>%
+                                          mutate(dbh.class = cut(diameter, breaks=c(0, 10, 20, 30, 120)))
+
+n.mort.dbh.class <- mort.dbh.all.parse %>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>%
+                        summarise(n.mort.dd = sum(TPAdd, na.rm = TRUE), 
+                                  n.mort.di = sum(TPAdi, na.rm = TRUE), 
+                                  n.total = sum(TPAfull, na.rm = TRUE))
+
+pct.mort.dbh.class <- n.mort.dbh.class  %>% group_by(mort.scheme, rcp, time, parse) %>% mutate(total.trees.dead.dd = sum(n.mort.dd), 
+                                                                         total.trees.dead.di = sum(n.mort.di))%>%
+                    ungroup()%>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>% mutate(pct.mort.dd = n.mort.dd/total.trees.dead.dd, 
+                                                                                               pct.mort.di =  n.mort.di/total.trees.dead.di)
+
+
+parse.names <- data.frame(parse = c("full", "detrendedCC", "noSDI"), 
+                          scenario = c("full", "no climate change", "no SDI effect on growth"))
+
+
+
+n.mort.dbh.class <- left_join(n.mort.dbh.class, parse.names)
+
+pct.mort.dbh.class <- left_join(pct.mort.dbh.class, parse.names)
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = pct.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = scenario))+geom_line()+
+  facet_grid(rows = vars(dbh.class), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic.png"))
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DI_parse_periodic.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic.png"))
+
+
+#-------------- get the number and size for all dead trees for the SDI 60% threshold runs
+mort.dbh.26.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.26 <- do.call(rbind, mort.dbh.26.list)
+
+mort.dbh.45.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.45.test <- do.call(rbind, mort.dbh.45.list)
+
+mort.dbh.60.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.60.test <- do.call(rbind, mort.dbh.60.list)
+
+mort.dbh.85.list <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "full" )})
+mort.dbh.85.test <- do.call(rbind, mort.dbh.85.list)
+
+mort.dbh.full.parse <- rbind(mort.dbh.26, mort.dbh.45.test, mort.dbh.60.test, mort.dbh.85.test)
+
+
+# get it for noCC:
+
+mort.dbh.test.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.test.noCC <- do.call(rbind, mort.dbh.test.list.noCC)
+
+mort.dbh.45.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.45.test.noCC <- do.call(rbind, mort.dbh.45.list.noCC)
+
+mort.dbh.60.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.60.test.noCC <- do.call(rbind, mort.dbh.60.list.noCC)
+
+mort.dbh.85.list.noCC <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "detrendedCC" )})
+mort.dbh.85.test.noCC <- do.call(rbind, mort.dbh.85.list.noCC)
+
+
+mort.dbh.full.parse.noCC <- rbind(mort.dbh.test.noCC, mort.dbh.45.test.noCC, mort.dbh.60.test.noCC, mort.dbh.85.test.noCC)
+
+# get it for noSDI:
+
+mort.dbh.test.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.test.noSDI <- do.call(rbind, mort.dbh.test.list.noSDI)
+
+mort.dbh.45.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp45", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.45.test.noSDI <- do.call(rbind, mort.dbh.45.list.noSDI)
+
+mort.dbh.60.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp60", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.60.test.noSDI <- do.call(rbind, mort.dbh.60.list.noSDI)
+
+mort.dbh.85.list.noSDI <- lapply(unique(plots)[1:675],FUN = function(x){parse_mortality_size (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp85", cc.scenario = "singleCC", parse = "noSDI" )})
+mort.dbh.85.test.noSDI <- do.call(rbind, mort.dbh.85.list.noSDI)
+
+
+mort.dbh.full.parse.noSDI <- rbind(mort.dbh.test.noSDI, mort.dbh.45.test.noSDI, mort.dbh.60.test.noSDI, mort.dbh.85.test.noSDI)
+
+mort.dbh.all.parse <- rbind(mort.dbh.full.parse, mort.dbh.full.parse.noSDI, mort.dbh.full.parse.noCC)
+
+# save as RDS:
+saveRDS(mort.dbh.all.parse, here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
+mort.dbh.all.parse <- readRDS(here("outputs/", "all.plot.mort.dbh.N.60SDIthresh.RDS"))
+
+#mort.dbh.all.parse <- mort.dbh.26
+# generate plots of dead by size class
+mort.dbh.all.parse <- mort.dbh.all.parse  %>%
+  mutate(dbh.class = cut(diameter, breaks=c(0, 10, 20, 30, 120)))
+
+n.mort.dbh.class <- mort.dbh.all.parse %>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>%
+  summarise(n.mort.dd = sum(TPAdd, na.rm = TRUE), 
+            n.mort.di = sum(TPAdi, na.rm = TRUE), 
+            n.total = sum(TPAfull, na.rm = TRUE))
+
+pct.mort.dbh.class <- n.mort.dbh.class  %>% group_by(mort.scheme, rcp, time, parse) %>% mutate(total.trees.dead.dd = sum(n.mort.dd), 
+                                                                                               total.trees.dead.di = sum(n.mort.di))%>%
+  ungroup()%>% group_by(mort.scheme, rcp, time, parse, dbh.class) %>% mutate(pct.mort.dd = n.mort.dd/total.trees.dead.dd, 
+                                                                             pct.mort.di =  n.mort.di/total.trees.dead.di)
+
+
+parse.names <- data.frame(parse = c("full", "detrendedCC", "noSDI"), 
+                          scenario = c("full", "no climate change", "no SDI effect on growth"))
+
+
+
+n.mort.dbh.class <- left_join(n.mort.dbh.class, parse.names)
+
+pct.mort.dbh.class <- left_join(pct.mort.dbh.class, parse.names)
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, color = scenario))+geom_line()+
+  facet_grid(rows = vars(dbh.class), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, color = dbh.class))+geom_line()+
+  facet_grid(rows = vars(parse), cols = vars(rcp))
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(n.mort.dbh.class, aes(x = time, y = n.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.di, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density independent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DI_parse_periodic_60SDIthresh.png"))
+
+
+ggplot(pct.mort.dbh.class, aes(x = time, y = pct.mort.dd, col = dbh.class, fill = dbh.class))+geom_bar(stat = "identity")+
+  facet_grid(rows = vars(scenario), cols = vars(rcp))+theme_bw()+ylab("# density dependent mortalities")
+ggsave(height = 8, width = 8, units = "in", here("outputs/", "Dead_trees_pct_by_DBH_DD_parse_periodic_60SDIthresh.png"))
 
 #------------------------get regional differences for the Components-----------------------------------
 # sum up across plots, then take parse differences:
@@ -922,17 +1686,24 @@ ggplot()+geom_ribbon(data = parse.differences , aes(x = year, ymin = lowA, ymax 
 # get_component_diffs("low", parse.all.mort)
 
 
+
+#parse.all.mort <- parse.DIDD.mort # use only DIDD runs
 colnames(parse.all.mort)[1] <- "PLT_CN"
 
+
 # plot each of the summed forecasts for the region:
+
+C.convert.livewood <- function(x, C.frac = 0.501){(x*C.frac)/1000000}
+C.convert.livewood(parse.all.mort$mAGB.dead, C.frac = 0.501)
+
 AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, parse, mAGB) %>% 
   group_by(PLT_CN, mort.scheme,rcp, year, parse) %>%
   
   #spread(parse, mAGB) %>% 
-  summarise(across(c(mAGB:low.foliage), function(x){(x*0.5)/1000000})) %>% 
+  summarise(across(c(mAGB:low.foliage), function(x){C.convert.livewood(x)})) %>% 
   ungroup() %>% # sum across all the PLT_CNs
     group_by(rcp, mort.scheme, year, parse) %>%
-  summarise(across(c(mAGB:low.foliage), sum)) 
+  summarise(across(c(mAGB:low.foliage), sum)) # sum across all the PLT_CNs then divide by # plots to convert to per acre
 
 
 # More about the parse scenarios:
@@ -940,14 +1711,21 @@ AGB.parse.totals  <- parse.all.mort %>% #select(PLT_CN, rcp, mort.scheme, year, 
 #2. DIonly, No SDI = 0SDI in the growth equation, no density dependent mortality (parse mortality + growth effect of SDI on Carbon)
 #3. no Climate change, DIDD-- parse climate effect on Carbon, including all mortality
 #4. no Climate change, DIDD-- parse only climate effect on Carbon, excluding density dependent mortality (do we need this)
+
 #5. Full ==full forecast scenario
 
 # rename the AGB.parse.totals and filter
 AGB.parse.totals$parse.new <- ifelse(AGB.parse.totals$parse %in% c("no SDI") & AGB.parse.totals$mort.scheme %in% "DIonly", "no SDI growth & mortality", 
-                                     ifelse(AGB.parse.totals$parse %in% c("no SDI") & AGB.parse.totals$mort.scheme %in% "DIDD", "no SDI growth", AGB.parse.totals$parse))
+                                     ifelse(AGB.parse.totals$parse %in% c("no SDI") & AGB.parse.totals$mort.scheme %in% "DIDD", "no SDI growth", 
+                                            ifelse(AGB.parse.totals$parse %in% c("no climate change") & AGB.parse.totals$mort.scheme %in% "DDonly", "no climate change, DDonly",
+                                                   ifelse(AGB.parse.totals$parse %in% c("no climate change") & AGB.parse.totals$mort.scheme %in% "DIonly", "no climate change, DIonly" , 
+                                                          ifelse(AGB.parse.totals$parse %in% c("full") & AGB.parse.totals$mort.scheme %in% "DIonly", "full, DIonly",AGB.parse.totals$parse)))))
 
 AGB.parse.totals$parse.type <- ifelse(AGB.parse.totals$mort.scheme %in% "DIonly" & AGB.parse.totals$parse.new %in% "no SDI growth & mortality", "in", 
-                                     ifelse(AGB.parse.totals$mort.scheme %in% "DIDD", "in", "out"))
+                                     ifelse(AGB.parse.totals$mort.scheme %in% "DIDD", "in", 
+                                            ifelse(AGB.parse.totals$parse.new %in% "no climate change, DDonly", "in",
+                                                   ifelse(AGB.parse.totals$parse.new %in% "no climate change, DIonly", "in", 
+                                                          ifelse(AGB.parse.totals$parse.new %in% "full, DIonly","in","out")))))
 
 
 new.AGB.parse.totals <- AGB.parse.totals %>% filter(parse.type %in% "in")                              
@@ -955,28 +1733,28 @@ new.AGB.parse.totals <- AGB.parse.totals %>% filter(parse.type %in% "in")
 parse.Carbon.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002), aes(x = year, ymin = lowA, ymax = upA, fill = parse.new), alpha = 0.5)+
   geom_line(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mAGB, color = parse.new))+
   
-  facet_wrap(~rcp, ncol = 4)+ ylab( "Carbon Density \n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  facet_wrap(~rcp, ncol = 4)+ ylab( "Total Carbon in PIPO FIA stands\n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))+
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
   scale_color_manual( name = "Scenario",
-                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
 
   
 
 parse.Carbon.flux.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, ymin = low, ymax = up, fill = parse.new), alpha = 0.5)+
   geom_line(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mNPP, color = parse.new))+
   
-  facet_wrap(~rcp, ncol = 4)+theme_bw(base_size = 14) + ylab( "Carbon Density Flux \n (Tg C)")+theme(panel.grid = element_blank())+
+  facet_wrap(~rcp, ncol = 4)+theme_bw(base_size = 14) + ylab( "Carbon difference \n (Tg C)")+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))+
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
   scale_color_manual( name = "Scenario",
-                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))
+                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
 
 
 
 Carbon.legend <- cowplot::get_legend(parse.Carbon.flux.totals)
 
-png(height = 7, width = 12, units = "in", res = 300, "outputs/Carbon_density_regional_NPP_total_parse_periodic.png")
+png(height = 7, width = 12, units = "in", res = 300, "outputs/Carbon_density_regional_NPP_total_parse_periodic_26.png")
 cowplot::plot_grid(cowplot::plot_grid(parse.Carbon.totals+theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
                                       parse.Carbon.flux.totals  +theme(legend.position = "none", axis.text.x = element_text(hjust = 1, angle = 45)), 
                                       ncol = 1, align = "hv"), Carbon.legend, ncol = 2, rel_widths = c(0.65, 0.1))
@@ -988,14 +1766,14 @@ dev.off()
 parse.deadCarbon.totals <- ggplot()+geom_ribbon(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002), aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = parse.new), alpha = 0.5)+
   geom_line(data = new.AGB.parse.totals %>% filter(!year %in% 2001:2002) , aes(x = year, y = mAGB.dead, color = parse.new))+
   
-  facet_wrap(~rcp, ncol = 4)+ ylab( "Dead Carbon Density \n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  facet_wrap(~rcp, ncol = 4)+ ylab( "Dead Carbon \n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
   scale_fill_manual( name = "Scenario",
-                     values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))+
+                     values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
   scale_color_manual( name = "Scenario",
-                      values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey"))
+                      values = c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
 
 # without SDI based mortality, DI-dependent mortality increases unchecked?
-png(height = 3.5, width = 12, units = "in", res = 300, "outputs/Dead_Carbon_density_regional_total_parse_periodic.png")
+png(height = 3.5, width = 12, units = "in", res = 300, "outputs/Dead_Carbon_density_regional_total_parse_periodic_26.png")
 parse.deadCarbon.totals
 dev.off()
 
@@ -1007,13 +1785,67 @@ parse.dead.Carbon.flux.totals <- ggplot()+#geom_ribbon(data = AGB.parse.totals %
    
   #                  values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))+
   scale_color_manual( name = "Scenario",
-                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3"))
+                      values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI"="#7570b3", "no climate change, DDonly" = "black"))
+
+
+
+#----------------------------------------------------------------------
+# make plots where we subtract no-climate change from the full scenario
+#----------------------------------------------------------------------
+
+# calculate the total decline over time?
+# how much is due to CC and how much is due to everything else. 
+
+
+
+AGB.parse.totals.m <- reshape2::melt(AGB.parse.totals, id.vars = c("rcp", "mort.scheme", "year", "parse"))
+AGB.parse.totals.m$value <- as.numeric(AGB.parse.totals.m$value)
+AGB.parse.spread <- AGB.parse.totals.m %>% group_by(rcp, mort.scheme, year, variable) %>% 
+  pivot_wider(names_from = year, values_from = value) %>% group_by(rcp, mort.scheme, parse, variable) %>%
+  select(rcp, mort.scheme, parse, variable, `2002`, `2098`)%>% 
+  # rename( "end.2098" = `2098`,
+  #                                                                                    "start.2002"= `2002`)%>%
+   mutate(DELTA = `2098` - `2002`) %>%
+  ungroup() %>% select(-`2002`, -`2098`) %>% group_by(rcp, mort.scheme, parse, variable) %>%
+  pivot_wider(names_from = parse, values_from= DELTA) %>% 
+                           mutate(full.cc.diff =   `no climate change` - full , # effect of climate change
+                                  full.no.SDI.diff =  full - `no SDI` ,  # not really the effect of SDI
+                                  full.remainder =  abs(full) - `full.cc.diff` )  # full
+View(AGB.parse.spread)
+colnames(AGB.parse.spread)[3] <- "component"
+
+
+
+# this needs work right now
+
+AGB.parse.spread.melt <- reshape2::melt(AGB.parse.spread, id.vars = c("rcp", "mort.scheme", "component") )
+colnames(AGB.parse.spread.melt)[4] <- "parse"
+
+AGB.parse.spread2 <- AGB.parse.spread.melt %>% group_by(rcp, mort.scheme, parse) %>% 
+  pivot_wider(names_from = component, values_from = value)
+unique(AGB.parse.spread2$parse)
+
+parse.Carbon.totals.diff <- ggplot()+ #geom_abline(aes(intercept = 0, slope = 0), linetype = "dashed")+ 
+  geom_ribbon(data = AGB.parse.spread2 %>% filter(!year %in% 2001:2002 & parse %in% c("full.cc.diff", "full.no.SDI.diff",  "full.remainder")), aes(x = year, ymin = lowA, ymax = upA, fill = parse), alpha = 0.5)+
+  geom_line(data = AGB.parse.spread2 %>% filter(!year %in% 2001:2002 & parse %in% c("full.cc.diff", "full.no.SDI.diff", "full.remainder")) , aes(x = year, y = mAGB, color = parse))+
+  
+  facet_wrap(~rcp, ncol = 4)+ ylab( "Total Carbon in PIPO FIA stands\n (Tg C)") + theme_bw(base_size = 14)+theme(panel.grid = element_blank()) 
+ 
+parse.Carbon.totals.diff  
 
 
 
 
+ # scale_fill_manual( name = "Scenario",
+  #                    values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))+
+  # scale_color_manual( name = "Scenario",
+  #                     values =c("full"="#1b9e77","no climate change"= "#d95f02", "no SDI growth"="#7570b3", "no SDI growth & mortality" = "grey", "no climate change, DDonly" = "black", "no climate change, DIonly" = "red", "full, DIonly" = "goldenrod"))
+  # 
 
+#----------------------------------------------------------------------
 # separate out by high and low SDI
+#----------------------------------------------------------------------
+
 SDI.plt.unscaled <- SDI.mat.PLT.subp %>% group_by(PLT_CN) %>% summarise(SDI = sum(`2001`, na.rm=TRUE))
 SDI.plt.unscaled$SDI.bin <- ifelse(SDI.plt.unscaled$SDI >= 203, "> 203", 
                                    ifelse(SDI.plt.unscaled$SDI < 203 & SDI.plt.unscaled$SDI >= 133, "133 - 203",

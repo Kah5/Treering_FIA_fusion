@@ -1,4 +1,25 @@
-plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, unit.conv = 0.02, plot = plot, yrvec = 2001:2098, scenario = "rcp26",cc.scenario = "singleCC", p = p, p.inc = p.inc, SDI.ratio.DD, plt.design = "periodic", folder.name, parse.type) {
+plot2AGB <- function(combined, 
+                     out, 
+                     tpa , 
+                     tpa.diff ,
+                     tpa.di, 
+                     tpa.dd, 
+                     mort.scheme, 
+                     allom.stats, 
+                     unit.conv = 0.02, 
+                     plot.id, 
+                     yrvec = 2001:2098, 
+                     scenario = "rcp26",
+                     cc.scenario = "singleCC", 
+                     #p = NULL, 
+                     #p.inc = NULL, 
+                     SDI.ratio.DD, 
+                     plt.design = "periodic", 
+                     folder.name, 
+                     parse.type, 
+                     mort.prob.reduced, 
+                     index.trees.data, 
+                     cored.remeas) {
   
   ## Jenkins: hemlock (kg) b0 <- -2.5384 b1 <- 2.4814
   
@@ -56,7 +77,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   mplot   <- 1  ## later need to generalize to splitting up plots
   ijindex <- matrix(1, ntree, 1)
   
-  if(length(combined) >6){
+  if(length(combined) >9){
     
     yrvec   <- as.numeric(colnames(combined))
   }else{
@@ -85,8 +106,8 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   #biomass_thoc2 <- array(NA, c(mplot, nrep, nt))
   
   ## sample over tree chronologies
-  cat ("calculating biomass: percent complete")
-  pb <- txtProgressBar(min = 0, max = nrep, style = 3)
+  #print ("calculating biomass: percent complete")
+  #pb <- txtProgressBar(min = 0, max = nrep, style = 3)
   for (g in seq_len(nrep)) {
     # g <- 1
     j <- 1
@@ -98,7 +119,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
     b.foliage <- mvtnorm::rmvnorm(1, B.foliage, Bcov.foliage)
     b.dead <- mvtnorm::rmvnorm(1, B.dead.stemwood, Bcov.dead.stemwood)
     
-    ## convert tree diameter to biomass
+    ## convert tree diameter to biomass in grams
     biomass.stemwood[g,,] <- matrix(exp(b.stemwood[1] + b.stemwood[2] * log(out[g, ])), ntree,nt,  byrow = FALSE)#nt)
     biomass.stembark[g,,] <- matrix(exp(b.stembark[1] + b.stembark[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
     biomass.branchlive[g,,] <- matrix(exp(b.branchlive[1] + b.branchlive[2] * log(out[g, ])), ntree, nt, byrow = FALSE)#nt)
@@ -117,7 +138,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
     # system.time(apply(apply(biomass.stemwood,2, as.numeric), 2, sum, na.rm = TRUE)*unit.conv)
     #system.time(colSums(apply(biomass.stemwood,2, as.numeric), na.rm = TRUE) * unit.conv)
     
-    ## aggregate to stand AGB
+    ## aggregate to stand AGB (grams/acre)
     
     AGB.stemwood[j, g, ] <- apply(biomass.stemwood[g,,]*tpa.live[g,,], 2, FUN = function(x){sum(as.numeric(x), na.rm = TRUE)})
     
@@ -151,7 +172,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
     NPP.dead[j, g,] <- c(0,diff(AGB.dead[j,g,]))
     
     #}
-    setTxtProgressBar(pb, g)
+    #setTxtProgressBar(pb, g)
   }
   
   mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
@@ -318,7 +339,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   lowA <- lowAGB
   
   
-  total.plot <- data.frame(plot = plot, 
+  total.plot <- data.frame(plot.id = plot.id, 
                            year = yrvec[2:length(low.stemwood)], 
                            mAGB = mAGB[i,2:length(low.stemwood)], 
                            mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
@@ -406,7 +427,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   
   
   
-  total.plot.all <- data.frame(plot = plot, 
+  total.plot.all <- data.frame(plot.id = plot.id, 
                                year = yrvec, #[1:length(low.stemwood)], 
                                
                                
@@ -443,50 +464,50 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
                                low.deadstem = low.deadstem[,2:length(upA.deadstem)])#,
   
   
-  b.plot.all <- ggplot()+
-    #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
-    
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
-    
-    theme_bw()+
-    ylab(paste("Plot", plot, "stem  \n biomass (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
-    scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))
+  # b.plot.all <- ggplot()+
+  #   #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
+  #   
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = lowA.deadstem, ymax = upA.deadstem, fill = "dead stem"))+
+  #   
+  #   theme_bw()+
+  #   ylab(paste("Plot", plot.id, "stem  \n biomass (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  #   scale_fill_manual(name = 'Biomass Component', 
+  #                     values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black"))
+  # 
+  
+  # b.flux.all <- ggplot()+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
+  #   geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
+  #   
+  #   theme_bw()+#ylim(ylow, yhi)+
+  #   ylab(paste("Plot", plot.id, " stem  \n biomass increment (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  #   scale_fill_manual(name = 'Biomass Component', 
+  #                     values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
+  # 
   
   
-  b.flux.all <- ggplot()+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
-    geom_ribbon(data = total.plot.all, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
-    
-    theme_bw()+#ylim(ylow, yhi)+
-    ylab(paste("Plot", plot, " stem  \n biomass increment (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
-    scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
-  
-  
-  
-  b.plot <- ggplot()+
-    #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = "dead stem"))+
-    theme_bw()+
-    ylab(paste("Plot", plot, "stem  \n biomass (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
-    scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
-  
-  
+  # b.plot <- ggplot()+
+  #   #geom_ribbon(data = total.plot, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = "dead stem"))+
+  #   theme_bw()+
+  #   ylab(paste("Plot", plot.id, "stem  \n biomass (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  #   scale_fill_manual(name = 'Biomass Component', 
+  #                     values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
+  # 
+  # 
   
   
   # b.flux <- ggplot()+
@@ -499,22 +520,22 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   yhi <- max(  tota.plot.trunk$up.stemwood, na.rm = TRUE) + 1
   ylow <- min(  tota.plot.trunk$low.branchdead, na.rm=TRUE) - 1
   
-  b.flux <- ggplot()+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
-    geom_ribbon(data = total.plot, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
-    theme_bw()+#xlim(2001,2018)+ylim(ylow, yhi)+
-    ylab(paste("Plot", plot, " stem  \n biomass increment (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
-    scale_fill_manual(name = 'Biomass Component', 
-                      values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1" ))
-  
-  
+  # b.flux <- ggplot()+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
+  #   geom_ribbon(data = total.plot, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
+  #   theme_bw()+#xlim(2001,2018)+ylim(ylow, yhi)+
+  #   ylab(paste("Plot", plot.id, " stem  \n biomass increment (kg/acre)"))+xlab("Year")+theme(panel.grid = element_blank())+
+  #   scale_fill_manual(name = 'Biomass Component', 
+  #                     values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1" ))
+  # 
+  # 
   
   #both.plot<- cowplot::plot_grid(p, b.plot, p.inc, b.flux, ncol = 2, align = "hv")
   
-  cat("saving outputs")
+  #print("saving outputs")
   #cowplot::save_plot(paste0("biomass_plotsFIAannual/Plot_biomass_inc_",mort.scheme,".", plot, ".",scenario,".",cc.scenario,".png"), both.plot, base_height = 10, base_width = 12, units = "in")
   
   
@@ -526,7 +547,7 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
   #saveRDS(total.plot, paste0(output, "Plot_biomass_inc_", plot, ".RDS"))
   
   save(out, #out.dead, 
-       AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+       AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot.id, 
        AGB.foliage, NPP.foliage, 
        AGB.stembark, NPP.stembark,
        AGB.stemwood, NPP.stemwood,
@@ -544,9 +565,14 @@ plot2AGB <- function(combined, out,tpa , tpa.diff , mort.scheme, allom.stats, un
        diam.live, 
        tpa.dead, 
        tpa.live,
+       tpa.dd, 
+       tpa.di,
+       mort.prob.reduced,
+       index.trees.data,
+       cored.remeas,
        # mbiomass_tsca, sbiomass_tsca, mbiomass_acsa3, sbiomass_acsa3, 
        # mbiomass_beal2, sbiomass_beal2, mbiomass_thoc2, sbiomass_thoc2, 
-       file = file.path(paste0(folder.name ,"/plot2AGB_",mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".", parse.type, ".Rdata")))
+       file = file.path(paste0(folder.name ,"/plot2AGB_",mort.scheme,".",plot.id,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".", parse.type, ".Rdata")))
   
   
   return(total.plot )#, 

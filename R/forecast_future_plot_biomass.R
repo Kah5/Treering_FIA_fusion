@@ -2,8 +2,13 @@ library(dplyr)
 library(reshape2)
 library(ggplot2)
 library(tidyverse)
+library(here)
+library(boot) # for the inv.logit function in R/biomass.sensitivity.periodic.R
+
+# make sure you run Format_TR_data_local.R first
+
 # code to just apply the posterior estimates of the model to the additional trees on these plots (and walk forward)
-# some functions:
+# some functions from Mike Dietze
 parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
   w <- sub(pre, "", w)
   w <- sub("[", "", w, fixed = TRUE)
@@ -52,14 +57,94 @@ length(TREEinPLOTS$CN)
 # 17968 trees! 
 
 # this gives live trees in PLOTS at the time of coring...
-TREEinPLOTS <- TREE %>% filter(AGENTCD >= 0 & STATUSCD ==1 & DIA > 1) %>% filter(PLT_CN %in% unique(cov.data.regional$PLT_CN) & !CN %in% cov.data.regional$TRE_CN)
-length(TREEinPLOTS$CN)
+# previously we were filtering by AGENTCD? Not sure why but this eliminated some trees that
+# had NA in AGENTCD
+ TREEinPLOTS <- TREE %>% filter(AGENTCD >= 0 & STATUSCD ==1 & DIA > 1) %>% filter(PLT_CN %in% unique(cov.data.regional$PLT_CN) & !CN %in% cov.data.regional$TRE_CN)
+ length(TREEinPLOTS$CN)
+#TREEinPLOTS <- TREE %>% filter(STATUSCD ==1 & DIA > 1) %>% filter(PLT_CN %in% unique(cov.data.regional$PLT_CN) & !CN %in% cov.data.regional$TRE_CN)
+#length(TREEinPLOTS$CN)
+
+
+# see how many of the pipo plots are mostly pipo
+tp.ratio <- TREEinPLOTS %>% group_by(PLT_CN, SPCD == 122) %>% summarise(n()) %>% spread(`SPCD == 122`, `n()`) %>% mutate(PIPO = ifelse(is.na(`TRUE`), 0, `TRUE`), 
+                                                                                                             NonPIPO = ifelse(is.na(`FALSE`), 0, `FALSE`))%>% mutate(PIPO.ratio = PIPO/(PIPO +NonPIPO))%>% filter(PIPO.ratio > 0.60 )
+hist(tp.ratio$PIPO.ratio)
+saveRDS(tp.ratio, "outputs/PIPO_nonPIPO_plotratios.rds")
+
+TREEinPLOTS %>% dplyr::select(DESIGNCD) %>% distinct()
+TPA.designcd.table <- data.frame(DESIGNCD = c(1, 410, 411, 413, 424, 425, 423, 412), #unique(TREEinPLOTS$DESIGNCD),
+                                  RADIUS = c("24 ft", 
+                                             "Variable", 
+                                             "Variable", 
+                                             "Variable", 
+                                             "Fixed", 
+                                             "Fixed", 
+                                             "Fixed",
+                                             "Variable" ), 
+                                 BAF = c(NA, 
+                                         40, 
+                                         40, 
+                                         20,
+                                         NA, 
+                                         NA, 
+                                         NA,
+                                         40), 
+                                 N.subplots.points = c(4, 
+                                                       7,#  maybe 5?
+                                                       10, 
+                                                       5, 
+                                                       4, 
+                                                       4, 
+                                                       4, 
+                                                       5), 
+                                 N.microplots = c(4, 
+                                                  7, 
+                                                  3, 
+                                                  5, 
+                                                  4,
+                                                  4,
+                                                  4, 
+                                                  3),
+                                 MicropplotRadius = c("6.8 ft", 
+                                                      "1/300th acre",
+                                                      "1/300th acre", 
+                                                      "1/300th acre", 
+                                                      "1/300th acre", 
+                                                      "1/300th acre", 
+                                                      "1/300th acre",
+                                                      "1/300th acre"), 
+                                 TPA.eq = c("1/(N*A)", 
+                                 "(BAF/0.005454*DIA^2)/N", 
+                                 "(BAF/0.005454*DIA^2)/N",
+                                 "(BAF/0.005454*DIA^2)/N",
+                                 "1/(N*A)",
+                                 "1/(N*A)",
+                                 "1/(N*A)",
+                                 "(BAF/0.005454*DIA^2)/N"), 
+                                 AREA.acr = c(0.0415172, 
+                                              NA, 
+                                              NA, 
+                                              NA, 
+                                              0.05,
+                                              0.2,
+                                              0.1,
+                                              NA), 
+                                 microplot.AREA.acr = c(0.003334877, 
+                                                        NA, 
+                                                        NA, 
+                                                        NA, 
+                                                        0.003333333, 
+                                                        0.003333333, 
+                                                        0.003333333, 
+                                                        NA) )
+                                 
+                                 
 
 additional.trees <- TREEinPLOTS %>% group_by(SPCD) %>% summarise(number = n())
 
-# png(height = 3, width = 10, units = "in", res = 150, "data/output/barplot_additional_trees.png")
-# ggplot(additional.trees, aes(x = as.character(SPCD), y = number))+geom_bar(stat = "identity")
-# dev.off()
+png(height = 3, width = 10, units = "in", res = 150, "outputs/barplot_additional_trees.png")
+ggplot(additional.trees, aes(x = as.character(SPCD), y = number))+geom_bar(stat = "identity")
+dev.off()
 # most are PIPO, but second most are gambel oak QUGA, then PSME
 
 
@@ -78,7 +163,7 @@ length(NEWTREEinPLOTS$PLT_CN)
 #--------------------------------------------------------------------------------------------- 
 # for now lets just apply the pipo model to all (unrealistic)
 
-dbh.measyr.newtrees <- TREEinPLOTS %>% select(CN, PLT_CN, SUBP,MEASYR, DIA) %>% mutate(DIA = DIA*2.54)
+dbh.measyr.newtrees <- TREEinPLOTS %>% dplyr::select(CN, PLT_CN, SUBP,MEASYR, DIA) %>% mutate(DIA = DIA*2.54)
 
 # get xdata:
 
@@ -109,12 +194,18 @@ cov.data.regional <- left_join(cov.data.regional, plotid.df, by = "PLOTSTATE")
 unique.plts <- unique(cov.data.regional[,c("PLT_CN","plotid", "PLOTSTATE", "MAP", "MAT")])
 #unique.trees <- unique(cov.data.regional[,c("TRE_CN","PLT_CN","plotid","treeid", "PLOTSTATE", "MAP", "MAT")])
 
+
+# create a matrix of x values of additonal trees on the plot
 x.mat <- merge(unique.plts, spread.dbh.mat, by.x = c("PLT_CN"))
-m <- 1
+nrow(x.mat)
+#m <- 1
 # get time series data:
 # read in the larger region climate data:
 #pipo.clim <- read.csv("data/pipo_all_tmean_ppt_v5.csv")
-
+#pipo.clim <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/pipo_all_tmean_ppt_v5.csv"))
+#pipo.clim  <- readRDS("data/pipo.cores.with.downscaled.hydro.ppt.climatev4.rds")
+#pipo.clim$cov.data
+head(pipo.clim)
 # will need to match the core_CN from the plot
 pipo.climate.pltcn <- merge(pipo.clim, cov.data.regional[,c("CORE_CN", "PLT_CN", "STATECD", "COUNTYCD", "plotid", "PLOTSTATE")],by.x = "name", by.y = "CORE_CN")
 
@@ -137,16 +228,16 @@ get_ordered_climate <- function(x){
   climate.mat
 }
 
-tmax.fallspr <- get_ordered_climate("tmax.fallspr")
+#tmax.fallspr <- get_ordered_climate("Tmax_fallspr")
 wintP.wateryr <- get_ordered_climate("wintP.wateryr")
-tmax.AprMayJun <- get_ordered_climate("tmax.AprMayJun")
-tmax.monsoon <- get_ordered_climate("tmax.monsoon")
+tmax.AprMayJun <- get_ordered_climate("Tmax_AprMayJun")
+#tmax.monsoon <- get_ordered_climate("tmax.monsoon")
 TMAX <- get_ordered_climate("TMAX")
-
+TMEAN <- get_ordered_climate("TMEAN")
 # -------------------------------------------------------------------------------
 # read in the SDI time plot level data:
 #--------------------------------------------------------------------------------
-tv.sdi <- readRDS("data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v5.RDS")
+tv.sdi <- readRDS("data/Time_varying_SDI_TPA_UNADJ_PLT_CN_SUBP_v4.RDS")
 
 # get the tv.sdi estimates from just the x.mat plots and subplots?
 # reshape tv.sdi:
@@ -162,9 +253,11 @@ SDI.matrix.plt.subp <- SDI.mat.PLT.subp[,5:length(SDI.mat.PLT.subp)]
 # because jags won't take NA values as predictors, we need to give values..so replace NA with the max or min
 for(i in 1:nrow(SDI.matrix.plt.subp)){
   for(t in 2:length(SDI.matrix.plt.subp)){
+    
     if(is.na(SDI.matrix.plt.subp[i,t])){
       SDI.matrix.plt.subp[i,t] <- SDI.matrix.plt.subp[i,t-1]
     }
+    
     if(is.na(SDI.matrix.plt.subp[i,t])){
       SDI.matrix.plt.subp[i,t] <- min(SDI.matrix.plt.subp[i,], na.rm = TRUE)
     }
@@ -175,6 +268,7 @@ for(i in 1:nrow(SDI.matrix.plt.subp)){
 
 
 summary(SDI.matrix.plt.subp)
+SDI.matrix.plt.subp
 
 
 # relink to the rest of the dataset:
@@ -197,8 +291,9 @@ standardize.mat <- function(x){
 }
 
 standardize.vector <- function(x){
-  x.bar <- mean(as.vector(x), na.rm = TRUE)
-  s.d. <- sd(x, na.rm = TRUE)
+  x.2 <- apply(x, 2, as.numeric)
+  x.bar <- mean(as.vector(x.2), na.rm = TRUE)
+  s.d. <- sd(x.2, na.rm = TRUE)
   return((x-x.bar)/s.d.)
 }
 
@@ -211,75 +306,53 @@ SDIscaled <- SDI.mat.PLT.subp # note this is not ordered (it might be but i have
 
 wateryrscaled[,4:ncol(wateryrscaled)] <- standardize.mat(as.matrix(wintP.wateryr[,4:ncol(wintP.wateryr)]))
 tmaxAprMayJunscaled[,4:ncol(tmaxAprMayJunscaled)] <- standardize.mat(as.matrix(tmax.AprMayJun[,4:ncol(tmax.AprMayJun)]))
-SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(as.matrix(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)]))
+test <- as.numeric(as.matrix(SDIscaled[,5:ncol(SDIscaled)]))
 
+# Convert the matrix to numeric, forcing non-numeric values to NA
+numeric_matrix <- apply(SDIscaled[,5:ncol(SDIscaled)], 2, as.numeric)
 
+SDIscaled[,5:ncol(SDIscaled)] <- standardize.vector(SDI.mat.PLT.subp[,5:ncol(SDI.mat.PLT.subp)])
+#SDIscaled <- data.frame(time_data$SDIscaled)
+#SDIscaled$PLT_CN <- data$cov.data.regional$PLT_CN
+#SDIscaled$SUBP <- data$cov.data.regional$SUBP
 #--------------------------------------------------------------------------------------------- 
 # Read in the posterior parameter estimates
 #--------------------------------------------------------------------------------------------- 
 # this model models increment, not diameter...
-# I didnt save the Xvals for this model, but just using it to get the code setup
-
-
-#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/Regional_mu_testing_mvn-2022-05-19-20-07-51.6/IGFRegional_mvnmu_revCorr_xfixed.rds"))
-#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_lognormal_dist-2022-07-14-01-12-30.5/IGFRegional_inc_T0onlynoadapt.rds")) # plot random effect
-#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
-#jags.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
-
 
 # READ IN STAN OUTPUT SUMMARY
 #STAN.comb <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/inc_treerand_model-2022-07-20-21-17-53.3/IGFRegional_incifelse_T0.rds")) # tree random effect
-#model.params<- read.csv("/Users/kellyheilman/Documents/SSM_small_test/model_simple_run/small_ssm_stan_sigma_dbh_normal_0.15_0.8_0_1constraint_parameter_summary.csv")
-model.params <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_parameter_summary.csv")
+model.params <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.betas.rds")
+colnames(model.params)[1] <- "L1"
 
-output.base.name <- "Regional_stan_model"
-# out <- as.matrix(jags.comb)
-# summary(out)
-# betas <- out[,grep(pattern = "beta",colnames(out))]
-# # just get the fixed effects:
-# 
-# betas.df <- data.frame(betas)
-# betas.random <- betas.df[, grep(patter = "betaX_PLOT", colnames(betas))]
-# names.fixed <- names(betas.df)[!(names(betas.df) %in% colnames(betas.random))] # get the names of fixed effects
-# betas.fixed <- betas.df[,names.fixed]
-# 
-# betas.fixed.m <- reshape2::melt(betas.fixed)
-# model.params <- betas.fixed.m %>% group_by(variable) %>% summarise(median = quantile(value, 0.5), 
-#                                                                    ci.lo = quantile(value, 0.025), 
-#                                                                    ci.hi = quantile(value, 0.975))
-# colnames(model.params)[1]<- c("Parameter")
-# 
-# 
-# dotplot.fixed <- ggplot(model.params, aes(x= Parameter, y = median ))+geom_point()+geom_hline(aes(yintercept = 0), color = "lightgrey", linetype = "dashed")+
-#   geom_errorbar(aes(x = Parameter, ymin = ci.lo, ymax = ci.hi), width = 0.01)+theme_bw(base_size = 12)+
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())+ylab("Coefficient  Value")
-# 
-# alphas <- out[,grep(pattern = "alpha",colnames(out))]
-# alpha.m <- reshape2::melt(alphas)
-# 
-# alpha.summary <- alpha.m %>% group_by(Var2) %>% summarise(mean = mean(value, na.rm = TRUE), 
-#                                                           ci.lo = quantile(value, 0.025, na.rm =TRUE), 
-#                                                           ci.hi = quantile(value, 0.975, na.rm =TRUE))
-year.randoms <- read.csv("/Users/kellyheilman/Documents/SSM_small_test/full.ssm.working.model_year_RE_summary.csv")
+# read in alphas
+alphas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.alpha_TREES.rds")
+colnames(alphas)[1] <- "L1"
 
-mus <- model.params %>% filter(L1 %in% c("mu","sigma_TREE"))
-betas <- model.params
+output.base.name <- "Regional_model_6"
+
+sigmas <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/model6.1500.sigmas.rds")
+
+mus <- model.params %>% filter(L1 %in% c("mutree","sigma_TREE"))
+betas <- model.params %>% filter(!L1%in% c("mutree","sigma_TREE"))
 # get year and tree random effects from STAN model
+sigma.INC <- sigmas %>% filter(variable %in% "sigma_inc")
+sigma.DBH <- sigmas %>% filter(variable %in% "sigma_dbh")
 
-
-iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEARid,  SDdbh = 0, SDinc = 0, covariates) {
+iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
   
+  xscaled <- (x - 31.63)/10.61
   
   
   # pseudocode for now
-  tree.growth <- betas.all$alpha + beta_YEARid +# sampled from tree level alpha randome effect
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
     # normal fixed effects
     betas.all$bMAP*covariates$MAP + 
     betas.all$bMAT*covariates$MAT +
     
     # size and SDI fixed
     betas.all$bSDI*covariates$SDI + 
-    betas.all$bX*(x) + 
+    betas.all$bX*(xscaled) + 
     
     # climate fixed effects
     betas.all$bppt*covariates$ppt + 
@@ -304,26 +377,86 @@ iterate_statespace.inc <- function( x = x.mat[,"x[1,36]"],  betas.all, beta_YEAR
     
     # SDI interactions
     betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
-    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt  
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
     
     # X interactions
-    betas.all$bX_MAP*covariates$MAP*x + 
-    betas.all$bX_MAT*covariates$MAT*x + 
-    betas.all$bX_Precip*covariates$ppt*x + 
-    betas.all$bX_Tmax*covariates$tmax*x + 
-    betas.all$bX_SDI*covariates$SDI*x 
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled 
   
-  tree.growth <-  ifelse(tree.growth < 0, 0, tree.growth) # we shouldn't need this but keeping in
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+    
+  treegrowth  <-  ifelse( treegrowth  < 0.001, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 2, 2,  treegrowth ) # we shouldn't need this but keeping in
   
   # Stochastic process model
-  #incpred <- tree.growth
+  #incpred <- treegrowth
   
-  xpred <- rnorm(length(tree.growth), (tree.growth + x), SDdbh) 
+  xpred <- rnorm(length(treegrowth), (treegrowth + x), SDdbh)
   
   
   xpred
   
 }
+iterate_statespace.incpred <- function( x = x.mat[,"x[1,36]"],  betas.all, alpha = 0, beta_YEARid,  SDdbh = 0, SDinc = sigma.INC$median, covariates) {
+  
+  xscaled <- (x - 31.63)/10.61
+  
+  
+  tree.growth <- alpha + #beta_YEARid +# sampled from tree level alpha randome effect
+    # normal fixed effects
+    betas.all$bMAP*covariates$MAP + 
+    betas.all$bMAT*covariates$MAT +
+    
+    # size and SDI fixed
+    betas.all$bSDI*covariates$SDI + 
+    betas.all$bX*(xscaled) + 
+    
+    # climate fixed effects
+    betas.all$bppt*covariates$ppt + 
+    betas.all$btmax*covariates$tmax + 
+    
+    # MAP interactions
+    betas.all$bMAP_MAT*covariates$MAP*covariates$MAT +
+    #betas.all$bMAP_SDI*covariates$MAP*covariates$SDI +
+    
+    betas.all$bMAP_tmax*covariates$MAP*covariates$tmax +
+    betas.all$bMAP_ppt*covariates$MAP*covariates$ppt +
+    
+    # MAT interactions
+    #betas.all$bMAT_SDI*covariates$MAT*covariates$SDI+
+    betas.all$bMAT_tmax*covariates$MAT*covariates$tmax +
+    
+    betas.all$bMAT_ppt*covariates$MAT*covariates$ppt +
+    
+    
+    # tmax and precip interactions
+    betas.all$btmax_ppt*covariates$tmax*covariates$ppt +
+    
+    # SDI interactions
+    betas.all$bSDI_tmax*covariates$SDI*covariates$tmax +
+    betas.all$bSDI_ppt*covariates$SDI*covariates$ppt+  
+    
+    # X interactions
+    betas.all$bX_MAP*covariates$MAP*xscaled + 
+    betas.all$bX_MAT*covariates$MAT*xscaled + 
+    betas.all$bX_ppt*covariates$ppt*xscaled + 
+    betas.all$bX_tmax*covariates$tmax*xscaled + 
+    betas.all$bX_SDI*covariates$SDI*xscaled
+  
+  # Stochastic process model
+  treegrowth <- rlnorm(n = length(x), tree.growth, SDinc)
+  
+  treegrowth  <-  ifelse( treegrowth  <= 0.02, 0,  treegrowth ) # Assign tree growth to 0 if its below measurable grwoth
+  treegrowth  <-  ifelse( treegrowth  >= 2, 2,  treegrowth ) # we shouldn't need this but keeping in
+  
+  
+  #xpred
+  treegrowth
+}
+
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
 
@@ -331,17 +464,19 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   # use the forecast function to forecast forward:
   
   treeids <- cov.data.regional %>% filter(plotid %in% x.mat[m,]$plotid) %>% dplyr::select(treeid)
-  #if(length(treeids$treeid)>1){
+  if(length(treeids$treeid)>1){
+
+  alphatreeid <- vector()
   
-  # alphatreeids <- vector()
-  # for(i in 1:length(treeids$treeid)){
-  #   alphatreeids[i]<- paste0("alpha_TREE[", treeids[i,], "]")
-  #   
-  # }
+  for(i in 1:length(treeids$treeid)){
+    alphatreeid[i]<- paste0("alpha_TREE[", treeids[i,], "]")
+
+  }
+  }else{
   # 
   # sample 
-  #alphatreeid <- paste0("alpha_TREE[", x.mat[m,]$plotid, "]")
-  
+  alphatreeid <- paste0("alpha_TREE[", treeids, "]")
+  }
   #model.covs <- substring(colnames(betas), 5)
   
   
@@ -355,7 +490,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 
   get_mcmc_samples <- function(x, betas, nsamps){
     
-    rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>% select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>% select(sd)))
+    rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>% dplyr::select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>% dplyr::select(sd)))
   }
   
   #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = nsamps)
@@ -363,16 +498,18 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   
   # sample from the population mean (mu) for the trees that dont have RE
   
-  alpha <- get_mcmc_samples(x = "mu", betas = mus, nsamps = nsamps)
+  alpha <- get_mcmc_samples(x = "mutree", betas = mus, nsamps = nsamps)
   
-  # if(length(alphatreeids)>1){
-  #   
-  #   treealphas <- lapply(alphatreeids, get_mcmc_samples, betas = alphas, nsamps = nsamps)
-  #   treealphas <- do.call(cbind, treealphas)
-  #   colnames(treealphas)<- alphatreeids
-  # }else{
-  #   treealphas <- get_mcmc_samples(betas = alphas, nsamps = nsamps)
-  # }
+ if(length(alphatreeid)>1){
+
+   treealphas <- lapply(alphatreeid, get_mcmc_samples, betas = alphas, nsamps = nsamps)
+   treealphas <- do.call(cbind, treealphas)
+   colnames(treealphas)<- alphatreeid
+   treealphas <- rowMeans(treealphas)
+   
+ }else{
+   treealphas <- get_mcmc_samples(x = alphatreeid, betas = alphas , nsamps = nsamps)
+ }
   # 
   
   bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nsamps)
@@ -411,7 +548,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   bX_SDI <- get_mcmc_samples("betaX_SDI", betas = betas, nsamps = nsamps)
   
   
-  betas.all <- data.frame(  alpha ,
+  betas.all <- data.frame(  treealphas ,
                             bMAP,
                             bMAT ,
                             bMAP_MAT,
@@ -475,14 +612,7 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
   forecast <- matrix(data = NA, nrow = nMCMC, ncol = time_steps)
   inc <- matrix(data = NA, nrow = nMCMC, ncol = time_steps)
   
-  # generate samples from the yearly random effects
-  
-  betayrVEC <- matrix(NA, ncol = time_steps, nrow = nMCMC)
-  
-  for(t in 1:time_steps){
-    betayrVEC[,t] <- get_mcmc_samples(paste0("beta_YEAR[", t, "]"), betas = year.randoms, nsamps = nsamps)
-  }
-  
+  # Make the time series forecasts
   for(t in 1:time_steps){
     if(t < which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if t is less than the measureyr assign NA (fo now)
       dbh.pred <- rep(NA, nMCMC)
@@ -490,22 +620,22 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
       inc[,t] <- dbh.pred
     }else{
       if(t == which(!is.na(x.mat[m,8:ncol(x.mat)]))){ # if the time step is the measuryr use the measureed DBH
-        dbh.pred <- iterate_statespace.inc(x = x.mat[m,7+t],  betas.all = betas.all, beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        inc[,t] <- iterate_statespace.incpred(x = x.mat[m,7+t],  betas.all = betas.all, alpha = betas.all$treealphas, SDinc = sigma.INC$median, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
                                                                                                                                                   MAT = covs$MAT))
-        forecast[,t] <- dbh.pred
-        inc[,t]<- forecast[,t]-x.mat[m,1]
+        forecast[,t-1] <- x.mat[m,7+t]
+        forecast[,t]<- x.mat[m,7+t]+inc[,t]
         
       }else{
-        dbh.pred <- iterate_statespace.inc(x = forecast[,t-1], betas.all = betas.all,beta_YEARid = betayrVEC[,t], SDinc = 0, covariates = data.frame(SDI = covs$SDI[t], 
+        inc[,t]<- iterate_statespace.incpred(x = forecast[,t-1], betas.all = betas.all, alpha = betas.all$treealphas, SDinc =  sigma.INC$median, covariates = data.frame(SDI = covs$SDI[t], 
                                                                                                                                                   ppt = covs$ppt[t], 
                                                                                                                                                   tmax = covs$tmax[t], 
                                                                                                                                                   MAP = covs$MAP,
                                                                                                                                                   MAT = covs$MAT))
-        forecast[,t] <- dbh.pred
-        inc[,t]<- forecast[,t]-forecast[,t-1]
+        forecast[,t] <- forecast[,t-1] + inc[,t]
+        
         
       }  }
   }
@@ -523,34 +653,57 @@ simulate.xvals.from.model.oos <- function(m, nsamps = 100){
 }
 
 
-
+#x <- 4203
+simulate.xvals.from.model.oos(m = 260, nsamps = 100)
 
 # see how long this will take:
-system.time(sims.x.forecast<- lapply(1:10, simulate.xvals.from.model.oos))
+system.time(sims.x.forecast <- lapply(1:20, simulate.xvals.from.model.oos))
 #3.8 user time multiplied by ~1500 =95 mintues 
 
-sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
-x.mat2 <- do.call(cbind, sims.x.forecast)
+if(file.exists(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))){
+  x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
+}else{
+ sims.x.forecast <- lapply(1:length(unique(x.mat$CN)), simulate.xvals.from.model.oos)
+ x.mat2 <- do.call(cbind, sims.x.forecast)
 
-saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
-x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
+ saveRDS(x.mat2, paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
+}
 #x.mat2 <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/mortality_future_sensitivity-2022-09-22-21-03-44.7/Xval_noncored.Regional_incifelse_T0.RDS"))
+
+#TREE %>% filter(PREV_TRE_CN %in% as.character(x.mat$CN)) # %in% as.character(validate.diam$TRE_CN)
+
 #--------------------------------------------------------------------------------------------- 
 # forecast all trees on the plot from posterior estimates to get X values for 2001-2018, changing SDI values along the way
 #--------------------------------------------------------------------------------------------- 
 
+all.trees.in.the.plots <- TREE %>% filter(PLT_CN %in% unique(x.mat$PLT_CN))%>%
+  filter( STATUSCD ==1 & DIA > 1) 
+length(TREEinPLOTS$CN)
+
+# see how many of the pipo plots are mostly pipo
+tp.ratio <- all.trees.in.the.plots %>% group_by(PLT_CN, SPCD == 122) %>% 
+            summarise(n()) %>% 
+            spread(`SPCD == 122`, `n()`) %>% 
+            mutate(PIPO = ifelse(is.na(`TRUE`), 0, `TRUE`), 
+            NonPIPO = ifelse(is.na(`FALSE`), 0, `FALSE`)) %>% 
+            mutate(PIPO.ratio = PIPO/(PIPO + NonPIPO)) %>% 
+            filter(PIPO.ratio > 0.60 )
+                                                                                                                         
+
+x.mat2 <- readRDS(paste0("data/Xval_noncored_stan.",output.base.name,".RDS"))
+
 # get the estimated x values for each tree/plot (need to calculate SDI and make forecasts from 2001-2018)
 #out.cored <- as.matrix(readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/increment_ifelse_constraint-2022-07-20-15-30-47.9/Xvals_Regional_incifelse_T0.RDS")))
-out.cored <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/xcored_estimated_full.ssm.working.model.rds")
+out.cored <- readRDS("/Users/kellyheilman/Documents/SSM_small_test/xcored_model_6_estimates.rds")
 #head(out.cored)
 #out.cored <- as.matrix(x.mat2)
-x.ci      <- apply(out.cored  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
+x.ci      <- apply(out.cored[3000:4500,]  , 2, quantile, c(0.025, 0.5, 0.975), na.rm = TRUE)
 #    <- as.matrix(Xests) ### LOADS MCMC OUTPUT INTO OBJECT "OUT"
 x.cols   <- which(substr(colnames(out.cored), 1, 1) == "x") # grab the state variable columns
 # 
 # # generate 95% CI of the DBH
-ci      <- apply(out.cored[, x.cols], 2, quantile, c(0.025, 0.5, 0.975))
-mean.pred.cored       <- apply(out.cored[, x.cols], 2, mean) # get the var.pred for the last 800 samples
+ci      <- apply(out.cored[3000:4500, x.cols], 2, quantile, c(0.025, 0.5, 0.975))
+mean.pred.cored       <- apply(out.cored[3000:4500, x.cols], 2, mean) # get the var.pred for the last 800 samples
 # 
 # 
 ci.names <- parse.MatrixNames(colnames(ci), numeric = TRUE)
@@ -578,20 +731,55 @@ ci.names.noncored <- parse.MatrixNames(colnames(ci.noncored), numeric = TRUE)
 
 plots <- unique(x.mat$plotid)
 
+saveRDS(x.mat,"outputs/x.mat.RDS")
+
 # #select the covvariate data for the cored and uncored trees:
 
-#select the outdata for the cored and uncored trees:
+# select the outdata for the cored and uncored trees:
 sel.noncored <- which(ci.names.noncored $row %in% y)
-out <- out.noncored[,sel.noncored]
-
 
 cov.data.regional$treeid <- 1:length(cov.data.regional$CORE_CN)
-plot<- cov.data.regional$PLT_CN[1]
+plot <- cov.data.regional$PLT_CN[1]
 
 
 all.noncored <- x.mat # x.mat from dbh.spread above
 all.noncored$treeid <- 1:length(x.mat$PLT_CN)
-plots <- unique(x.mat$PLT_CN)#[1]
+plots <- as.character(unique(x.mat$PLT_CN))
+
+# --------------------------------------------------------------------------------------------
+# Check for any trees with validation from inventory to 2001
+# --------------------------------------------------------------------------------------------
+validate.diam <- read.delim("data/PIPOCore_TentativeMatch.csv", sep = ",")
+validate.diam<- validate.diam  %>% mutate(DIA_T2 = DIA + INCR) %>% mutate(DIA_cm_T2 = DIA_T2*2.54)
+nearTermDIA <- validate.diam %>% filter(CORE_CN %in% cov.data.regional$CORE_CN) %>% filter(MEASYEAR_T2 <= 2001)
+farTermDIA <- validate.diam %>% filter(CORE_CN %in% cov.data.regional$CORE_CN) %>% filter(MEASYEAR_T2 > 2001) %>% mutate(DIA_T2 = DIA + INCR)
+cov.data.regional$DIA_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$DIA_T2
+cov.data.regional$DIA_cm_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$DIA_cm_T2
+
+cov.data.regional$MEASYEAR_T2 <- validate.diam[match(cov.data.regional$CORE_CN, validate.diam$CORE_CN),]$MEASYEAR_T2
+
+nearTermValidate <- cov.data.regional %>% filter(!is.na(DIA_cm_T2)) %>% filter(MEASYEAR_T2 <= 2001)
+plt.num <- as.character(nearTermValidate$PLT_CN[1])
+
+yr.col.df <- data.frame(col = 1:36, 
+                        MEASYEAR_T2 = 1966:2001)
+
+#validate.year <- yr.col.df %>% filter(MEASYEAR_T2%in% cored.in.plt$MEASYEAR_T2)
+
+ci.melt <- reshape2::melt(ci, id.vars = rownames(ci))%>% spread(Var1, value)
+ci.melt$treeid <- rep(1:1046, 36)
+ci.melt$col <- rep(1:36, each = 1046)
+ci.years <- left_join(ci.melt, yr.col.df) 
+# get the matching melted trees
+
+cov.data.validation <- left_join(cov.data.regional, ci.years)
+ggplot()+geom_point(data = cov.data.validation, aes(x = DIA_cm_T2, y = `50%`))+
+  geom_errorbar(data = cov.data.validation, aes(x = DIA_cm_T2, ymin = `2.5%`, ymax = `97.5%`))+
+  geom_abline(aes(intercept = 0, slope = 1), linetype = "dashed", color = "red")+theme_bw(base_size = 12)+
+  ylab("Predicted held-out diameters (cm) 1990-2001")+
+  xlab("Observed held-out diameters (cm)")
+ggsave("outputs/validation/OOS_1990_2001_DIAMETERS.png")
+saveRDS(cov.data.validation, "outputs/validation/OOS_cov_data_validation_1990_2001.RDS")
 
 
 #--------------------------------------------------------------------------------------------- 
@@ -610,7 +798,7 @@ plots <- unique(x.mat$PLT_CN)#[1]
 # note that these functions are from the PEcAn.allometry package, but I saved them locally because pecan library stopped playing nice here
 
 pfts = list(PIPO = data.frame(spcd=122,acronym='PIPO')) # list our "Pfts--plant functional types" of interest--really list the species
-source("R/Allom_Ave.R")
+source("R/AllomAve.R")
 source("R/read.allom.data.R")
 source("R/query.allom.data.R")
 source("R/allom.BayesFit.R")
@@ -621,11 +809,6 @@ kaye_pipo = AllomAve(pfts, components = c(4, 5, 8, 12, 18), ngibbs = 1000,
 # had to read in the kaye_pipo csv...should just upload to the data
 kaye.parm <- read.csv("data/kaye_pipo.csv")
 
-# allom.stemwood = load.allom("Allom.PIPO.4.Rdata")
-# allom.stembark = load.allom("Allom.PIPO.5.Rdata")
-# allom.branchlive = load.allom("Allom.PIPO.8.Rdata")
-# allom.branchdead = load.allom("Allom.PIPO.12.Rdata")
-# allom.foliage = load.allom("Allom.PIPO.18.Rdata")
 
 allom.stemwood = load("Allom.PIPO.4.Rdata")
 allom.stembark = load("Allom.PIPO.5.Rdata")
@@ -644,10 +827,10 @@ dbh = 1:50 # vector of DBH values to predict over
 # and the diameter estimates for all the trees:
 plot = unique(plots)[22]
 
-plot = '2482066010690'
-density.dependent = FALSE
-density.independent = FALSE
-rcp <- "rcp26"
+# plot = '2482066010690'
+# density.dependent = TRUE
+# density.independent = TRUE
+# rcp <- "rcp26"
 
 #-----------------------------------------------------------------------
 # read in future climate, which has been mean corrected and downscaled:
@@ -662,14 +845,13 @@ full.clim <- readRDS(here("data/full_time_mean_corrected_CMIP5_model_timeseriesI
 clim.data <- time_data
 
 # note that each plot is locally scaled, so we will need to apply that to each future timeseries
-x <- plot
+#x <- plot
 
 library(data.table)
-# full.clim.dt <- as.data.table(full.clim)     # data.table
-# microbenchmark(DT[age > 5],times=10)
+
 full.clim$ppt.scale <- NA
 full.clim$tmax.scale <- NA
-x <- plot
+
 
 future.clim.subset.26 <- full.clim %>% filter(rcp %in% "rcp26")
 future.clim.subset.45 <- full.clim %>% filter(rcp %in% "rcp45")
@@ -689,1095 +871,2246 @@ scale.fut.clim.by.plt <- function(x, future.clim.subset){
 
 
 
+# variable.rad.411 <- TREEinPLOTS  %>% filter(DESIGNCD == 411) %>%dplyr::select(PLT_CN)%>% distinct()
+# annual.design.plots <- TREEinPLOTS  %>% filter(DESIGNCD == 1) %>%dplyr::select(PLT_CN)%>% distinct()
+# TREEinPLOTS  %>% group_by(TPA_UNADJ > 6.02) %>% summarise(n())
+# TREEinPLOTS  %>% group_by(DESIGNCD) %>% summarise(n())
 
-
-#system.time(scale.fut.clim.by.plt(1))
-
-# if we looped over all plots this would take 7 hours!
-# 40.75*length(unique(cov.data.regional$PLT_CN))
-# [1] 27669.25
-# > (40.75*length(unique(cov.data.regional$PLT_CN)))/60
-# [1] 461.1542
-# > 461.15/60
-# [1] 7.685833
-
-# Need to find a faster way of doing this
-
-# 
-# rm(tmax.fallspr)
-# climate.ensemble.means <- clim.ts.df %>% group_by(lat, lon, year, rcp) %>% 
-#   dplyr::summarise(mean.tmax.fs = mean(tmax.scaled, na.rm = TRUE), 
-#                    SD.tmax = var(tmax.scaled, na.rm = TRUE),
-#                    mean.ppt = mean(ppt.scale, na.rm = TRUE), 
-#                    SD.ppt = sd(ppt.scale, na.rm = TRUE),
-#                    n = n()) 
+# read in model estimated with survival from all trees
+m2 <- readRDS("m2_pipo_surv_year.rds") # from mortality_analysis_FVSmrt.R
+alpha.mort <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
 
 set.seed(22)
-plot <- "2904285010690"
+#plot <- variable.rad.411[1,]
 # implement mortality stochastically based on scaled SDI of the subplot:
 unique(plots)
 source("R/plot2AGB_kayeFVS.R")
-source("R/biomass.sensitivity.periodic.R")
-# run the function that makes all of the forecasts
-system.time(biomass.sensitivity.periodic( plot = '2567520010690', density.dependent = TRUE, density.independent = TRUE, scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
-system.time(biomass.sensitivity.periodic( plot = '2873938010690', density.dependent = TRUE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
-system.time(biomass.sensitivity.periodic( plot ='2447900010690', density.dependent = FALSE, density.independent = TRUE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
-system.time(biomass.sensitivity.periodic( plot = '2447900010690', density.dependent = FALSE, density.independent = FALSE, scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE))
-
-# run all the plots for this scenario and 
-# started at 12:12 pm....
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-#6.0 stopped at: plot "2483452010690"
-# 4.5 stopped at plot: "2483452010690"
-lapply(unique(plots)[250:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-plot <- "2483452010690"
-scenario = "rcp45"
-
-
-# run these for No SDI mortality now:
-# started at 14:08 on 3/4/23
-# ended sometime around 8 or9:00 am 3/5/23
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-# started around 9:08 am on 3/5/23
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-lapply(unique(plots)[1:675],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-
-#lapply(unique(plots)[273:274],FUN = function(x){biomass.sensitivity.periodic(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.8, aggressiveCC = FALSE)})
-#stopped with plot "2587295010690" (plot 250)
-unique(plots) %in% "2483452010690"
-# plot 180
-plot <- 2567520010690
-# 2461254010690"ates no tmaxcalculating biomass: percent complete complete
-# extracting future climate for the plot2461254010690Error in `filter()`:
-# ! Problem while computing `..1 = PLT_CN == x`.
-# Caused by error:
-# ! vector memory exhausted (limit reached?)
-# Run `rlang::last_error()` to see where th
-
-plot <- "3215491010690"
-unique(plots) %in% 3215491010690
-# Error in `$<-.data.frame`(`*tmp*`, "TPA_UNADJ", value = c(6.01805, 6.01805 : 
-#                                                             replacement has 2 rows, data has 3
-lapply(unique(plots)[600:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-# stopped wtih plot "plot2874190010690" # plot 383..384...with this error...Skip for now
-unique(plots) %in% "3170850010690" # plot 578
-plot <- "3320827010690"
-# Error in if (mean(dbh.pred[i, , t]) == 0) { : 
-#     missing value where TRUE/FALSE needed
-
-unique(plots) %in% "2611722010690"
-
-lapply(unique(plots)[1:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[664:675],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
-# plot 663 throwing an error
-# Error in if (score > best$score && (!only.loose || (lmin <= dmin && lmax >=  : 
-#                                                 missing value where TRUE/FALSE needed
-
-# run all the plots
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp45")})
-
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp60")})
-
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp85")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp85")})
-
-#----------------Run all the same plots but with the scenarios of no climate chage-----------------
-
-#biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = unique(plots)[1], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")
-
-plot <- "2482552010690"
-
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[185:284],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
-
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp45")})
-
-# redo the non-cc runs above
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp45")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp60")})
-
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp60")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp60")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp60")})
-
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp85")})
-lapply(unique(plots)[11:50],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future.detrend (plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp85")})
-
-
-plot <- "2449012010690"
-
-
-
-
-#-----------------------------Plotting Forecasts--------------------------------
-# need a function to read in the biomass and NPP data for all plots for the given rcp scenario & mortality scheme:
-# note that only rcp85 were saved because I didnt add an rcp label to the data saving process..need to fix
-
-plot <- "2447353010690"
-mort.scheme <- "DIDD"
-scenario <- "rcp26"
-
-get_biomass_ests <- function(plot, mort.scheme, scenario){
-  
-  load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
-  
-  # objects
-  # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
-  # AGB.foliage, NPP.foliage, 
-  # AGB.stembark, NPP.stembark,
-  # AGB.stemwood, NPP.stemwood,
-  # AGB.branchdead, NPP.branchdead,
-  # AGB.branchlive, NPP.branchlive,
-  i <- 1
-  mplot <- 1
-  nt <- ncol(NPP[i,,])
-  
-  # sequentially add up:
-  # branchdead, then foliage, then stembark, then branchlive, then stemwood
-  mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
-  mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
-  lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
-  hiNPP <- hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
-  
-  
-  
-  mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
-  sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
-  sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
-  lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # sequentially add up:
-  # branchdead, then foliage, then stembark, then branchlive, then stemwood
-  
-  # branch dead
-  mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
-  sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
-  sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
-  lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # foliage
-  mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
-  lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
-  sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # stembark
-  mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
-  lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
-  sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # branchlive
-  mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
-  sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  # stemwood
-  mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
-  sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  
-  lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  # dead trees:
-  # stemwood
-  mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
-  sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  
-  lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  up  <- hiNPP
-  low <- lowNPP
-  
-  up.deadstem  <- hiNPP.dead
-  low.deadstem <- lowNPP.dead
-  
-  up.stemwood  <- hiNPP.stemwood
-  low.stemwood <- lowNPP.stemwood
-  
-  up.stembark  <- hiNPP.stembark
-  low.stembark <- lowNPP.stembark
-  
-  up.branchlive  <- hiNPP.branchlive
-  low.branchlive  <- hiNPP.branchlive
-  
-  up.branchdead  <- hiNPP.branchdead
-  low.branchdead  <- hiNPP.branchdead
-  
-  up.foliage  <- hiNPP.foliage
-  low.foliage   <- lowNPP.foliage
-  
-  # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
-  # lines(yrvec[-1], up)
-  # lines(yrvec[-1], low)
-  upA  <- hiAGB
-  lowA <- lowAGB
-  
-  upA.deadstem  <- hiAGB.dead
-  lowA.deadstem <- lowAGB.dead
-  
-  upA.stemwood  <- hiAGB.stemwood
-  lowA.stemwood <- lowAGB.stemwood
-  
-  upA.stembark  <- hiAGB.stembark
-  lowA.stembark <- lowAGB.stembark
-  
-  upA.branchlive  <- hiAGB.branchlive
-  lowA.branchlive  <- lowAGB.branchlive
-  
-  upA.branchdead  <- hiAGB.branchdead
-  lowA.branchdead  <- lowAGB.branchdead
-  
-  upA.foliage  <- hiAGB.foliage
-  lowA.foliage   <- lowAGB.foliage
-  
-  # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
-  # lines(yrvec, upA)
-  # lines(yrvec, lowA)
-  # }
-  #grDevices::dev.off()
-  
-  # make nicer plots for each plot:
-  i <- 1
-  # calculate upper and lower bounds
-  up  <- hiNPP
-  low <- lowNPP
-  
-  upA  <- hiAGB
-  lowA <- lowAGB
-  
-  total.plot <- data.frame(plot = plot, 
-                           mort.scheme = mort.scheme, 
-                           rcp = scenario,
-                           year = yrvec[2:length(low.stemwood)], 
-                           mAGB = mAGB[i,2:length(low.stemwood)], 
-                           mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
-                           mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
-                           mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
-                           mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
-                           mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
-                           mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
-                           
-                           upA = upA[2:length(low.stemwood)], 
-                           lowA = lowA[2:length(low.stemwood)], 
-                           upA.stemwood = upA.stemwood[2:length(low.stemwood)],
-                           upA.stembark = upA.stembark[2:length(low.stemwood)],
-                           upA.branchlive = upA.branchlive[2:length(low.stemwood)],
-                           upA.branchdead = upA.branchdead[2:length(low.stemwood)],
-                           upA.foliage = upA.foliage[2:length(low.stemwood)],
-                           upA.dead = upA.deadstem[2:length(low.stemwood)], 
-                           
-                           lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
-                           lowA.stembark = lowA.stembark[2:length(low.stemwood)],
-                           lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
-                           lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
-                           lowA.foliage = lowA.foliage[2:length(low.stemwood)],
-                           lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
-                           
-                           mNPP = mNPP[i,2:length(low.stemwood)], 
-                           mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
-                           mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
-                           mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
-                           mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
-                           mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
-                           mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
-                           
-                           up = up[2:length(low.stemwood)], 
-                           low = low[2:length(low.stemwood)], 
-                           
-                           up.dead = up.dead[2:length(low.stemwood)], 
-                           low.dead = low.dead[2:length(low.stemwood)],
-                           
-                           up.stemwood = up.stemwood[2:length(low.stemwood)],
-                           up.stembark = up.stembark[2:length(low.stemwood)],
-                           up.branchlive = up.branchlive[2:length(low.stemwood)],
-                           up.branchdead =  up.branchdead[2:length(low.stemwood)],
-                           up.foliage =up.foliage[2:length(low.stemwood)],
-                           
-                           low.stemwood = low.stemwood[2:length(low.stemwood)],
-                           low.stembark = low.stembark[2:length(low.stemwood)],
-                           low.branchlive = low.branchlive[2:length(low.stemwood)],
-                           low.branchdead = low.branchdead[2:length(low.stemwood)],
-                           low.foliage = low.foliage[2:length(low.stemwood)])
-  
-  
-  total.plot
-}
-
-plot <- unique(plots)[1]
-get_biomass_ests_ncc <- function(plot, mort.scheme, scenario){
-  
-  load(paste0("biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
-  
-  # objects
-  # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
-  # AGB.foliage, NPP.foliage, 
-  # AGB.stembark, NPP.stembark,
-  # AGB.stemwood, NPP.stemwood,
-  # AGB.branchdead, NPP.branchdead,
-  # AGB.branchlive, NPP.branchlive,
-  i <- 1
-  mplot <- 1
-  nt <- ncol(NPP[i,,])
-  
-  # sequentially add up:
-  # branchdead, then foliage, then stembark, then branchlive, then stemwood
-  mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
-  mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
-  lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
-  hiNPP <- hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
-  
-  
-  
-  mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
-  sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
-  sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
-  lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # sequentially add up:
-  # branchdead, then foliage, then stembark, then branchlive, then stemwood
-  
-  # branch dead
-  mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
-  sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
-  sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
-  lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # foliage
-  mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
-  lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
-  sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # stembark
-  mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
-  lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
-  sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  # branchlive
-  mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
-  sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  # stemwood
-  mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
-  sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  
-  lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  # dead trees:
-  # stemwood
-  mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
-  sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
-  lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
-  sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
-  
-  lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
-  hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
-  
-  
-  up  <- hiNPP
-  low <- lowNPP
-  
-  up.deadstem  <- hiNPP.dead
-  low.deadstem <- lowNPP.dead
-  
-  up.stemwood  <- hiNPP.stemwood
-  low.stemwood <- lowNPP.stemwood
-  
-  up.stembark  <- hiNPP.stembark
-  low.stembark <- lowNPP.stembark
-  
-  up.branchlive  <- hiNPP.branchlive
-  low.branchlive  <- hiNPP.branchlive
-  
-  up.branchdead  <- hiNPP.branchdead
-  low.branchdead  <- hiNPP.branchdead
-  
-  up.foliage  <- hiNPP.foliage
-  low.foliage   <- lowNPP.foliage
-  
-  # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
-  # lines(yrvec[-1], up)
-  # lines(yrvec[-1], low)
-  upA  <- hiAGB
-  lowA <- lowAGB
-  
-  upA.deadstem  <- hiAGB.dead
-  lowA.deadstem <- lowAGB.dead
-  
-  upA.stemwood  <- hiAGB.stemwood
-  lowA.stemwood <- lowAGB.stemwood
-  
-  upA.stembark  <- hiAGB.stembark
-  lowA.stembark <- lowAGB.stembark
-  
-  upA.branchlive  <- hiAGB.branchlive
-  lowA.branchlive  <- lowAGB.branchlive
-  
-  upA.branchdead  <- hiAGB.branchdead
-  lowA.branchdead  <- lowAGB.branchdead
-  
-  upA.foliage  <- hiAGB.foliage
-  lowA.foliage   <- lowAGB.foliage
-  
-  # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
-  # lines(yrvec, upA)
-  # lines(yrvec, lowA)
-  # }
-  #grDevices::dev.off()
-  
-  # make nicer plots for each plot:
-  i <- 1
-  # calculate upper and lower bounds
-  up  <- hiNPP
-  low <- lowNPP
-  
-  upA  <- hiAGB
-  lowA <- lowAGB
-  
-  total.plot <- data.frame(plot = plot, 
-                           year = yrvec[2:length(low.stemwood)], 
-                           mort.scheme = mort.scheme,
-                           rcp = "no climate change", 
-                           mAGB = mAGB[i,2:length(low.stemwood)], 
-                           mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
-                           mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
-                           mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
-                           mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
-                           mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
-                           mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
-                           upA = upA[2:length(low.stemwood)], 
-                           lowA = lowA[2:length(low.stemwood)], 
-                           upA.stemwood = upA.stemwood[2:length(low.stemwood)],
-                           upA.stembark = upA.stembark[2:length(low.stemwood)],
-                           upA.branchlive = upA.branchlive[2:length(low.stemwood)],
-                           upA.branchdead = upA.branchdead[2:length(low.stemwood)],
-                           upA.foliage = upA.foliage[2:length(low.stemwood)],
-                           upA.dead = upA.deadstem[2:length(low.stemwood)], 
-                           
-                           lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
-                           lowA.stembark = lowA.stembark[2:length(low.stemwood)],
-                           lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
-                           lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
-                           lowA.foliage = lowA.foliage[2:length(low.stemwood)],
-                           lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
-                           
-                           mNPP = mNPP[i,2:length(low.stemwood)], 
-                           mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
-                           mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
-                           mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
-                           mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
-                           mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
-                           mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
-                           
-                           up = up[2:length(low.stemwood)], 
-                           low = low[2:length(low.stemwood)], 
-                           
-                           up.dead = up.dead[2:length(low.stemwood)], 
-                           low.dead = low.dead[2:length(low.stemwood)],
-                           
-                           up.stemwood = up.stemwood[2:length(low.stemwood)],
-                           up.stembark = up.stembark[2:length(low.stemwood)],
-                           up.branchlive = up.branchlive[2:length(low.stemwood)],
-                           up.branchdead =  up.branchdead[2:length(low.stemwood)],
-                           up.foliage =up.foliage[2:length(low.stemwood)],
-                           
-                           low.stemwood = low.stemwood[2:length(low.stemwood)],
-                           low.stembark = low.stembark[2:length(low.stemwood)],
-                           low.branchlive = low.branchlive[2:length(low.stemwood)],
-                           low.branchdead = low.branchdead[2:length(low.stemwood)],
-                           low.foliage = low.foliage[2:length(low.stemwood)])  
-  total.plot
-}
-get_biomass_ests(plot = "2447353010690", mort.scheme = "DIDD",scenario = "rcp85")
-
-
-
-
-# RCP8.5
-normort.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp85")
-DIonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp85")
-DDonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp85")
-DIDD.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp85")
-
-# RCP 60:
-normort.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp60")
-DIonly.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp60")
-DDonly.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp60")
-DIDD.AGB.60 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp60")
-
-
-# RCP 4.5:
-normort.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp45")
-DIonly.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp45")
-DDonly.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp45")
-DIDD.AGB.45 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp45")
-
-
-# RCP 2.6:
-normort.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "nomort", scenario = "rcp26")
-DIonly.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIonly", scenario = "rcp26")
-DDonly.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DDonly", scenario = "rcp26")
-DIDD.AGB.26 <- lapply(unique(plots)[1:100], FUN = get_biomass_ests, mort.scheme = "DIDD", scenario = "rcp26")
-
-
-
-# no climate change scenarios:
-nocc.nomort.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "nomort", scenario = "rcp26")
-nocc.DIonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DIonly", scenario = "rcp26")
-nocc.DDonly.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DDonly", scenario = "rcp26")
-nocc.DIDD.AGB <- lapply(unique(plots)[1:100], FUN = get_biomass_ests_ncc, mort.scheme = "DIDD", scenario = "rcp26")
-
-normort.AGB.df <- do.call(rbind, normort.AGB)
-DIonly.AGB.df <- do.call(rbind, DIonly.AGB)
-DDonly.AGB.df <- do.call(rbind, DDonly.AGB)
-DIDD.AGB.df <- do.call(rbind, DIDD.AGB)
-
-# rcp60:
-normort.AGB.60.df <- do.call(rbind, normort.AGB.60)
-DIonly.AGB.60.df <- do.call(rbind, DIonly.AGB.60)
-DDonly.AGB.60.df <- do.call(rbind, DDonly.AGB.60)
-DIDD.AGB.60.df <- do.call(rbind, DIDD.AGB.60)
-
-# rcp45
-normort.AGB.45.df <- do.call(rbind, normort.AGB.45)
-DIonly.AGB.45.df <- do.call(rbind, DIonly.AGB.45)
-DDonly.AGB.45.df <- do.call(rbind, DDonly.AGB.45)
-DIDD.AGB.45.df <- do.call(rbind, DIDD.AGB.45)
-
-# rcp26
-normort.AGB.26.df <- do.call(rbind, normort.AGB.26)
-DIonly.AGB.26.df <- do.call(rbind, DIonly.AGB.26)
-DDonly.AGB.26.df <- do.call(rbind, DDonly.AGB.26)
-DIDD.AGB.26.df <- do.call(rbind, DIDD.AGB.26)
-
-
-nocc.nomort.AGB.df <- do.call(rbind, nocc.nomort.AGB)
-nocc.DIonly.AGB.df <- do.call(rbind, nocc.DIonly.AGB)
-nocc.DDonly.AGB.df <- do.call(rbind, nocc.DDonly.AGB )
-nocc.DIDD.AGB.df <- do.call(rbind, nocc.DIDD.AGB)
-
-all10plots <- rbind(normort.AGB.df, DIonly.AGB.df, DDonly.AGB.df, DIDD.AGB.df, 
-                    normort.AGB.60.df, DIonly.AGB.60.df, DDonly.AGB.60.df, DIDD.AGB.60.df, 
-                    normort.AGB.45.df, DIonly.AGB.45.df, DDonly.AGB.45.df, DIDD.AGB.45.df, 
-                    normort.AGB.26.df, DIonly.AGB.26.df, DDonly.AGB.26.df, DIDD.AGB.26.df, 
-                    nocc.nomort.AGB.df, nocc.DIonly.AGB.df, nocc.DDonly.AGB.df, nocc.DIDD.AGB.df)
-
-
-ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
-  summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
-
-
-
-added.up.tenplot.summary <- ten.plot.summary %>% group_by(mort.scheme, rcp, year) %>% 
-  mutate(Total.biomass.high =  upA.stemwood + upA.stembark + upA.foliage + upA.branchlive + upA.branchdead + upA.dead, 
-         Total.biomass.low =  lowA.stemwood + lowA.stembark + lowA.foliage + lowA.branchlive + lowA.branchdead + lowA.dead, 
-         A.stemwood.high = Total.biomass.high,
-         A.stemwood.low = Total.biomass.high - lowA.stemwood, 
-         A.livebranch.high = A.stemwood.low, 
-         A.livebranch.low = Total.biomass.high - lowA.stemwood - lowA.branchlive,
-         A.stembark.high = A.livebranch.low, 
-         A.stembark.low = Total.biomass.high - (lowA.stemwood + lowA.branchlive + lowA.stembark), 
-         A.foliage.high = A.stembark.low, 
-         A.foliage.low = Total.biomass.high - (lowA.stemwood + lowA.branchlive + lowA.stembark + lowA.foliage), 
-         A.branchdead.high = A.foliage.low,
-         A.branchdead.low = Total.biomass.high - (lowA.stemwood + lowA.branchlive + lowA.stembark + lowA.foliage + lowA.branchdead), 
-         A.dead.high = A.branchdead.low, 
-         A.dead.low = Total.biomass.high - (lowA.stemwood + lowA.branchlive + lowA.stembark + lowA.foliage + lowA.branchdead + low.dead) #- lowA.stemwood - lowA.branchlive - lowA.stembark - lowA.foliage - lowA.branchdead - lowA.dead
-  )
-
-AGB.line <- ggplot()+geom_line(data = ten.plot.summary, aes(year, mAGB, group = mort.scheme, color = mort.scheme))+theme_bw()+ylab("Total AGB for 10 plots \n (Mg/ha), RCP 8.5")+facet_wrap(~rcp)
-NPP.line <- ggplot(ten.plot.summary, aes(year, mNPP, group = mort.scheme, color = mort.scheme))+geom_line()+theme_bw()+ylab("Total NPP for 10  plots \n (Mg/ha), RCP 8.5")+facet_wrap(~rcp)
-
-png(height = 7, width = 10, units = "in", res = 150, "data/output/allrcps.example10plots.total.biomass.png")
-cowplot::plot_grid(AGB.line, NPP.line, ncol = 1, align = "hv")
-dev.off()
-
-
-b.plot <- ggplot()+
-  #geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.stemwood, ymax = upA.stemwood, fill = "stem wood"))+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.branchlive, ymax = upA.branchlive, fill = "live branch"))+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.stembark, ymax = upA.stembark, fill = "stem bark"))+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.foliage, ymax = upA.foliage, fill = "foliage"))+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.branchdead, ymax = upA.branchdead, fill = "dead branch"))+
-  geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA.dead, ymax = upA.dead, fill = "dead stem"))+
-  
-  theme_bw()+facet_grid(cols =  vars(rcp), rows = vars(mort.scheme))+
-  ylab(paste("ten plot total biomass \n  (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
-  scale_fill_manual(name = 'Biomass Component', 
-                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
-
-b.plot
-
-png(height = 10, width = 12, units = "in", res = 150, "data/output/Total_biomass_kaye_ten_plots_allrcps_nocc.png")
-b.plot
-dev.off()
-
-
-
-b.plot.sum <- ggplot()+
-  #geom_ribbon(data = ten.plot.summary, aes(x = year, ymin = lowA, ymax = upA), fill = "darkseagreen4")+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.stemwood.low, ymax = A.stemwood.high, fill = "stem wood"))+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.livebranch.low, ymax = A.livebranch.high, fill = "live branch"))+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.stembark.low, ymax = A.stembark.high, fill = "stem bark"))+#facet_grid(cols =  vars(rcp), rows = vars(mort.scheme))+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.foliage.low, ymax = A.foliage.high, fill = "foliage"))+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.branchdead.low, ymax = A.branchdead.high, fill = "dead branch"))+
-  geom_ribbon(data = added.up.tenplot.summary, aes(x = year, ymin = A.dead.low, ymax = A.dead.high, fill = "dead stem"))+
-  
-  theme_bw()+facet_grid(cols =  vars(rcp), rows = vars(mort.scheme))+
-  ylab(paste("ten plot total biomass \n  (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
-  scale_fill_manual(name = 'Biomass Component', 
-                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1", "dead stem" = "black" ))
-
-b.plot.sum
-# something is wrong with this plot
-
-tota.plot.trunk <- ten.plot.summary %>% filter(year <= 2098)
-yhi <- max(  tota.plot.trunk$up.stemwood, na.rm = TRUE) + 1
-ylow <- min(  tota.plot.trunk$low.branchdead, na.rm=TRUE) - 1
-
-b.flux <- ggplot()+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.stemwood, ymax = up.stemwood, fill = "stem wood"))+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.branchlive, ymax = up.branchlive, fill = "live branch"))+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.stembark, ymax = up.stembark, fill = "stem bark"))+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.foliage, ymax = up.foliage, fill = "foliage"))+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.branchdead, ymax = up.branchdead, fill = "dead branch"))+
-  geom_ribbon(data = tota.plot.trunk, aes(x = year, ymin = low.dead, ymax = up.dead, fill = "dead stem"))+
-  
-  theme_bw()+facet_grid(cols =  vars(rcp), rows = vars(mort.scheme), scales = "free_y")+#xlim(2001,2018)+ylim(ylow, yhi)+
-  ylab(paste("Total biomass increment, \n RCP 8.5, ten plots (Mg/ha)"))+xlab("Year")+theme(panel.grid = element_blank())+
-  scale_fill_manual(name = 'Biomass Component', 
-                    values =c("dead branch"="grey","foliage"="#018571", "stem bark"="#a6611a","live branch"="#dfc27d","stem wood"="#80cdc1",  "dead stem" = "black" ))
-
-b.flux
-# save thes summaries:
-
-png(height = 10, width = 12, units = "in", res = 150, "data/output/NPP_biomass_kaye_ten_plots_allrcps_nocc.png")
-b.flux
-dev.off()
-
-# try a plot that is stacked barplots:
-
-# big tree vs small tree carbon in forecasts
-get_tree_levelC_ests <- function(plot, mort.scheme, scenario, nocc = FALSE){
-  if(nocc == FALSE){
-    load(paste0("biomass_data/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+source("R/get_objects.R")
+source("R/generate_forecast.R")
+source("R/biomass.sensitivity.periodic_4scenarios.R")
+
+
+# run all the plots for this scenario and 60% max SDI
+remeasured.trees.plts <- cov.data.regional %>% filter(!is.na(DIA_cm_T2) & MEASYEAR_T2 > 2001)
+
+#biomass.sensitivity.periodic(plot = unique(odd.plots$plot)[2], density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26", SDI.ratio.DD = 0.6, aggressiveCC = FALSE, scale.mort.prob = 1)
+biomass.sensitivity.periodic(plt.num = unique(plots)[231],#2562224010690, #2562224010690, #as.character(cov.data.regional$PLT_CN[1]), #2487922010690,#2972526010690, #2972148010690, #high.plts$PLT_CN[2] , #2469918010690 , 
+                             density.dependent = TRUE, 
+                             density.independent = TRUE, 
+                             scenario = "rcp26", 
+                             SDI.ratio.DD = 0.6, 
+                             aggressiveCC = FALSE, 
+                             scale.mort.prob = 0.9, 
+                             cov.data.regional.df = cov.data.regional, 
+                             TREE.FIA = TREE, 
+                             ci.names.df = ci.names, 
+                             ci.names.noncored.df = ci.names.noncored, 
+                             mean.pred.cored.df = mean.pred.cored,
+                             #xmat2 = xmat2, 
+                             SDIscaled.matrix = SDIscaled,
+                             time_data_list = time_data)
+
+# run for all of the remeasured trees
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                  density.dependent = TRUE, 
+                                                                  density.independent = TRUE, 
+                                                                  scenario = "rcp26", 
+                                                                  SDI.ratio.DD = 0.6, 
+                                                                  aggressiveCC = FALSE, 
+                                                                  scale.mort.prob = 1, 
+                                                                  cov.data.regional.df = cov.data.regional, 
+                                                                  TREE.FIA = TREE, 
+                                                                  ci.names.df = ci.names, 
+                                                                  ci.names.noncored.df = ci.names.noncored, 
+                                                                  mean.pred.cored.df = mean.pred.cored,
+                                                                  #xmat2 = xmat2, 
+                                                                  SDIscaled.matrix = SDIscaled,
+                                                                  time_data_list = time_data)}))
+
+unique(plots) %in% "2558835010690"
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp45", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp60", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[165:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+unique(plots) %in% 2552955010690
+system.time(lapply(X = unique(plots)[1:675],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid,
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+
+# run for scale_mort_prob = 1.1 (10% increase)
+# run for all of the remeasured trees
+
+unique(plots) %in% 2553276010690
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp26", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp45", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+unique(plots) %in% 3124962010690
+system.time(lapply(X = unique(plots)[523:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp60", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 1.1, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+
+
+# run for scale_mort_prob = 0.9 (10% decrease)
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp26", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 0.9, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp45", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 0.9, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+#unique(plots) %in% 3124962010690
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp60", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 0.9, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+system.time(lapply(X = unique(plots)[1:675],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){biomass.sensitivity.periodic(plt.num = pltid, #2469918010690 , 
+                                                                      density.dependent = TRUE, 
+                                                                      density.independent = TRUE, 
+                                                                      scenario = "rcp85", 
+                                                                      SDI.ratio.DD = 0.6, 
+                                                                      aggressiveCC = FALSE, 
+                                                                      scale.mort.prob = 0.9, 
+                                                                      cov.data.regional.df = cov.data.regional, 
+                                                                      TREE.FIA = TREE, 
+                                                                      ci.names.df = ci.names, 
+                                                                      ci.names.noncored.df = ci.names.noncored, 
+                                                                      mean.pred.cored.df = mean.pred.cored,
+                                                                      #xmat2 = xmat2, 
+                                                                      SDIscaled.matrix = SDIscaled,
+                                                                      time_data_list = time_data)}))
+
+########################################################################################
+# read in the predicted cored values from the SSM plus mortality forecasts
+########################################################################################
+get_remeas <- function(plot, 
+                       mort.scheme, 
+                       scenario, 
+                       SDI.ratio.DD, 
+                       cc.scenario, 
+                       scale.mort.prob = 1, 
+                       parse = "full" ){
+  
+  cat(paste0("getting pred vs obs for ", as.character(plot)))
+  
+  if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".",parse,".Rdata"))==TRUE){
+    cat("no forecast")
   }else{
-    load(paste0("biomass_data_nocc/plot2AGB_",mort.scheme,".", plot,".",scenario, ".Rdata"))
+    oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
+    if(nrow(oldTREE) <=1){
+      cat("less than 2 trees on the first plot")
+    }else{
+      
+      cat (paste("reading in forecasts from plot ", plot))
+      load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",scenario,".", SDI.ratio.DD, ".", cc.scenario, ".",parse,".Rdata"))#,mort.scheme,".",plot,".",scenario,".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      cored.remeas
+    }
   }
-  # objects
-  # out, out.dead AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
-  # AGB.foliage, NPP.foliage, 
-  # AGB.stembark, NPP.stembark,
-  # AGB.stemwood, NPP.stemwood,
-  # AGB.branchdead, NPP.branchdead,
-  # AGB.branchlive, NPP.branchlive,
-  
-  # lets say large trees > 30 cm dbh and small trees are < 30 cm dbh
-  
-  # out
-  # dim(biomass.dead)
-  # AGB
-  # AGB.dead
-  # 
-  # second value is the median
-  #diam.live[,1:10, 1]
-  #diam.dead[,1:10, 1]
-  
-  diam.live.melt <- melt(diam.live[2,,])
-  diam.live.melt$size_class <- ifelse(diam.live.melt$value<= 0.1, NA, 
-                                      ifelse(diam.live.melt$value <= 30, "small tree", "big tree"))
-  colnames(diam.live.melt) <- c("tree", "time", "DBH", "size_class")
-  
-  total.biomass.bytree <- biomass.stembark + biomass.branchlive + biomass.branchdead + biomass.foliage + biomass.stemwood
-  
-  total.biomass.bytree.melt <- melt(total.biomass.bytree[2,,])
-  colnames(total.biomass.bytree.melt) <- c("tree", "time", "AGB")
-  
-  diam.biomass.df <- left_join(diam.live.melt, total.biomass.bytree.melt, by = c("tree", "time"))
-  
-  
-  head(diam.biomass.df )
-  
-  ggplot(diam.biomass.df, aes(x = time, y = AGB, color = size_class, group = tree))+geom_line()
-  
-  ggplot(na.omit(diam.biomass.df), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-    ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-    scale_fill_manual(name = 'Size class', 
-                      values =c("big tree"="#e66101","small tree"="#5e3c99"))
-  
-  diam.biomass.df$plot <- plot
-  diam.biomass.df$mort.scheme <- mort.scheme
-  if(nocc == FALSE){
-    diam.biomass.df$scenario <- scenario
-  }else{
-    diam.biomass.df$scenario <- paste0("nocc", ".", scenario)
-  }
-  
-  diam.biomass.df
-  #e66101
-  #5e3c99
 }
 
-
-# read in and get the tree level estimates
-# RCP 2.6
-btst.AGB.DIDD.26 <- lapply(unique(plots)[1:83], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26")})
-btst.AGB.DIDD.26.df <- do.call(rbind, btst.AGB.DIDD.26)
-btst.AGB.DIDD.26.df
-
-btst.AGB.nomort.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26")})
-btst.AGB.nomort.26.df <- do.call(rbind, btst.AGB.nomort.26)
-
-btst.AGB.DDonly.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26")})
-btst.AGB.DDonly.26.df <- do.call(rbind, btst.AGB.DDonly.26)
-
-btst.AGB.DIonly.26<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26")})
-btst.AGB.DIonly.26.df <- do.call(rbind, btst.AGB.DIonly.26)
-
-# RCP 4.5
-btst.AGB.DIDD.45 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp45")})
-btst.AGB.DIDD.45.df <- do.call(rbind, btst.AGB.DIDD.45)
-
-btst.AGB.nomort.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp45")})
-btst.AGB.nomort.45.df <- do.call(rbind, btst.AGB.nomort.45)
-
-btst.AGB.DDonly.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp45")})
-btst.AGB.DDonly.45.df <- do.call(rbind, btst.AGB.DDonly.45)
-
-btst.AGB.DIonly.45<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp45")})
-btst.AGB.DIonly.45.df <- do.call(rbind, btst.AGB.DIonly.45)
-
-# RCP 6.0
-btst.AGB.DIDD.60 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp60")})
-btst.AGB.DIDD.60.df <- do.call(rbind, btst.AGB.DIDD.60)
-
-btst.AGB.nomort.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp60")})
-btst.AGB.nomort.60.df <- do.call(rbind, btst.AGB.nomort.60)
-
-btst.AGB.DDonly.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp60")})
-btst.AGB.DDonly.60.df <- do.call(rbind, btst.AGB.DDonly.60)
-
-btst.AGB.DIonly.60<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp60")})
-btst.AGB.DIonly.60.df <- do.call(rbind, btst.AGB.DIonly.60)
-
-# RCP 8.5
-btst.AGB.DIDD.85 <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp85")})
-btst.AGB.DIDD.85.df <- do.call(rbind, btst.AGB.DIDD.85)
-
-btst.AGB.nomort.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp85")})
-btst.AGB.nomort.85.df <- do.call(rbind, btst.AGB.nomort.85)
-
-btst.AGB.DDonly.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp85")})
-btst.AGB.DDonly.85.df <- do.call(rbind, btst.AGB.DDonly.85)
-
-btst.AGB.DIonly.85<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp85")})
-btst.AGB.DIonly.85.df <- do.call(rbind, btst.AGB.DIonly.85)
-
-# no climate change scenario:
-# read in and get the tree level estimates
-# RCP 2.6
-btst.AGB.DIDD.nocc <- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIDD", scenario = "rcp26", nocc = TRUE)})
-btst.AGB.DIDD.nocc.df <- do.call(rbind, btst.AGB.DIDD.nocc)
-btst.AGB.DIDD.nocc.df
-
-btst.AGB.nomort.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "nomort", scenario = "rcp26", nocc = TRUE)})
-btst.AGB.nomort.nocc.df <- do.call(rbind, btst.AGB.nomort.nocc)
-
-btst.AGB.DDonly.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DDonly", scenario = "rcp26", nocc = TRUE)})
-btst.AGB.DDonly.nocc.df <- do.call(rbind, btst.AGB.DDonly.nocc)
-
-btst.AGB.DIonly.nocc<- lapply(unique(plots)[1:50], FUN = function(x){get_tree_levelC_ests(plot = x, mort.scheme = "DIonly", scenario = "rcp26", nocc = TRUE)})
-btst.AGB.DIonly.nocc.df <- do.call(rbind, btst.AGB.DIonly.nocc)
+cored.reams.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                   FUN = function(pltid){get_remeas(plot = pltid, 
+                                                    mort.scheme = "DIDD",
+                                                    scenario = "rcp26", 
+                                                    SDI.ratio.DD = 0.6, 
+                                                    cc.scenario = "singleCC",
+                                                    scale.mort.prob = 1,
+                                                    parse = "full"
+                                                                      )})
 
 
-# combine all the tree-level datasets together:
-allplots.treeC <- rbind(btst.AGB.nomort.26.df, btst.AGB.DIonly.26.df, btst.AGB.DDonly.26.df, btst.AGB.DIDD.26.df, 
-                        btst.AGB.nomort.45.df, btst.AGB.DIonly.45.df, btst.AGB.DDonly.45.df, btst.AGB.DIDD.45.df,
-                        btst.AGB.nomort.60.df, btst.AGB.DIonly.60.df, btst.AGB.DDonly.60.df, btst.AGB.DIDD.60.df, 
-                        btst.AGB.nomort.85.df, btst.AGB.DIonly.85.df, btst.AGB.DDonly.85.df, btst.AGB.DIDD.85.df, 
-                        btst.AGB.nomort.nocc.df, btst.AGB.DIonly.nocc.df, btst.AGB.DDonly.nocc.df, btst.AGB.DIDD.nocc.df)
+cored.remeas.df <- do.call(rbind, cored.reams.list)
+cored.remeas.df$parse <- "full"
+saveRDS(cored.remeas.df, "outputs/validation/cored.remeas.df.full.rds")
+
+ggplot(data = cored.remeas.df, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_full.png")
+
+cored.remeas.df %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                                   RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                                   MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+) 
+
+summary.stats.full <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df))
 
 
-# ten.plot.summary <- all10plots %>% group_by(mort.scheme, rcp, year) %>% 
-#   summarise_at(.vars = vars(mAGB:low.foliage), .funs = sum, na.rm = TRUE)
 
 
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_all_50_plots.png")
-ggplot(na.omit(allplots.treeC), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-# example for how single plots may vary quite alot!
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_one_plot.png")
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[1]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_two_plot.png")
-
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[2]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-dev.off()
-
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_three_plot.png")
-
-ggplot(na.omit(allplots.treeC) %>% filter(plot %in% unique(allplots.treeC$plot)[3]), aes(x = time, y = AGB, fill = size_class))+geom_bar(stat = 'identity')+
-  ylab("Median AGB (Mg/ha)")+theme_bw()+theme(panel.grid = element_blank())+
-  ggtitle(paste("Plot ", unique(allplots.treeC$plot)[1]))+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))
-
-dev.off()
+cored.reams.list.nocc <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                           FUN = function(pltid){get_remeas(plot = pltid, 
+                                                            mort.scheme = "DIDD",
+                                                            scenario = "rcp26", 
+                                                            SDI.ratio.DD = 0.6, 
+                                                            cc.scenario = "singleCC",
+                                                            scale.mort.prob = 1,
+                                                            parse = "noCC"
+                           )})
 
 
-allplots.treeC.totals <- na.omit(allplots.treeC) %>% group_by(plot, mort.scheme, scenario, size_class, time) %>%
-  summarise(total.AGB.size = sum(AGB, na.rm=TRUE), 
-            avg.diam.size = median(DBH, na.rm = TRUE), 
-            ntrees = n())
-
-# get proportion of total biomass in large vs small trees:
-plotC.totals.spread <- allplots.treeC.totals %>% select(-ntrees, -avg.diam.size) %>% group_by(plot, mort.scheme, scenario, time) %>%
-  spread(size_class, value = total.AGB.size)
-
-plotC.totals.prop <- plotC.totals.spread %>% group_by(plot, mort.scheme, scenario, time) %>%
-  mutate(total.AGB = `big tree` + `small tree`,
-         prop.big = `big tree`/total.AGB, 
-         prop.small = `small tree`/total.AGB) 
+cored.remeas.df.nocc <- do.call(rbind, cored.reams.list.nocc)
+cored.remeas.df.nocc$parse <- "noCC"
+saveRDS(cored.remeas.df.nocc, "outputs/validation/cored.remeas.df.noCC.rds")
 
 
-whole.regionC <- plotC.totals.prop %>% group_by(mort.scheme, scenario, time) %>% mutate(big.dominated = ifelse(prop.big > 0.65, 1, 0), 
-                                                                                        small.dominated = ifelse(prop.small > 0.65, 1, 0), 
-                                                                                        mixed.size = ifelse(prop.small <= 0.65 & prop.small >=0.35, 1, 0))%>%
-  summarise(prop.big.all = mean(prop.big, na.rm =TRUE), 
-            prop.small.all = mean(prop.small, na.rm =TRUE), 
-            sum.AGB = sum(total.AGB, na.rm =TRUE),
-            nplots.big = sum(big.dominated, na.rm = TRUE), 
-            nplots.small = sum(small.dominated, na.rm = TRUE), 
-            nplots.mixed = sum(mixed.size, na.rm = TRUE))
+ggplot(data = cored.remeas.df.nocc, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df.nocc, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_noCC.png")
 
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_dominated_nplots.png")
 
-ggplot()+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.big), color = "#e66101")+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.small), color= "#5e3c99")+
-  geom_line(data = whole.regionC , aes(x=time,y = nplots.mixed), color= "black")+
-  scale_color_manual(name = 'Size class', 
-                     values =c("big tree dominated"="#e66101","small tree dominated"="#5e3c99", "mixed dominated" = "black"))+
-  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+cored.remeas.df.nocc %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                                    RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                                    MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+) 
+
+summary.stats.nocc <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df.nocc))
+
+
+
+cored.reams.list.GD.10 <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                                FUN = function(pltid){get_remeas(plot = pltid, 
+                                                                 mort.scheme = "DIDD",
+                                                                 scenario = "rcp26", 
+                                                                 SDI.ratio.DD = 0.6, 
+                                                                 cc.scenario = "singleCC",
+                                                                 scale.mort.prob = 1,
+                                                                 parse = "GD.10"
+                                )})
+
+
+cored.remeas.df.GD.10 <- do.call(rbind, cored.reams.list.GD.10)
+cored.remeas.df.GD.10$parse <- "GD.10"
+saveRDS(cored.remeas.df.GD.10, "outputs/validation/cored.remeas.df.GD.10.rds")
+
+
+ggplot(data = cored.remeas.df.GD.10, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df.GD.10, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_GD.10.png")
+
+cored.remeas.df.GD.10 %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                              RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                              MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+                              ) 
+
+
+summary.stats.GD.10 <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df.GD.10))
+
+
+
+
+cored.reams.list.GD.20 <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                                 FUN = function(pltid){get_remeas(plot = pltid, 
+                                                                  mort.scheme = "DIDD",
+                                                                  scenario = "rcp26", 
+                                                                  SDI.ratio.DD = 0.6, 
+                                                                  cc.scenario = "singleCC",
+                                                                  scale.mort.prob = 1,
+                                                                  parse = "GD.20"
+                                 )})
+
+
+cored.remeas.df.GD.20 <- do.call(rbind, cored.reams.list.GD.20)
+cored.remeas.df.GD.20$parse <- "GD.20"
+saveRDS(cored.remeas.df.GD.20, "outputs/validation/cored.remeas.df.GD.20.rds")
+
+
+ggplot(data = cored.remeas.df.GD.20, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df.GD.20, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_GD.20.png")
+
+cored.remeas.df.GD.20 %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                                    RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                                    MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+) 
+
+
+summary.stats.GD.20 <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df.GD.20))
+
+
+cored.reams.list.DD.ramp <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN))[1:296],#unique(plots)[534:675],#unique(plots)[!unique(plots) %in% unique(high.plts$plot)][356:612],#[355:612], #unique(high.plts$plot), #unique(plots)[540:650],
+                                 FUN = function(pltid){get_remeas(plot = pltid, 
+                                                                  mort.scheme = "DIDD",
+                                                                  scenario = "rcp26", 
+                                                                  SDI.ratio.DD = 0.6, 
+                                                                  cc.scenario = "singleCC",
+                                                                  scale.mort.prob = 1,
+                                                                  parse = "DD.ramp"
+                                 )})
+
+
+cored.remeas.df.DD.ramp <- do.call(rbind, cored.reams.list.DD.ramp)
+cored.remeas.df.DD.ramp$parse <- "DD.ramp"
+saveRDS(cored.remeas.df.DD.ramp, "outputs/validation/cored.remeas.df.DD.ramp.rds")
+
+
+ggplot(data = cored.remeas.df.DD.ramp, aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = cored.remeas.df.DD.ramp, aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_DD.ramp.png")
+
+cored.remeas.df.DD.ramp %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                                    RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                                    MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+) 
+
+
+summary.stats.DD.ramp <- summary(lm(DIA_cm_T2  ~ predDBH_T2, data = cored.remeas.df.DD.ramp))
+
+
+
+## combine here
+core.remeas.both <- rbind(cored.remeas.df, cored.remeas.df.nocc, cored.remeas.df.GD.10, 
+                          cored.remeas.df.GD.20, cored.remeas.df.DD.ramp)
+ggplot(data = core.remeas.both , aes(x = DIA_cm_T2, y = predDBH_T2))+geom_point()+
+  geom_errorbar(data = core.remeas.both , aes(x = DIA_cm_T2, ymin = predDBH_T2.lo, ymax = predDBH_T2.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+theme_bw()+
+  ylab("Predicted Diameter (cm)")+xlab("Held-out Diameter Observations (cm)")+facet_wrap(~parse)
+ggsave("outputs/validation/out_of_sample_full_diamter_plots_all_scenarios.png")
+
+core.remeas.both %>% group_by(treeid) %>% mutate(diff = DIA_cm_T2 - predDBH_T2) %>%
+  group_by(parse) %>% summarise(`average difference` = mean (diff)) %>% rename(`scenario` = "parse") |>gt()
+
+core.remeas.both %>% group_by(parse) %>% summarise(MSPE = mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE),
+                                   RMSPE = sqrt(mean(( DIA_cm_T2 - predDBH_T2)^2, na.rm =TRUE)),
+                                   MAPE = mean(abs( DIA_cm_T2 - predDBH_T2), na.rm = TRUE)
+) 
+########################################################################################
+# generate tree-level forecasts in the near term without mortality or changing SDI
+########################################################################################
+plt.num = "3153259010690" #as.character(unique(remeasured.trees.plts$PLT_CN))[1]
+scenario = "rcp26"
+cov.data.regional.df = cov.data.regional
+TREE.FIA = TREE
+ci.names.df = ci.names
+ci.names.noncored.df = ci.names.noncored 
+mean.pred.cored.df = mean.pred.cored
+SDIscaled.matrix = time_data$SDIscaled
+
+forecast.cored.ssm <- function(plt.num,
+                               scenario,
+                               cov.data.regional.df,
+                               TREE.FIA = TREE,
+                               ci.names.df = ci.names,
+                               ci.names.noncored.df = ci.names.noncored ,
+                               mean.pred.cored.df = mean.pred.cored,
+                               SDIscaled.matrix = time_data$SDIscaled){
   
-  ylab(paste("number of plots dominated by big vs small trees"))+    xlab("Year")+
+    cored.in.plt <- cov.data.regional.df %>% dplyr::filter (PLT_CN %in% plt.num)
+    cored.in.plt <- cored.in.plt[!duplicated(cored.in.plt$TRE_CN),]
+    cored.in.plt$TPA_UNADJ <- TREE.FIA[which(TREE.FIA$CN %in% unique(cored.in.plt$TRE_CN)),]$TPA_UNADJ
+    x <- cored.in.plt$treeid
+    
+    
+    # plot the posterior predictions of DBH for a single tree:
+    sel <- which(ci.names.df$row %in%  x) # use sel to subset the data for the 415th tree
+    mean.cored <- mean.pred.cored.df[sel]
+    nsamps = 100
+    nt <- length(2001:2098)
+    ntfull <- length(1998:2098)
+    ni <- length(cored.in.plt$CORE_CN)
+    # fill in the array with the diameter estimates for 2018:
+    dbh.pred <- increment  <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+    nsamps1 <- nsamps-1 # need to subtract for the DBH mcmcs and parameter mcmcs used to make the forecast matches
+    
+    treeids <- cored.in.plt$treeid
+    
+    # write a function to get the MCMC samples
+    
+    get_mcmc_samples <- function(x, betas, nsamps){
+      
+      rnorm(nsamps, mean = as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(median)), sd =  as.numeric(betas %>% filter(L1 %in% x) %>%dplyr::select(sd)))
+    }
+    
+    nsamps <- nsamps
+    #get_mcmc_samples("betaSDIscaled", betas = betas, nsamps = 1000)
+    # for each tree generate a random sample for the tree-level intercept:
+    alpha <- matrix(NA, nrow = 100, ncol = ni)
+    if(length(treeids)>1){ # if we have more than one cored tree per plot
+      alphatreeids <- vector()
+      for(i in 1:length(treeids)){
+        alphatreeids[i]<- paste0("alpha_TREE[", treeids[i], "]")
+        alpha[,i] <- get_mcmc_samples(alphatreeids[i], betas = mus, nsamps = nsamps)
+      }
+      
+      
+    }else{ # if there is just one cored tree per plot
+      alphatreeids <- paste0("alpha_TREE[", treeids, "]")
+      alpha[,1] <- get_mcmc_samples(alphatreeids, betas = alphas, nsamps = nsamps)
+    }
+    
+   
+    
+    bMAP <- get_mcmc_samples("betaMAP", betas = betas, nsamps = nsamps)
+    bMAT <- get_mcmc_samples("betaMAT", betas = betas, nsamps = nsamps)
+    bMAP_MAT <- get_mcmc_samples("betaMAP_MAT", betas = betas, nsamps = nsamps)
+    
+    bSDI <- get_mcmc_samples("betaSDI", betas = betas, nsamps = nsamps)
+    bSDI_ppt <- get_mcmc_samples("betaPrecip_SDI", betas = betas, nsamps = nsamps)
+    bSDI_tmax <- get_mcmc_samples("betaTmax_SDI", betas = betas, nsamps = nsamps)
+    
+    
+    
+    #MAP interactions:
+    bMAP_ppt <- get_mcmc_samples("betaPrecip_MAP", betas = betas, nsamps = nsamps)
+    bMAP_tmax <- get_mcmc_samples("betaTmax_MAP", betas = betas, nsamps = nsamps)
+    #bMAP_SDI <- get_mcmc_samples("betaSDI_MAP", betas = betas, nsamps = nsamps)
+    
+    #MAT interactions:
+    bMAT_ppt <- get_mcmc_samples("betaPrecip_MAT", betas = betas, nsamps = nsamps)
+    bMAT_tmax <- get_mcmc_samples("betaTmax_MAT", betas = betas, nsamps = nsamps)
+    #bMAT_SDI <- get_mcmc_samples("betaSDI_MAT", betas = betas, nsamps = nsamps)
+    
+    
+    bX <-  get_mcmc_samples("betaX", betas = betas, nsamps = nsamps)
+    
+    
+    bppt <- get_mcmc_samples("betaPrecip", betas = betas, nsamps = nsamps)
+    btmax <- get_mcmc_samples("betaTmax", betas = betas, nsamps = nsamps)
+    btmax_ppt <- get_mcmc_samples("betaPrecip_Tmax", betas = betas, nsamps = nsamps)
+    
+    # X interactions:
+    bX_ppt <- get_mcmc_samples("betaX_Precip", betas = betas, nsamps = nsamps)
+    bX_tmax <- get_mcmc_samples("betaX_Tmax", betas = betas, nsamps = nsamps)
+    bX_MAP<- get_mcmc_samples("betaX_MAP", betas = betas, nsamps = nsamps)
+    bX_MAT <- get_mcmc_samples("betaX_MAT", betas = betas, nsamps = nsamps)
+    bX_SDI <- get_mcmc_samples("betaX_SDI", betas = betas, nsamps = nsamps)
+    
+    
+    betas.all <- data.frame(  alpha ,
+                              bMAP,
+                              bMAT ,
+                              bMAP_MAT,
+                              bSDI ,
+                              bSDI_ppt,
+                              bSDI_tmax,
+                              
+                              #MAP interactions:
+                              bMAP_ppt,
+                              bMAP_tmax,
+                              #bMAP_SDI,
+                              #MAT interactions:
+                              bMAT_ppt,
+                              bMAT_tmax,
+                              #bMAT_SDI,
+                              
+                              bX,
+                              bppt,
+                              btmax,
+                              btmax_ppt, 
+                              
+                              bX_MAP, 
+                              bX_MAT, 
+                              bX_tmax, 
+                              bX_ppt, 
+                              bX_SDI)
+    
+    
+    ##print ("set up SDI")
+    # get PLT_CN
+    PLT_CNint <- as.character(plt.num)
+    
+    # get the scaled SDI for the PLT:
+    
+    # get the unique SUBPLOTS in the plot
+    #subplots <- unique(SDIscaled.matrix %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(SUBP))
+    
+    SDI.PLT.2001 <- SDIscaled.matrix[cored.in.plt$treeid,36]
+    
+     # get the SDI values
+    
+    
+    ##print("extracting future climate for the plot")
+    
+    if(scenario %in% "rcp26"){
+      clim.fut.scen <- future.clim.subset.26 
+    }
+    if(scenario %in% "rcp45"){
+      clim.fut.scen <- future.clim.subset.45 
+    }
+    if(scenario %in% "rcp60"){
+      clim.fut.scen <- future.clim.subset.60 
+    }
+    if(scenario %in% "rcp85"){
+      clim.fut.scen <- future.clim.subset.85 
+    }
+    
+    
+    scale.fut.clim.by.plt <- function(x, future.clim.subset){
+      #print(x)
+      full.clim.plt <-  future.clim.subset %>% filter(PLT_CN == x)#full.clim.dt[PLT_CN %in% plot]
+      rowid <- which(cov.data.regional.df$PLT_CN %in%  x ) # get the row for the climate data
+      full.clim.plt$ppt.scale <- ( full.clim.plt$ppt.corrected-mean(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE))/sd(as.matrix(clim.data$wintP.wateryr[rowid,]), na.rm = TRUE)
+      full.clim.plt$tmax.scale <- ( full.clim.plt$tmax.corrected-mean(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE))/sd(as.matrix(clim.data$tmaxAprMayJun[rowid,]), na.rm =TRUE)
+      full.clim.plt
+    }
+    
+    fut.clim.scen <- scale.fut.clim.by.plt(x = PLT_CNint, future.clim.subset = clim.fut.scen)
+    
+    if(nrow(fut.clim.scen)>0){
+     
+        models <- unique(fut.clim.scen$model) # 21 models
+        sample.model <- sample(models, size = length(models), replace= FALSE)
+        
+        get.ens.df <- function(i){
+          
+          ens.proj.yr <- fut.clim.scen %>% filter(model %in% sample.model[i])
+          ens.proj.yr <- ens.proj.yr [!duplicated(ens.proj.yr),]
+          
+          
+          df <- data.frame(ppt = ens.proj.yr$ppt.scale, 
+                           tmax = ens.proj.yr$tmax.scale, 
+                           model = i, 
+                           year = ens.proj.yr$year)
+          df$diff.ppt <- NA
+          df$diff.tmax <- NA
+          
+          for(t in 2:82){
+            
+            df[t,]$diff.ppt <- df[t,]$ppt-df[t-1,]$ppt
+            df[t,]$diff.tmax <- df[t,]$tmax - df[t-1,]$tmax
+          }
+          
+          return(df)
+        }
+        
+        ens.samps <- lapply(1:length(models), get.ens.df)
+        ens.samps.df <- do.call(rbind, ens.samps)
+        
+        detrend.samps.df  <- ens.samps.df %>% dplyr::select(diff.ppt, diff.tmax, model, year)# %>%
+        colnames(detrend.samps.df) <- c("ppt", "tmax", "model", "year")
+        
+        
+        samps.df  <- ens.samps.df %>% dplyr::select(ppt, tmax, model, year)
+        detrend.samps.df  <- detrend.samps.df %>% dplyr::select(ppt, tmax, model, year)
+        
+        
+        ens.samps.df <- samps.df #%>% group_by(year, i) #%>% summarise(ppt.mean = mean(ppt, na.rm =TRUE), 
+        #             tmax.mean = mean(tmax, na.rm = TRUE))
+        
+        #ppt.fut <- ens.samps.df %>% group_by(year,i) %>% dplyr::select(year,i, ppt)  %>% tidyr::spread(key = year, value = ppt)%>% dplyr::select(`2019`:`2098`)
+        #tmax.fut <- ens.samps.df %>% dplyr::select(year, i, tmax) %>% tidyr::spread(key = year, value = tmax)%>% dplyr::select(`2019`:`2098`)
+        
+        ppt.hist <- wateryrscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
+        
+        tmax.hist <- tmaxAprMayJunscaled %>% ungroup() %>% filter(PLT_CN %in% PLT_CNint) %>% dplyr::select(`1966`:`2001`)
+        hist.samps.df <- data.frame(ppt = rep(as.numeric(ppt.hist), length(unique(ens.samps.df$model))), 
+                                    tmax = rep(as.numeric(tmax.hist) , length(unique(ens.samps.df$model))), 
+                                    model = rep(1:length(unique(ens.samps.df$model)), each = length(as.numeric(ppt.hist))), 
+                                    year = rep(2001:2018, length(unique(ens.samps.df$model))))
+        
+        full.df <- rbind(hist.samps.df, ens.samps.df %>% filter(!year %in% 2018))
+        full.df.nodups <- full.df[!duplicated(full.df),]
+        #full.df.nodups$rowid <- 1:length(full.df.nodups$ppt)
+        full.ens.ppt <- full.df.nodups  %>% dplyr::select( ppt, year, model)%>% group_by(model, year)%>% 
+          summarise(ppt.m = mean(ppt, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(ppt.m, year, model) %>%group_by(year)%>%
+          spread(year, value = ppt.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
+        
+        full.ens.tmax <- full.df.nodups  %>% dplyr::select(tmax, year, model)%>%  group_by(model, year)%>% 
+          summarise(tmax.m = mean(tmax, na.rm = TRUE)) %>% ungroup()%>%dplyr::select(tmax.m, year, model) %>%group_by(year)%>%
+          spread(year, value = tmax.m, drop = FALSE)%>% ungroup () %>% dplyr::select(-model)
+        
+       
+        
+        
+        
+        cov.mat <- unique(x.mat %>% filter(PLT_CN %in% plt.num) %>% dplyr::select(PLT_CN, MAP, MAT))#, MAP.scaled, MAT.scaled))
+        
+        # check the MAP and MAT--I think we can just get from cored.in.plt df
+        # this indexing may be off now
+        MAP <- cov.mat$MAP
+        MAT <- cov.mat$MAT
+        
+        #print("assembling covariate data ")
+        
+        covariates <- list()
+        covariates$SDI <- SDI.PLT.2001[1]
+        covariates$ppt <- as.matrix(full.ens.ppt)
+        covariates$tmax <- as.matrix(full.ens.tmax) 
+        covariates$MAP <- cored.in.plt$MAP[1]
+        covariates$MAT <- cored.in.plt$MAT[1]
+        
+        # get the diameters:
+        
+        #yrs <- 31:135
+        tree.ind.cored <- lapply(X = x, FUN= function(x){which(ci.names.df$row == x & ci.names.df$col %in% 33:36)}) #dplyr::select just the years 1994:2010 to match the plot level data:
+        i.cored <- do.call(rbind, tree.ind.cored )
+        out.cored.plt <-  out.cored[(length(out.cored[,1])-nsamps + 1):length(out.cored[,1]),i.cored] 
+        
+        all.dbh <- out.cored.plt
+        
+        all.dbh.ids <- separate(reshape2::melt(colnames(all.dbh)), col =value, into = c("x[", "tree", "year", "]"))
+        all.dbh.ids$col.id <- 1:length(all.dbh.ids$tree)
+        yr.2001.ids <- as.vector(unlist(all.dbh.ids %>% filter(year == 36) %>% dplyr::select(col.id)))
+        
+        all.dbh <- all.dbh[,yr.2001.ids]
+        
+        time_steps <-  length(2001:2098)
+        nsamps <- max(length(betas.all$bSDI), length(x.mat[m,1]))
+        forecast <- matrix(data = NA, nrow = nsamps, ncol = time_steps)
+        
+        
+        dbh.pred <- increment <- array(NA, dim = c(ni, nsamps, ntfull + 1))
+        
+        
+        
+        # set up empty matrices for dbh, increment, TPA projections
+        id.ni <- rep(1:ni, each = 1)
+        if(is.null(ncol(all.dbh))){
+          for(i in 1:length(id.ni)){
+          dbh.pred[id.ni[i],,1] <- all.dbh[i]
+          }
+        }else{
+          for(i in 1:length(id.ni)){
+            dbh.pred[id.ni[i],,1] <- all.dbh[,i]
+          }
+        }
+        
+        # get the increments
+        for(i in 1:ni){
+          for(t in 2:4){
+            increment[i,,t] <- dbh.pred[i,,t] - dbh.pred[i,,t-1]
+          }
+        }
+        
+        
+        # get the tree diameter means
+        dbh.pred.means <- apply(dbh.pred, 1, FUN = mean, na.rm=TRUE)
+        
+        # Make the time series forecasts for each tree i and time t
+        for(i in 1:ni){
+         for(t in 1:time_steps){
+          
+          if(t == 1){ # if t is less than the measureyr assign NA (fo now)
+      
+            # if the time step is the measuryr use the measureed DBH
+            increment[i,,t] <- iterate_statespace.incpred(x = dbh.pred[id.ni[i],,1],  
+                                                    betas.all = betas.all, 
+                                                    alpha = betas.all[,i], 
+                                                    SDinc = sigma.INC$median, 
+                                                    covariates = data.frame(SDI = covariates$SDI, 
+                                                                           ppt = covariates$ppt[,t], 
+                                                                           tmax = covariates$tmax[,t], 
+                                                                           MAP = covariates$MAP,
+                                                                           MAT = covariates$MAT))
+              
+            dbh.pred[id.ni[i],,t]<- dbh.pred[id.ni[i],,1]+increment[i,,t]
+              
+            }else{
+              increment[i,,t]<- iterate_statespace.incpred(x = dbh.pred[id.ni[i],,t-1],
+                                                   betas.all = betas.all, 
+                                                   alpha = betas.all[,i], 
+                                                   SDinc = sigma.INC$median, 
+                                                   covariates = data.frame(SDI = covariates$SDI, 
+                                                                           ppt = covariates$ppt[,t], 
+                                                                           tmax = covariates$tmax[,t], 
+                                                                           MAP = covariates$MAP,
+                                                                           MAT = covariates$MAT))
+                                                   
+              dbh.pred[id.ni[i],,t] <- dbh.pred[id.ni[i],,t-1]+ increment[i,,t]
+              
+              forecast <- dbh.pred
+          
+            }  
+           
+          }
+        
+          
+        }
+        
+        # lets output the summary of the posterior predictions
+        forecast.summary  <- reshape2::melt(forecast) %>% group_by(Var1, Var3) %>% 
+          summarise(median = median(value, na.rm =TRUE), 
+                   ci.lo = quantile(value, 0.025, na.rm =TRUE), 
+                   ci.hi = quantile(value, 0.975, na.rm =TRUE)) %>%
+          rename("index.id" = "Var1", 
+                 "year.id" = "Var3")
+        
+        
+        index.df <- data.frame(treeid = cored.in.plt$treeid, 
+                   index.id = 1:ni)
+        year.df <- data.frame(year = 2002:2098, 
+                              year.id = 1:97)
+        forecast.summary <- left_join(year.df, forecast.summary) %>% left_join(., index.df)
+    }else{
+      
+       forecast.summary <- data.frame(year = NA, 
+                                      year.id = NA, 
+                                      index.id = NA, 
+                                      median = NA, 
+                                      ci.lo = NA, 
+                                      ci.hi = NA, 
+                                      treeid = NA)
+        
+    }  
+    
+    forecast.summary
+ }   
+
+# test on one plot
+system.time(forecast.cored.ssm(plt.num = as.character(unique(remeasured.trees.plts$PLT_CN))[1],
+                   scenario = "rcp26",
+                   cov.data.regional.df = cov.data.regional,
+                   TREE.FIA = TREE,
+                   ci.names.df = ci.names,
+                   ci.names.noncored.df = ci.names.noncored ,
+                   mean.pred.cored.df = mean.pred.cored,
+                   SDIscaled.matrix = time_data$SDIscaled
+)   )
+
+cored.tree.ssm.forecast.list <- list()
+for(d in 1:20){
+cored.tree.ssm.forecast.list[[d]]<- forecast.cored.ssm(plt.num = as.character(unique(remeasured.trees.plts$PLT_CN))[d],
+                   scenario = "rcp26",
+                   cov.data.regional.df = cov.data.regional,
+                   TREE.FIA = TREE,
+                   ci.names.df = ci.names,
+                   ci.names.noncored.df = ci.names.noncored ,
+                   mean.pred.cored.df = mean.pred.cored,
+                   SDIscaled.matrix = time_data$SDIscaled
+) 
+}
+# apply the function over all plots that have held out measurements
+
+cored.tree.ssm.forecast.list <- lapply(X = as.character(unique(remeasured.trees.plts$PLT_CN)), 
+                                       FUN = function(X){forecast.cored.ssm(plt.num = X,
+                                                   scenario = "rcp26",
+                                                   cov.data.regional.df = cov.data.regional,
+                                                   TREE.FIA = TREE,
+                                                   ci.names.df = ci.names,
+                                                   ci.names.noncored.df = ci.names.noncored ,
+                                                   mean.pred.cored.df = mean.pred.cored,
+                                                   SDIscaled.matrix = time_data$SDIscaled
+)} )
+
+
+cored.tree.ssm.forecast.df <- do.call(rbind, cored.tree.ssm.forecast.list)
+
+#cored.tree.ssm.forecast.df <- cored.tree.ssm.forecast.df %>% rename(`MEASYEAR_T2` = year)
+
+ggplot(cored.tree.ssm.forecast.df, aes(x = year, y = median, group = treeid))+geom_line()
+
+
+pred.obs.ssmonly <- left_join(remeasured.trees.plts, cored.tree.ssm.forecast.df) %>% filter(year == MEASYEAR_T2)
+
+ggplot()+geom_point(data = pred.obs.ssmonly, aes(x = DIA_cm_T2, y = median))+
+  geom_errorbar(data = pred.obs.ssmonly, aes(x = DIA_cm_T2, ymin = ci.lo, ymax = ci.hi))+
+  geom_abline(aes(slope = 1, intercept = 0), color = "red", linetype = "dashed")+
+  ylab("Predicted Diameters (cm)\n SSM-only predictions")+
+  xlab("Observed Diameters (cm)")+theme_bw()
+ggsave("outputs/validation/SSM_only_predicted_diameters.png")
+saveRDS(pred.obs.ssmonly, "outputs/validation/SSM_only_predicted_cored_trees.RDS")
+
+pred.obs.ssmonly %>% summarise(MSPE = mean(( DIA_cm_T2 - median)^2, na.rm =TRUE),
+                              RMSPE = sqrt(mean(( DIA_cm_T2 - median)^2, na.rm =TRUE)),
+                              MAPE = mean(abs( DIA_cm_T2 - median), na.rm = TRUE)
+) 
+
+
+summary.stats <- summary(lm(DIA_cm_T2  ~ median, data = pred.obs.ssmonly))
+saveRDS(pred.obs.ssmonly, "outputs/validation/cored_remeas_ssm_only.RDS")
+
+
+##########################################################
+# Validation for tally trees in these plots 
+##########################################################
+# get FIADB pulled for the region
+db <- readRDS("data/InWeUS_FIAdb.rds")
+#db$TREE %>% filter(PLT_CN %in% unique(plots))%>% distinct(PLT_CN)
+PLOT <- db$PLOT %>% select(CN, MEASYEAR, PREV_PLT_CN) %>% rename(`PLT_CN` = "CN")
+TREE <- db$TREE
+rm(db)
+
+
+
+##########################################################
+# Validation/Check on AGB predictions at the plot-level 
+##########################################################
+
+
+
+Full.AGB.df <- readRDS("outputs/temporary.full.AGB.df.rds")
+Full.AGB.df %>% filter(plot %in% as.character(unique(PLOT$PLT_CN)))
+Full.AGB.df %>% filter(plot %in% as.character(unique(PLOT$PREV_PLT_CN)))
+
+# no repeat measurements in the publically available datasets
+unique(as.character(cov.data.regional$PLT_CN)) %in% unique(as.character(PLOT$PREV_PLT_CN))
+unique(as.character(cov.data.regional$PLT_CN)) %in% unique(as.character(PLOT$CN))
+
+cov.data.regional %>% filter(as.character(PLT_CN) %in% unique(as.character(PLOT$PREV_PLT_CN)))
+
+
+
+AGB.plt <- TREE %>% filter(PLT_CN %in% unique(Full.AGB.df$plot)) %>% group_by(PLT_CN, INVYR) %>%  summarise(
+  CARBON_AG_MG = sum(CARBON_AG*TPA_UNADJ/2205), 
+  BIOMASS_AG_MG =  sum((CARBON_AG*TPA_UNADJ/2205)*2))
+AGB.plt <- AGB.plt  %>% left_join(.,PLOT)
+
+
+
+hist(AGB.plt$CARBON_AG_MG)
+hist(AGB.plt$BIOMASS_AG_MG)
+
+# read in the biomass estimates and compare
+parse_biomass_ests <- function(plot, mort.scheme = "DIonly", SDI.ratio.DD = 0.7, rcp, cc.scenario = "doubleCC", scale.mort.prob = 1 ){
   
-  theme_bw()+theme(panel.grid = element_blank())
-
-dev.off()
-# plot the number of plots dominated by small vs large trees:
-png(height = 10, width = 10, units = "in", res = 150, "big_tree_vs_small_tree_dominated_prop_biomass.png")
-
-ggplot()+
-  geom_ribbon(data = whole.regionC , aes(x=time,ymin=prop.big.all, ymax=prop.big.all + prop.small.all), fill = "#e66101")+
-  geom_ribbon(data = whole.regionC , aes(x=time,ymin=0, ymax=prop.big.all), fill = "#5e3c99")+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+
-  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+  cat(paste0("getting pred vs obs for ",as.character(plot)))
+  rm(total.plot.obs.all)
   
-  ylab(paste("% of total biomass in each size class"))+    xlab("Year")+
-  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
-                     expand = c(0, 0))+
-  theme_bw()+theme(panel.grid = element_blank())
-dev.off()
-
-
-on <- plotC.totals.prop %>% filter(plot %in% "2447353010690")
-
-ggplot()+
-  geom_ribbon(data = on, aes(x=time,ymin=0, ymax=prop.big), fill = "#e66101")+
-  geom_ribbon(data = on, aes(x=time,ymin=prop.big, ymax=prop.big + prop.small), fill = "#5e3c99")+
-  scale_fill_manual(name = 'Size class', 
-                    values =c("big tree"="#e66101","small tree"="#5e3c99"))+
-  facet_grid(cols =  vars(scenario), rows = vars(mort.scheme))+
+  oldTREE <- TREE %>% dplyr::filter(PLT_CN %in% plot & STATUSCD ==1 )
   
-  ylab(paste("% of total biomass in each size class"))+    xlab("Year")+
-  scale_y_continuous(labels=paste0(seq(0,100,25),"%"),
-                     expand = c(0, 0))+
-  theme_bw()+theme(panel.grid = element_blank())
+  if(nrow(oldTREE) <=1){
+    cat("less than 2 trees on the first plot")
+  }else{
+    if(!file.exists(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))){
+      cat("no existing future climate data") 
+    }else{
+      # newTREE <- TREE %>% dplyr::filter (PREV_PLT_CN %in% plot)
+      # newTREE$PREVDIA
+      # STATUSCD_change <- newTREE %>% group_by(STATUSCD,  PREV_STATUS_CD) %>% 
+      #   mutate(dead.class = ifelse(STATUSCD == 1 & PREV_STATUS_CD == 1, "live", 
+      #                              ifelse(STATUSCD == 2 & PREV_STATUS_CD == 1, "died in inventory", 
+      #                                     ifelse(STATUSCD == 2 & PREV_STATUS_CD == 2, "died before first survey",
+      #                                            ifelse(STATUSCD == 1 & is.na(PREV_STATUS_CD) == "TRUE","ingrowth", 
+      #                                                   ifelse(STATUSCD == 3 & PREV_STATUS_CD == 1,"cut/removed in inventory", 
+      #                                                          ifelse(STATUSCD == 3 & PREV_STATUS_CD == 3, "cut/removed before first survey", "ingrowth")))))))
+      # newTREE$INV_Period <- newTREE$MEASYR - newTREE$PREV_MEASYR
+      # INVperiod <- mean(newTREE$INV_Period, na.rm =TRUE)
+      # STATUSCD_change$PREVDIA*2.54
+      
+      
+      
+      #STATUSCD_change$DRYBIO_AG
+      oldTREE$DRYBIO_AG
+      
+      # dead.diams <- STATUSCD_change %>% ungroup() %>% filter(dead.class == "died in inventory" ) %>% 
+      #   dplyr::select(CN, dead.class, PREVDIA, TPAMORT_UNADJ, TPA_UNADJ, PREV_TPA_UNADJ, AGENTCD) %>% mutate(PREVDBH = PREVDIA*2.54)
+      # #rem.summary <- STATUSCD_change  %>% ungroup() %>% filter(dead.class == "cut/removed in inventory" ) %>% summarise(rem_peryr_perha = sum(TPAREMV_UNADJ, na.rm =TRUE))
+      
+      
+      
+      # scale by TPAMORT_UNADJ to get trees per acre per year, 
+      # may need to also cale by # inventory years
+      # 
+      # mort.scheme <- "DIonly"
+      
+      if(cc.scenario == "doubleCC"){
+        
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario, ".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }else{
+        
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".full.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }
+      
+      # objects
+      # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+      # AGB.foliage, NPP.foliage, 
+      # AGB.stembark, NPP.stembark,
+      # AGB.stemwood, NPP.stemwood,
+      # AGB.branchdead, NPP.branchdead,
+      # AGB.branchlive, NPP.branchlive,
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+      mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+      lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+      hiNPP <-hiNPP.foliage <-  hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
+      
+      
+      
+      mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
+      sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
+      sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      
+      # branch dead
+      mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # foliage
+      mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
+      sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # stembark
+      mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # branchlive
+      mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # stemwood
+      mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
+      sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # dead trees:
+      # stemwood
+      mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      up  <- hiNPP
+      low <- lowNPP
+      
+      up.deadstem  <- hiNPP.dead
+      low.deadstem <- lowNPP.dead
+      
+      up.stemwood  <- hiNPP.stemwood
+      low.stemwood <- lowNPP.stemwood
+      
+      up.stembark  <- hiNPP.stembark
+      low.stembark <- lowNPP.stembark
+      
+      up.branchlive  <- hiNPP.branchlive
+      low.branchlive  <- hiNPP.branchlive
+      
+      up.branchdead  <- hiNPP.branchdead
+      low.branchdead  <- hiNPP.branchdead
+      
+      up.foliage  <- hiNPP.foliage
+      low.foliage   <- lowNPP.foliage
+      
+      # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
+      # lines(yrvec[-1], up)
+      # lines(yrvec[-1], low)
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      upA.deadstem  <- hiAGB.dead
+      lowA.deadstem <- lowAGB.dead
+      
+      upA.stemwood  <- hiAGB.stemwood
+      lowA.stemwood <- lowAGB.stemwood
+      
+      upA.stembark  <- hiAGB.stembark
+      lowA.stembark <- lowAGB.stembark
+      
+      upA.branchlive  <- hiAGB.branchlive
+      lowA.branchlive  <- lowAGB.branchlive
+      
+      upA.branchdead  <- hiAGB.branchdead
+      lowA.branchdead  <- lowAGB.branchdead
+      
+      upA.foliage  <- hiAGB.foliage
+      lowA.foliage   <- lowAGB.foliage
+      
+      # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
+      # lines(yrvec, upA)
+      # lines(yrvec, lowA)
+      # }
+      #grDevices::dev.off()
+      
+      # make nicer plots for each plot:
+      i <- 1
+      # calculate upper and lower bounds
+      up  <- hiNPP
+      low <- lowNPP
+      
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      total.plot <- data.frame(plot = plot, 
+                               mort.scheme = mort.scheme, 
+                               rcp = rcp,
+                               cc.scenario = cc.scenario,
+                               parse = "full",
+                               year = yrvec[2:length(low.stemwood)], 
+                               mAGB = mAGB[i,2:length(low.stemwood)], 
+                               mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
+                               mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
+                               mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
+                               mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
+                               mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                               mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
+                               
+                               upA = upA[2:length(low.stemwood)], 
+                               lowA = lowA[2:length(low.stemwood)], 
+                               upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                               upA.stembark = upA.stembark[2:length(low.stemwood)],
+                               upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                               upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                               upA.foliage = upA.foliage[2:length(low.stemwood)],
+                               upA.dead = upA.deadstem[2:length(low.stemwood)], 
+                               
+                               lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                               lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                               lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                               lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                               lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                               lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
+                               
+                               mNPP = mNPP[i,2:length(low.stemwood)], 
+                               mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                               mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                               mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                               mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                               mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                               mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                               
+                               up = up[2:length(low.stemwood)], 
+                               low = low[2:length(low.stemwood)], 
+                               
+                               #up.dead = up.dead[2:length(low.stemwood)], 
+                               #low.dead = low.dead[2:length(low.stemwood)],
+                               
+                               up.stemwood = up.stemwood[2:length(low.stemwood)],
+                               up.stembark = up.stembark[2:length(low.stemwood)],
+                               up.branchlive = up.branchlive[2:length(low.stemwood)],
+                               up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                               up.foliage =up.foliage[2:length(low.stemwood)],
+                               
+                               low.stemwood = low.stemwood[2:length(low.stemwood)],
+                               low.stembark = low.stembark[2:length(low.stemwood)],
+                               low.branchlive = low.branchlive[2:length(low.stemwood)],
+                               low.branchdead = low.branchdead[2:length(low.stemwood)],
+                               low.foliage = low.foliage[2:length(low.stemwood)])
+      
+      #######################################################################
+      # Density Dependent ramping scenario  
+      cat("reading in DD.ramp results")
+      if(cc.scenario == "doubleCC"){
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".DD.ramp.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      }else{
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".DD.ramp.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }
+      # objects
+      # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+      # AGB.foliage, NPP.foliage, 
+      # AGB.stembark, NPP.stembark,
+      # AGB.stemwood, NPP.stemwood,
+      # AGB.branchdead, NPP.branchdead,
+      # AGB.branchlive, NPP.branchlive,
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+      mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+      lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+      hiNPP <-hiNPP.foliage <-  hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
+      
+      
+      
+      mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
+      sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
+      sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      
+      # branch dead
+      mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # foliage
+      mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
+      sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # stembark
+      mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # branchlive
+      mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # stemwood
+      mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
+      sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # dead trees:
+      # stemwood
+      mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      up  <- hiNPP
+      low <- lowNPP
+      
+      up.deadstem  <- hiNPP.dead
+      low.deadstem <- lowNPP.dead
+      
+      up.stemwood  <- hiNPP.stemwood
+      low.stemwood <- lowNPP.stemwood
+      
+      up.stembark  <- hiNPP.stembark
+      low.stembark <- lowNPP.stembark
+      
+      up.branchlive  <- hiNPP.branchlive
+      low.branchlive  <- hiNPP.branchlive
+      
+      up.branchdead  <- hiNPP.branchdead
+      low.branchdead  <- hiNPP.branchdead
+      
+      up.foliage  <- hiNPP.foliage
+      low.foliage   <- lowNPP.foliage
+      
+      # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
+      # lines(yrvec[-1], up)
+      # lines(yrvec[-1], low)
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      upA.deadstem  <- hiAGB.dead
+      lowA.deadstem <- lowAGB.dead
+      
+      upA.stemwood  <- hiAGB.stemwood
+      lowA.stemwood <- lowAGB.stemwood
+      
+      upA.stembark  <- hiAGB.stembark
+      lowA.stembark <- lowAGB.stembark
+      
+      upA.branchlive  <- hiAGB.branchlive
+      lowA.branchlive  <- lowAGB.branchlive
+      
+      upA.branchdead  <- hiAGB.branchdead
+      lowA.branchdead  <- lowAGB.branchdead
+      
+      upA.foliage  <- hiAGB.foliage
+      lowA.foliage   <- lowAGB.foliage
+      
+      # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
+      # lines(yrvec, upA)
+      # lines(yrvec, lowA)
+      # }
+      #grDevices::dev.off()
+      
+      # make nicer plots for each plot:
+      i <- 1
+      # calculate upper and lower bounds
+      up  <- hiNPP
+      low <- lowNPP
+      
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      total.plot.DD.ramp <- data.frame(plot = plot, 
+                                       mort.scheme = mort.scheme, 
+                                       rcp = rcp,
+                                       cc.scenario = cc.scenario,
+                                       parse = "DD.ramp",
+                                       year = yrvec[2:length(low.stemwood)], 
+                                       mAGB = mAGB[i,2:length(low.stemwood)], 
+                                       mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
+                                       mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
+                                       mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
+                                       mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
+                                       mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                                       mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
+                                       
+                                       upA = upA[2:length(low.stemwood)], 
+                                       lowA = lowA[2:length(low.stemwood)], 
+                                       upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                                       upA.stembark = upA.stembark[2:length(low.stemwood)],
+                                       upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                                       upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                                       upA.foliage = upA.foliage[2:length(low.stemwood)],
+                                       upA.dead = upA.deadstem[2:length(low.stemwood)], 
+                                       
+                                       lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                                       lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                                       lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                                       lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                                       lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                                       lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
+                                       
+                                       mNPP = mNPP[i,2:length(low.stemwood)], 
+                                       mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                                       mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                                       mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                                       mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                                       mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                                       mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                                       
+                                       up = up[2:length(low.stemwood)], 
+                                       low = low[2:length(low.stemwood)], 
+                                       
+                                       #up.dead = up.dead[2:length(low.stemwood)], 
+                                       #low.dead = low.dead[2:length(low.stemwood)],
+                                       
+                                       up.stemwood = up.stemwood[2:length(low.stemwood)],
+                                       up.stembark = up.stembark[2:length(low.stemwood)],
+                                       up.branchlive = up.branchlive[2:length(low.stemwood)],
+                                       up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                                       up.foliage =up.foliage[2:length(low.stemwood)],
+                                       
+                                       low.stemwood = low.stemwood[2:length(low.stemwood)],
+                                       low.stembark = low.stembark[2:length(low.stemwood)],
+                                       low.branchlive = low.branchlive[2:length(low.stemwood)],
+                                       low.branchdead = low.branchdead[2:length(low.stemwood)],
+                                       low.foliage = low.foliage[2:length(low.stemwood)])
+      #######################################################################
+      # Growth Dependent mortality scaled by 10
+      
+      cat("reading in GD by 10 results")
+      if(cc.scenario == "doubleCC"){
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GT.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      }else{
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GT.10.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }
+      # objects
+      # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+      # AGB.foliage, NPP.foliage, 
+      # AGB.stembark, NPP.stembark,
+      # AGB.stemwood, NPP.stemwood,
+      # AGB.branchdead, NPP.branchdead,
+      # AGB.branchlive, NPP.branchlive,
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+      mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+      lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+      hiNPP <-hiNPP.foliage <-  hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
+      
+      
+      
+      mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
+      sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
+      sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      
+      # branch dead
+      mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # foliage
+      mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
+      sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # stembark
+      mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # branchlive
+      mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # stemwood
+      mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
+      sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # dead trees:
+      # stemwood
+      mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      up  <- hiNPP
+      low <- lowNPP
+      
+      up.deadstem  <- hiNPP.dead
+      low.deadstem <- lowNPP.dead
+      
+      up.stemwood  <- hiNPP.stemwood
+      low.stemwood <- lowNPP.stemwood
+      
+      up.stembark  <- hiNPP.stembark
+      low.stembark <- lowNPP.stembark
+      
+      up.branchlive  <- hiNPP.branchlive
+      low.branchlive  <- hiNPP.branchlive
+      
+      up.branchdead  <- hiNPP.branchdead
+      low.branchdead  <- hiNPP.branchdead
+      
+      up.foliage  <- hiNPP.foliage
+      low.foliage   <- lowNPP.foliage
+      
+      # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
+      # lines(yrvec[-1], up)
+      # lines(yrvec[-1], low)
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      upA.deadstem  <- hiAGB.dead
+      lowA.deadstem <- lowAGB.dead
+      
+      upA.stemwood  <- hiAGB.stemwood
+      lowA.stemwood <- lowAGB.stemwood
+      
+      upA.stembark  <- hiAGB.stembark
+      lowA.stembark <- lowAGB.stembark
+      
+      upA.branchlive  <- hiAGB.branchlive
+      lowA.branchlive  <- lowAGB.branchlive
+      
+      upA.branchdead  <- hiAGB.branchdead
+      lowA.branchdead  <- lowAGB.branchdead
+      
+      upA.foliage  <- hiAGB.foliage
+      lowA.foliage   <- lowAGB.foliage
+      
+      # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
+      # lines(yrvec, upA)
+      # lines(yrvec, lowA)
+      # }
+      #grDevices::dev.off()
+      
+      # make nicer plots for each plot:
+      i <- 1
+      # calculate upper and lower bounds
+      up  <- hiNPP
+      low <- lowNPP
+      
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      total.plot.GD.10 <- data.frame(plot = plot, 
+                                     mort.scheme = mort.scheme, 
+                                     rcp = rcp,
+                                     cc.scenario = cc.scenario,
+                                     parse = "GD.10",
+                                     year = yrvec[2:length(low.stemwood)], 
+                                     mAGB = mAGB[i,2:length(low.stemwood)], 
+                                     mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
+                                     mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
+                                     mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
+                                     mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
+                                     mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                                     mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
+                                     
+                                     upA = upA[2:length(low.stemwood)], 
+                                     lowA = lowA[2:length(low.stemwood)], 
+                                     upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                                     upA.stembark = upA.stembark[2:length(low.stemwood)],
+                                     upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                                     upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                                     upA.foliage = upA.foliage[2:length(low.stemwood)],
+                                     upA.dead = upA.deadstem[2:length(low.stemwood)], 
+                                     
+                                     lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                                     lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                                     lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                                     lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                                     lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                                     lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
+                                     
+                                     mNPP = mNPP[i,2:length(low.stemwood)], 
+                                     mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                                     mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                                     mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                                     mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                                     mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                                     mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                                     
+                                     up = up[2:length(low.stemwood)], 
+                                     low = low[2:length(low.stemwood)], 
+                                     
+                                     #up.dead = up.dead[2:length(low.stemwood)], 
+                                     #low.dead = low.dead[2:length(low.stemwood)],
+                                     
+                                     up.stemwood = up.stemwood[2:length(low.stemwood)],
+                                     up.stembark = up.stembark[2:length(low.stemwood)],
+                                     up.branchlive = up.branchlive[2:length(low.stemwood)],
+                                     up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                                     up.foliage =up.foliage[2:length(low.stemwood)],
+                                     
+                                     low.stemwood = low.stemwood[2:length(low.stemwood)],
+                                     low.stembark = low.stembark[2:length(low.stemwood)],
+                                     low.branchlive = low.branchlive[2:length(low.stemwood)],
+                                     low.branchdead = low.branchdead[2:length(low.stemwood)],
+                                     low.foliage = low.foliage[2:length(low.stemwood)])
+      
+      #######################################################################
+      # Growth Dependent mortality scaled by 20
+      cat("reading in GD by 20 results")
+      if(cc.scenario == "doubleCC"){
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".GT.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      }else{
+        load(paste0("biomass_dataFIAperiodic_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".GT.20.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }
+      # objects
+      # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+      # AGB.foliage, NPP.foliage, 
+      # AGB.stembark, NPP.stembark,
+      # AGB.stemwood, NPP.stemwood,
+      # AGB.branchdead, NPP.branchdead,
+      # AGB.branchlive, NPP.branchlive,
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+      mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+      lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+      hiNPP <-hiNPP.foliage <-  hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
+      
+      
+      
+      mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
+      sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
+      sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      
+      # branch dead
+      mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # foliage
+      mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
+      sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # stembark
+      mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # branchlive
+      mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # stemwood
+      mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
+      sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # dead trees:
+      # stemwood
+      mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      up  <- hiNPP
+      low <- lowNPP
+      
+      up.deadstem  <- hiNPP.dead
+      low.deadstem <- lowNPP.dead
+      
+      up.stemwood  <- hiNPP.stemwood
+      low.stemwood <- lowNPP.stemwood
+      
+      up.stembark  <- hiNPP.stembark
+      low.stembark <- lowNPP.stembark
+      
+      up.branchlive  <- hiNPP.branchlive
+      low.branchlive  <- hiNPP.branchlive
+      
+      up.branchdead  <- hiNPP.branchdead
+      low.branchdead  <- hiNPP.branchdead
+      
+      up.foliage  <- hiNPP.foliage
+      low.foliage   <- lowNPP.foliage
+      
+      # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
+      # lines(yrvec[-1], up)
+      # lines(yrvec[-1], low)
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      upA.deadstem  <- hiAGB.dead
+      lowA.deadstem <- lowAGB.dead
+      
+      upA.stemwood  <- hiAGB.stemwood
+      lowA.stemwood <- lowAGB.stemwood
+      
+      upA.stembark  <- hiAGB.stembark
+      lowA.stembark <- lowAGB.stembark
+      
+      upA.branchlive  <- hiAGB.branchlive
+      lowA.branchlive  <- lowAGB.branchlive
+      
+      upA.branchdead  <- hiAGB.branchdead
+      lowA.branchdead  <- lowAGB.branchdead
+      
+      upA.foliage  <- hiAGB.foliage
+      lowA.foliage   <- lowAGB.foliage
+      
+      # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
+      # lines(yrvec, upA)
+      # lines(yrvec, lowA)
+      # }
+      #grDevices::dev.off()
+      
+      # make nicer plots for each plot:
+      i <- 1
+      # calculate upper and lower bounds
+      up  <- hiNPP
+      low <- lowNPP
+      
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      total.plot.GD.20 <- data.frame(plot = plot, 
+                                     mort.scheme = mort.scheme, 
+                                     rcp = rcp,
+                                     cc.scenario = cc.scenario,
+                                     parse = "GD.20",
+                                     year = yrvec[2:length(low.stemwood)], 
+                                     mAGB = mAGB[i,2:length(low.stemwood)], 
+                                     mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
+                                     mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
+                                     mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
+                                     mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
+                                     mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                                     mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
+                                     
+                                     upA = upA[2:length(low.stemwood)], 
+                                     lowA = lowA[2:length(low.stemwood)], 
+                                     upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                                     upA.stembark = upA.stembark[2:length(low.stemwood)],
+                                     upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                                     upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                                     upA.foliage = upA.foliage[2:length(low.stemwood)],
+                                     upA.dead = upA.deadstem[2:length(low.stemwood)], 
+                                     
+                                     lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                                     lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                                     lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                                     lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                                     lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                                     lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
+                                     
+                                     mNPP = mNPP[i,2:length(low.stemwood)], 
+                                     mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                                     mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                                     mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                                     mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                                     mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                                     mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                                     
+                                     up = up[2:length(low.stemwood)], 
+                                     low = low[2:length(low.stemwood)], 
+                                     
+                                     #up.dead = up.dead[2:length(low.stemwood)], 
+                                     #low.dead = low.dead[2:length(low.stemwood)],
+                                     
+                                     up.stemwood = up.stemwood[2:length(low.stemwood)],
+                                     up.stembark = up.stembark[2:length(low.stemwood)],
+                                     up.branchlive = up.branchlive[2:length(low.stemwood)],
+                                     up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                                     up.foliage =up.foliage[2:length(low.stemwood)],
+                                     
+                                     low.stemwood = low.stemwood[2:length(low.stemwood)],
+                                     low.stembark = low.stembark[2:length(low.stemwood)],
+                                     low.branchlive = low.branchlive[2:length(low.stemwood)],
+                                     low.branchdead = low.branchdead[2:length(low.stemwood)],
+                                     low.foliage = low.foliage[2:length(low.stemwood)])
+      
+      
+      #######################################################################
+      # No climate Change scenario
+      cat("reading in no CC results")
+      if(cc.scenario == "doubleCC"){
+        load(paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".", cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+      }else{
+        load(paste0("biomass_dataFIAperiodic_noCC_",scale.mort.prob,"/plot2AGB_", mort.scheme, ".", plot, ".",rcp,".", SDI.ratio.DD, ".",  cc.scenario,".detrendedCC.Rdata"))#,mort.scheme,".",plot,".",rcp".", SDI.ratio.DD,".",cc.scenario,".full.Rdata")))
+        
+      }
+      # objects
+      # out, AGB, NPP, mNPP, sNPP, mAGB, sAGB, yrvec, plot, 
+      # AGB.foliage, NPP.foliage, 
+      # AGB.stembark, NPP.stembark,
+      # AGB.stemwood, NPP.stemwood,
+      # AGB.branchdead, NPP.branchdead,
+      # AGB.branchlive, NPP.branchlive,
+      i <- 1
+      mplot <- 1
+      nt <- ncol(NPP[i,,])
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      mAGB.dead <- sAGB.dead <- mAGB <- sAGB <- mAGB.stemwood <- mAGB.stembark <- mAGB.branchlive <- mAGB.branchdead <- mAGB.foliage<- sAGB.stemwood <- sAGB.stembark <- sAGB.branchlive <- sAGB.branchdead <- sAGB.foliage<- matrix(NA, mplot, nt)
+      mNPP.dead<- sNPP.dead <- mNPP <- sNPP <- mNPP.stemwood <-  mNPP.stembark <-  mNPP.branchlive <-  mNPP.branchdead<- mNPP.foliage <-  sNPP.stemwood <-  sNPP.stembark <-  sNPP.branchlive <-  sNPP.branchdead <-  sNPP.foliage<- matrix(NA, mplot,nt)
+      lowAGB <- lowAGB.stemwood <- lowAGB.stembark <- lowAGB.branchlive <- lowAGB.branchdead <- lowAGB.foliage<- hiAGB <- hiAGB.stemwood <- hiAGB.stembark <- hiAGB.branchlive <- hiAGB.branchdead <- hiAGB.foliage <- lowAGB.dead<- hiAGB.dead  <- matrix(NA, mplot, nt)
+      hiNPP <-hiNPP.foliage <-  hiNPP.stemwood <-  hiNPP.stembark <-  hiNPP.branchlive <-  hiNPP.branchdead<- lowNPP.foliage <-   lowNPP <- lowNPP.stemwood <-  lowNPP.stembark <-  lowNPP.branchlive <-  lowNPP.branchdead<- lowNPP.foliage <- lowNPP.dead<- hiNPP.dead  <-matrix(NA, mplot,nt)
+      
+      
+      
+      mNPP[i, ] <- apply( NPP[i, , ], 2, median, na.rm = TRUE)
+      sNPP[i, ] <- apply(NPP[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP[i,]<- apply(NPP[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB[i, ] <- apply(AGB[i, , ], 2, median, na.rm = TRUE)
+      sAGB[i, ] <- apply(AGB[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB[i,]<- apply(AGB[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # sequentially add up:
+      # branchdead, then foliage, then stembark, then branchlive, then stemwood
+      
+      # branch dead
+      mNPP.branchdead[i, ] <- apply( NPP.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sNPP.branchdead[i, ] <- apply(NPP.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchdead[i,]<- apply(NPP.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.branchdead[i, ] <- apply(AGB.branchdead[i, , ], 2, sd, na.rm = TRUE)
+      lowAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchdead[i,]<- apply(AGB.branchdead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # foliage
+      mNPP.foliage[i, ] <- apply( NPP.foliage[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.foliage[i, ] <- apply(NPP.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.foliage[i,]<- apply(NPP.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, mean, na.rm = TRUE)
+      sAGB.foliage[i, ] <- apply(AGB.foliage[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.foliage[i,]<- apply(AGB.foliage[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # stembark
+      mNPP.stembark[i, ] <- apply( NPP.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stembark[i, ] <- apply(NPP.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stembark[i,]<- apply(NPP.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.stembark[i, ] <- apply(AGB.stembark[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stembark[i,]<- apply(AGB.stembark[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      # branchlive
+      mNPP.branchlive[i, ] <- apply( NPP.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.branchlive[i, ] <- apply(NPP.branchlive[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.branchlive[i,]<- apply(NPP.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, median, na.rm = TRUE)
+      sAGB.branchlive[i, ] <- apply(AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      lowAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.branchlive[i,]<- apply(AGB.branchlive[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # stemwood
+      mNPP.stemwood[i, ] <- apply( NPP.stemwood[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.stemwood[i, ] <- apply(NPP.stemwood[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.stemwood[i,]<- apply(NPP.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ], 2, median, na.rm = TRUE)
+      sAGB.stemwood[i, ] <- apply(AGB.stemwood[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.stemwood[i,]<- apply(AGB.stemwood[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      # dead trees:
+      # stemwood
+      mNPP.dead[i, ] <- apply( NPP.dead[i, , ] , 2, median, na.rm = TRUE)
+      sNPP.dead[i, ] <- apply(NPP.dead[i, , ], 2, sd, na.rm = TRUE)
+      lowNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiNPP.dead[i,]<- apply(NPP.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      mAGB.dead[i, ] <- apply(AGB.dead[i, , ], 2, median, na.rm = TRUE)
+      sAGB.dead[i, ] <- apply(AGB.dead[i, , ] + AGB.branchlive[i, , ] , 2, sd, na.rm = TRUE)
+      
+      lowAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.025)
+      hiAGB.dead[i,]<- apply(AGB.dead[i, , ], 2, quantile, na.rm = TRUE, 0.975)
+      
+      
+      up  <- hiNPP
+      low <- lowNPP
+      
+      up.deadstem  <- hiNPP.dead
+      low.deadstem <- lowNPP.dead
+      
+      up.stemwood  <- hiNPP.stemwood
+      low.stemwood <- lowNPP.stemwood
+      
+      up.stembark  <- hiNPP.stembark
+      low.stembark <- lowNPP.stembark
+      
+      up.branchlive  <- hiNPP.branchlive
+      low.branchlive  <- hiNPP.branchlive
+      
+      up.branchdead  <- hiNPP.branchdead
+      low.branchdead  <- hiNPP.branchdead
+      
+      up.foliage  <- hiNPP.foliage
+      low.foliage   <- lowNPP.foliage
+      
+      # plot(yrvec[-1], mNPP[i, ], ylim = range(c(up, low)), ylab = "Mg/ha/yr", xlab = "year")
+      # lines(yrvec[-1], up)
+      # lines(yrvec[-1], low)
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      upA.deadstem  <- hiAGB.dead
+      lowA.deadstem <- lowAGB.dead
+      
+      upA.stemwood  <- hiAGB.stemwood
+      lowA.stemwood <- lowAGB.stemwood
+      
+      upA.stembark  <- hiAGB.stembark
+      lowA.stembark <- lowAGB.stembark
+      
+      upA.branchlive  <- hiAGB.branchlive
+      lowA.branchlive  <- lowAGB.branchlive
+      
+      upA.branchdead  <- hiAGB.branchdead
+      lowA.branchdead  <- lowAGB.branchdead
+      
+      upA.foliage  <- hiAGB.foliage
+      lowA.foliage   <- lowAGB.foliage
+      
+      # plot(yrvec, mAGB[i, ], ylim = range(c(upA, lowA)), ylab = "Mg/ha", xlab = "year")
+      # lines(yrvec, upA)
+      # lines(yrvec, lowA)
+      # }
+      #grDevices::dev.off()
+      
+      # make nicer plots for each plot:
+      i <- 1
+      # calculate upper and lower bounds
+      up  <- hiNPP
+      low <- lowNPP
+      
+      upA  <- hiAGB
+      lowA <- lowAGB
+      
+      total.plot.notemperature <- data.frame(plot = plot, 
+                                             mort.scheme = mort.scheme, 
+                                             rcp = rcp,
+                                             cc.scenario = cc.scenario,
+                                             parse = "no climate change",
+                                             year = yrvec[2:length(low.stemwood)], 
+                                             mAGB = mAGB[i,2:length(low.stemwood)], 
+                                             mAGB.stemwood = mAGB.stemwood[i,2:length(low.stemwood)],
+                                             mAGB.stembark = mAGB.stembark[i,2:length(low.stemwood)],
+                                             mAGB.branchlive = mAGB.branchlive[i,2:length(low.stemwood)],
+                                             mAGB.branchdead = mAGB.branchdead[i,2:length(low.stemwood)],
+                                             mAGB.foliage = mAGB.foliage[i,2:length(low.stemwood)],
+                                             mAGB.dead  = mAGB.dead[i,2:length(low.stemwood)],
+                                             
+                                             upA = upA[2:length(low.stemwood)], 
+                                             lowA = lowA[2:length(low.stemwood)], 
+                                             upA.stemwood = upA.stemwood[2:length(low.stemwood)],
+                                             upA.stembark = upA.stembark[2:length(low.stemwood)],
+                                             upA.branchlive = upA.branchlive[2:length(low.stemwood)],
+                                             upA.branchdead = upA.branchdead[2:length(low.stemwood)],
+                                             upA.foliage = upA.foliage[2:length(low.stemwood)],
+                                             upA.dead = upA.deadstem[2:length(low.stemwood)], 
+                                             
+                                             lowA.stemwood = lowA.stemwood[2:length(low.stemwood)],
+                                             lowA.stembark = lowA.stembark[2:length(low.stemwood)],
+                                             lowA.branchlive = lowA.branchlive[2:length(low.stemwood)],
+                                             lowA.branchdead = lowA.branchdead[2:length(low.stemwood)],
+                                             lowA.foliage = lowA.foliage[2:length(low.stemwood)],
+                                             lowA.dead = lowA.deadstem[2:length(low.stemwood)], 
+                                             
+                                             mNPP = mNPP[i,2:length(low.stemwood)], 
+                                             mNPP.stemwood = mNPP.stemwood[2:length(low.stemwood)],
+                                             mNPP.stembark =mNPP.stembark[2:length(low.stemwood)],
+                                             mNPP.branchlive =mNPP.branchlive[2:length(low.stemwood)],
+                                             mNPP.branchdead = mNPP.branchdead[2:length(low.stemwood)],
+                                             mNPP.foliage = mNPP.foliage[2:length(low.stemwood)],  
+                                             mNPP.dead = mNPP.dead[2:length(low.stemwood)], 
+                                             
+                                             up = up[2:length(low.stemwood)], 
+                                             low = low[2:length(low.stemwood)], 
+                                             
+                                             #up.dead = up.dead[2:length(low.stemwood)], 
+                                             #low.dead = low.dead[2:length(low.stemwood)],
+                                             
+                                             up.stemwood = up.stemwood[2:length(low.stemwood)],
+                                             up.stembark = up.stembark[2:length(low.stemwood)],
+                                             up.branchlive = up.branchlive[2:length(low.stemwood)],
+                                             up.branchdead =  up.branchdead[2:length(low.stemwood)],
+                                             up.foliage =up.foliage[2:length(low.stemwood)],
+                                             
+                                             low.stemwood = low.stemwood[2:length(low.stemwood)],
+                                             low.stembark = low.stembark[2:length(low.stemwood)],
+                                             low.branchlive = low.branchlive[2:length(low.stemwood)],
+                                             low.branchdead = low.branchdead[2:length(low.stemwood)],
+                                             low.foliage = low.foliage[2:length(low.stemwood)])
+      
+      # obs.biomass <- data.frame(plot = c(plot,plot),
+      #                           DRYBIO_AG_lb_ha = c(sum(oldTREE$DRYBIO_AG*oldTREE$TPA_UNADJ), sum(STATUSCD_change$DRYBIO_AG*STATUSCD_change$TPA_UNADJ, na.rm =TRUE)),
+      #                           year = c(unique(oldTREE$MEASYR), unique(STATUSCD_change$MEASYR)) )
+      # 
+      # # convert lbs to kg
+      
+      #obs.biomass$DRYBIO_AG_kg_ha <-  obs.biomass$DRYBIO_AG_lb_ha/2.205
+      
+      
+      
+      
+      
+      
+      ##########################################################################
+      # combine all together
+      
+      total.plot.obs.all <- rbind(total.plot, 
+                                  total.plot.DD.ramp,
+                                  total.plot.GD.10, 
+                                  total.plot.GD.20,
+                                  total.plot.notemperature )
+      total.plot.obs.all
+      
+      
+    }
+  }
+  
+}
+
+Full.AGB <- lapply(unique(plots), # as.character(unique(remeasured.trees.plts$PLT_CN)),
+                   FUN = function(x){parse_biomass_ests (plot = x, mort.scheme = "DIDD",  SDI.ratio.DD = 0.6, rcp = "rcp26", cc.scenario = "singleCC", scale.mort.prob = 1 )})
+Full.AGB.df <- do.call(rbind, Full.AGB)
+
+saveRDS(Full.AGB.df, "outputs/temporary.full.AGB.df.rds")
+
+## 
+#AGB.plt$plot <- as.character(tp.ratio$PLT_CN)
+Full.AGB.df$plot <- as.character(Full.AGB.df$plot)
+AGB.plt$plot <- as.character(AGB.plt$PLT_CN)
+
+parse.observed.agb <- left_join(Full.AGB.df, AGB.plt)
+head(parse.observed.agb)
+
+parse.observed.agb
+parse.observed.agb %>% filter(year == INVYR)
+
+# plot starting forecast vs FIADB agb:
+ggplot()+geom_point(data = parse.observed.agb %>% filter(year == 2002), aes(x = BIOMASS_AG_MG, y = mAGB/1000))+
+  geom_errorbar(data = parse.observed.agb %>% filter(year == 2002), aes(x = BIOMASS_AG_MG, ymin = lowA/1000, ymax = upA/1000))+facet_wrap(~parse)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red")+ylim(0, 200)+ylab("Total Forecasted plot AGB (MG/acre) in 2002")+xlab("Total AGB in live stem and bark (MG/acre) in FIADB")
+ggsave(height = 5, width = 6, units = "in", "outputs/RCP2.6_PLOT_ALL_AGB_Pred_observed_AGB_fixed.png")
+
+ggplot()+geom_point(data = parse.observed.agb %>% filter(year %in% 2002), aes(x = BIOMASS_AG_MG, y = (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000))+
+  geom_errorbar(data = parse.observed.agb %>% filter(year %in% 2002), aes(x = BIOMASS_AG_MG, ymin = (lowA.stemwood + lowA.stembark + lowA.branchlive)/1000, ymax = (upA.stemwood + upA.stembark + upA.branchlive)/1000))+facet_wrap(~parse)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red")+ylim(0, 200)+ylab("Total Forecasted live stem and bark AGB (MG/acre) in 2002")+xlab("Total AGB in live stem and bark (MG/acre) in FIADB")
+ggsave(height = 5, width = 6, units = "in", "outputs/RCP2.6_PLOT_STEM_BARK_Pred_observed_AGB_fixed.png")
+
+ggplot()+geom_point(data = parse.observed.agb %>% filter(year %in% 2002 & parse == "full"), aes(x = BIOMASS_AG_MG, y = (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000))+
+  geom_errorbar(data = parse.observed.agb %>% filter(year %in% 2002 & parse == "full"), aes(x = BIOMASS_AG_MG, ymin = (lowA.stemwood + lowA.stembark + lowA.branchlive)/1000, ymax = (upA.stemwood + upA.stembark + upA.branchlive)/1000))+#facet_wrap(~parse)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red")+ylim(0, 200)+ylab("Total Forecasted live stem and bark AGB (MG/acre) in 2002")+xlab("Total AGB in live stem and bark (MG/acre) in FIADB")+theme_bw()
+ggsave(height = 5, width = 6, units = "in", "outputs/RCP2.6_PLOT_STEM_BARK_Pred_observed_AGB_fixed_full.png")
 
 
-ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()
-ggplot(plotC.totals.prop, aes(prop.big))+geom_histogram()+geom_density()+facet_wrap(~time)
 
-# how to classify these different trajectories?
+parse.observed.agb %>% filter(year %in% 2002 & parse == "full") %>% summarise(MSPE = mean(( BIOMASS_AG_MG - (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000)^2, na.rm =TRUE),
+                                                                              RMSPE = sqrt(mean(( BIOMASS_AG_MG - (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000)^2, na.rm =TRUE)),
+                                                                              MAPE = mean(abs( BIOMASS_AG_MG - (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000), na.rm = TRUE))
 
-plotC.totals.prop %>% group_by(plot, mort.scheme, scenario, time) %>% select(-total.AGB, -prop.small, )
+AGB.p.o<- parse.observed.agb %>% filter(year %in% 2002 & parse == "full") %>% mutate(pred.median = (mAGB.stemwood + mAGB.stembark + mAGB.branchlive)/1000)
 
-# simple classifcation scheme based on prop large trees:
-emissions.norm <- BBmisc::normalize(emissions, method="standardize")
-clust.pam <- tsclust(emissions.norm, type="partitional", k=2L:17L, distance="dtw", centroid="pam")
+summary.stats <- summary(lm(BIOMASS_AG_MG  ~ pred.median, data = AGB.p.o))
 
-# dtwclust to see how many different trajectories there are in the DIDD:
-
-
-
-
-
-
-
-# read in all the diameters from dbh.pred (out) and dbh.dead (out.dead)
-
-# set a size threshold for big trees vs small trees
-
-# plot proportion of biomass in live big tree, live small tree, dead big tree, dead small tree
-
-# by the rcp and mortalti scenarios
-
-
-
-
-
-
-# calculate the fire flux breakpoint, for each year, as a percent of the total AGB:
-firebreakpoints <- ten.plot.summary %>% group_by(rcp, mort.scheme, year) %>% summarise(ffbp = mNPP,
-                                                                                       ffbp_pct = (mNPP/mAGB)*100, 
-                                                                                       netsink = ifelse(mNPP > 0, "net sink", "net source"))
-
-ggplot(firebreakpoints, aes(year, ffbp_pct, color = netsink))+geom_point()+facet_wrap(~mort.scheme)
-
-ggplot(firebreakpoints, aes(year, ffbp, color = netsink))+geom_point()+facet_wrap(~mort.scheme)
-
-lapply(unique(plots)[10:100],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[10:100],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = FALSE, density.independent = TRUE , scenario = "rcp26")})
-lapply(unique(plots)[10:100],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaled.future(plot = x, density.dependent = TRUE, density.independent = FALSE , scenario = "rcp26")})
-lapply(unique(plots)[10:100],FUN = function(x){biomass.changingsdi.zeroinc.SDIscaledv(plot = x, density.dependent = FALSE, density.independent = FALSE , scenario = "rcp26")})
-
-# should we just feed the means & 95% CI to the plt2AGB? to speed it up...not sure why it takes forever
-# or only use 100 samples
-### issues:
-
-# SDI is off because the original calculation was for SDI at the subplot level, but calculation in above code is at the plot level
-# this plot (2560687010690) has 4 subplots, each sampled in 1997, and a total of 31 trees > diameter 1, but in the additional trees there are 44?!
-# These additional trees have status_cd == 0 or a mortality agent code listed....so these are dead trees at the time of sampling in 1997
-# we went to omit these from our estimates
-# rerunning the prediction to omit these trees that were already dead...
-# then need to do the SDI calculation at the subplot level so will need to link to SUBP information 
-# which is in the original x.mat in the first section of teh codee (used in sims.x.forecast)
-
-# update 6/13/22:
-# SDI is now changing with the SDI supplot level...
-# reran the predictions omitting trees that were already dead so this isnt as off, but three are some sharp declines in diameter over time
-# This might just be due to the dry climate 
-# need to rerunt the additional tree forecasts for this model to account for the subplot SDI values, not just the plot values
-
-# update 6/14/22:
-# modifying code to prevent diameter from being consistently negative from year to year
-
-# update 8/5/22:
-# biomass estimates are taking really long...we need to speed this up, so right now
-# just limiting the number of samples
-# another issue is that we are running it with a model that has the plot-level random effects, so most trees are similar in increment
-# need to rerun the script with tree-level random effects, which means changing PLOTSTATE to TREE everywhere
-# 
+                         

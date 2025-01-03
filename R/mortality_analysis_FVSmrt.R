@@ -14,10 +14,12 @@ unique(fiadb$PLOT$STATECD)
 #full.clim.data <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pipo_all_tmean_ppt_v3.csv")
 region.rwl <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/trees-rwl-1-31-17.csv")) # note that this data is has all RWLS in columsn and a year column
 region.ll <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/locs-env-1-31-17.csv"))
+region.ll <- read.csv("data/locs-env-1-31-17.csv")
+
 #unique(region.ll $CN %in% TREE$CN)
 # also new mexico data:
-nm.meta <- read.delim(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/new-mexico-meta.txt"), sep = ",", as.is = TRUE)
-nm.rwl <- read.delim(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/INV_FIA_DATA/data/new-mexico-ring-width.txt"), sep = ",", as.is = TRUE)
+nm.meta <- read.delim("data/new-mexico-meta.txt", sep = ",", as.is = TRUE)
+nm.rwl <- read.delim("data/new-mexico-ring-width.txt", sep = ",", as.is = TRUE)
 
 colnames(region.ll)
 colnames(nm.meta)
@@ -41,6 +43,9 @@ region.ll.nm <- rbind(nm.meta.s[,c("CORE_CN","CN","STATECD", "COUNTYCD", "PLOT",
 # get the previous survey for each tree: 
 TREE_remeas <- subset(TREE, !is.na(PREVDIA))
 TREE_remeas <- subset(TREE_remeas, STATUSCD == 1 | STATUSCD == 2) 
+View(TREE_remeas %>% group_by(STATUSCD, MORTYR) %>% summarise(n()) %>% filter(STATUSCD == 2))
+# many dead trees do have a MORTYR associated
+
 
 # Look up previous AGB
 ### look up previous AGB, PLT_CN, and CONDID
@@ -87,6 +92,7 @@ PLOT$DSTRBYR3 <- COND$DSTRBYR3[match(PLOT$CN, COND$PLT_CN)]
 
 PLOT$DSTRBCD1 <- COND$DSTRBCD1[match(PLOT$CN, COND$PLT_CN)]
 PLOT$DSTRBCD2 <- COND$DSTRBCD2[match(PLOT$CN, COND$PLT_CN)]
+
 PLOT$DSTRBCD3 <- COND$DSTRBCD3[match(PLOT$CN, COND$PLT_CN)]
 
 # Match up the tree and plot data
@@ -109,12 +115,201 @@ unique(TREE$MORTCD)
 unique(TREE$STATECD)
 
 TREE_remeas %>% dplyr::filter(SPCD %in% "122" & STATUSCD %in% c(1, 2)) %>% group_by(STATUSCD_CHANGE) %>% summarise(median.dbh = median(DIA, na.rm = TRUE), 
-                                                                              median.ht = median(HT, na.rm = TRUE))
+                                                                              median.ht = median(HT, na.rm = TRUE), 
+                                                                              median.dia.diff = median(DIA_DIFF, na.rm =TRUE))
 
 ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(DIA))+facet_wrap(~STATUSCD_CHANGE)
 
 ggplot()+geom_histogram(data = TREE_remeas %>% dplyr::filter(SPCD %in% "122" ), aes(HT))+facet_wrap(~STATUSCD_CHANGE)
 
+
+# fit a simple mortality - growth relationship for larger diameter trees (non-saplings)
+# only get those with a positive diameter differnce
+TREE_growth_mort.df <- TREE_remeas %>% filter(DIA_DIFF >= 0 & !is.na(STATUSCD_CHANGE)) %>% mutate(growth.remper = ifelse(STATUSCD_CHANGE == 2 & !is.na(MORTYR), # for trees that died but have a MORTYR, just do MORTYR - PREV_MEASYEAR to start
+                                                                        MORTYR - PREV_MEASYEAR, 
+                                                                        
+                                                                        # for trees that died but don't have a MORTYR, just do MEASYEAR - PREV_MEASYEAR/2 to start
+                                                                        ifelse(STATUSCD_CHANGE == 2 & is.na(MORTYR), 
+                                                                               (MEASYEAR- PREV_MEASYEAR)/2, 
+                                                                               
+                                                                        # for all living trees just use the remper
+                                                                               MEASYEAR- PREV_MEASYEAR))) %>%
+  mutate(growth.remper = ifelse(growth.remper == 0, 0.5, growth.remper))%>%
+                                                        mutate(growth = DIA_DIFF/growth.remper, 
+                                                               
+                                                               DBH_cm = DIA*2.54)
+
+ggplot(TREE_growth_mort.df, aes(x = as.character(STATUSCD_CHANGE), y = growth))+geom_violin()
+
+ggplot(TREE_growth_mort.df, aes(y = STATUSCD_CHANGE, x = growth))+geom_jitter()
+ggplot(TREE_growth_mort.df, aes(y = growth))+geom_histogram()+facet_wrap(~STATUSCD_CHANGE)
+ggplot(TREE_growth_mort.df, aes(y = growth))+geom_density()+facet_wrap(~STATUSCD_CHANGE)
+
+ggplot(TREE_growth_mort.df, aes(x = as.character(STATUSCD_CHANGE), y = DBH_cm))+geom_violin()
+ggplot(TREE_growth_mort.df, aes(y = STATUSCD_CHANGE, x = DBH_cm))+geom_jitter()
+ggplot(TREE_growth_mort.df, aes(y = DBH_cm))+geom_histogram()+facet_wrap(~STATUSCD_CHANGE)
+ggplot(TREE_growth_mort.df, aes(y = DBH_cm))+geom_density()+facet_wrap(~STATUSCD_CHANGE)
+View(TREE_growth_mort.df %>% group_by(STATUSCD_CHANGE, is.na(MORTYR)) %>% summarise(median(growth, na.rm =TRUE),
+                                                                median(DBH_cm, na.rm =TRUE)))
+
+
+
+PIPO.mort.data <- TREE_growth_mort.df %>% mutate(M = ifelse(STATUSCD_CHANGE==2, 1, 0))
+hist(PIPO.mort.data$DIA)
+ggplot(PIPO.mort.data, aes(DIA, M))+geom_point()+stat_smooth()
+
+m1 <- glm(M ~ growth ,family=binomial(link='logit'),data=PIPO.mort.data)
+summary(m1)
+anova(m1)
+alpha <- m1$coefficients[1]
+b.growth <- m1$coefficients[2]
+# save the mortality analysis equation:
+saveRDS(m1, "outputs/PIPO_growth_model.RDS")
+
+
+m2 <- glm(M ~ growth + DBH_cm,family=binomial(link='logit'),data=PIPO.mort.data)
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+hist(predict(m2, growth.sim, type = "response"))
+
+summary(m2)
+anova(m2)
+m2 <- readRDS("m2_pipo_mort_year.rds")
+alpha.mort <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+saveRDS(m2, "m2_pipo_mort_year.rds")
+
+PIPO.mort.data$DBH_cm_sq <- PIPO.mort.data$DBH_cm^2
+
+m2flex <- glm(M ~ growth + DBH_cm + DBH_cm_sq ,family=binomial(link='logit'),data=PIPO.mort.data)
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+growth.sim$DBH_cm_sq <- growth.sim$DBH_cm^2
+
+
+hist(predict(m2flex, growth.sim, type = "response"))
+
+summary(m2flex)
+anova(m2flex)
+#m2 <- readRDS("m2_pipo_mort_year.rds")
+alpha.mort <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+saveRDS(m2, "m2_pipo_mort_year.rds")
+
+pmort <- as.vector(inv.logit(alpha.mort + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
+
+growth.sim$pmort <- pmort
+growth.sim <- as.data.frame(growth.sim)
+class(growth.sim$growth)
+DBH.responses <- ggplot(growth.sim, aes(DBH_cm, pmort, color = growth, group = growth))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter (cm)")
+growth.responses <- ggplot(growth.sim, aes(growth, pmort, color = DBH_cm, group = DBH_cm))+geom_line()+ scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+ylab("Probability of mortality")+xlab("Diameter growth (cm)")
+
+png(height = 4, width = 8, units = "in", res = 300, "outputs/mortality_FIA_derived_logistic_model.png")
+cowplot::plot_grid(DBH.responses, growth.responses, ncol = 2, align = "hv")
+dev.off()
+
+#--------------------------------------------------------------------------------------
+# make this a survival model
+
+
+PIPO.surv.data <- TREE_growth_mort.df %>% mutate(S = ifelse(STATUSCD_CHANGE==2, 0, 1))
+hist(PIPO.surv.data$DIA)
+ggplot(PIPO.surv.data, aes(DIA, S))+geom_point()+stat_smooth()
+ggplot(PIPO.surv.data, aes(growth, S))+geom_point()+stat_smooth()
+
+m1 <- glm(S ~ growth ,family=binomial(link='logit'),data=PIPO.surv.data)
+summary(m1)
+anova(m1)
+alpha <- m1$coefficients[1]
+b.growth <- m1$coefficients[2]
+# save the mortality analysis equation:
+saveRDS(m1, "outputs/PIPO_growth_model.RDS")
+
+
+m2 <- glm(S ~ growth + DBH_cm,family=binomial(link='logit'),data=PIPO.surv.data)
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+hist(predict(m2, growth.sim, type = "response"))
+
+summary(m2)
+anova(m2)
+saveRDS(m2, "m2_pipo_surv_year.rds")
+
+alpha.surv <- m2$coefficients[1]
+b.growth <- m2$coefficients[2]
+b.dbh <- m2$coefficients[3]
+saveRDS(m2, "m2_pipo_surv_year.rds")
+
+psurv <- as.vector(boot::inv.logit(alpha.surv + (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) ))
+
+growth.sim$psurv <- psurv
+growth.sim <- as.data.frame(growth.sim)
+class(growth.sim$growth)
+DBH.responses <- ggplot(growth.sim, aes(DBH_cm, psurv, color = growth, group = growth))+geom_line()+ 
+  scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  ylab("Probability of survival")+xlab("Diameter (cm)")
+growth.responses <- ggplot(growth.sim, aes(growth, psurv, color = DBH_cm, group = DBH_cm))+geom_line()+ 
+  scale_color_viridis_c(option = "magma")+theme_bw(base_size = 14)+theme(panel.grid = element_blank())+
+  ylab("Probability of msurvival")+xlab("Diameter growth (cm)")
+
+png(height = 4, width = 8, units = "in", res = 300, "outputs/mortality_FIA_derived_logistic_model_survival.png")
+cowplot::plot_grid(DBH.responses, growth.responses, ncol = 2, align = "hv")
+dev.off()
+
+library(boot)
+pmort <- as.vector(inv.logit(alpha + (b.growth * growth.sim$growth)))
+hist(pmort)
+hist(rbinom(n = 1000, prob = pmort, size = 1))
+     
+# use this to sample mortality probabilities??
+
+m3 <- glm(M ~ growth + DBH_cm + growth*DBH_cm, family=binomial(link='logit'), data=PIPO.mort.data)
+summary(m3)
+alpha.growth <- m3$coefficients[1]
+b.growth <- m3$coefficients[2]
+b.dbh <- m3$coefficients[3]
+b.growth.dbh <- m3$coefficients[4]
+
+growth.sim <- expand.grid(growth = seq(0.001,2,length = 20),
+                          DBH_cm = seq(5, 60, length = 20))
+pmort <- as.vector(inv.logit(alpha.growth+ (b.growth * growth.sim$growth) + (b.dbh * growth.sim$DBH_cm) + b.growth.dbh*growth.sim$DBH_cm*growth.sim$growth ))
+
+growth.sim$pmort <- pmort
+growth.sim <- as.data.frame(growth.sim)
+class(growth.sim$growth)
+ggplot(growth.sim, aes(DBH_cm, pmort, color = growth, group = growth))+geom_line()
+ggplot(growth.sim, aes(growth, pmort, color = DBH_cm, group = DBH_cm))+geom_line()
+
+saveRDS(m3, "model3_logistic_mortality_FIA.RDS")
+
+m3 <- readRDS("model3_logistic_mortality_FIA.RDS")
+alpha.mort <- m3$coefficients[1]
+b.growth <- m3$coefficients[2]
+b.dbh <- m3$coefficients[3]
+b.growth.dbh <- m3$coefficients[4]
+
+# AUC is not bad for one predictor
+library(ROCR)
+
+get_AUC <- function(m, newdata = PIPO.mort.data){
+    p <- predict(m, newdata=PIPO.mort.data, type="response")
+    pr <- prediction(p, PIPO.mort.data$M)
+    prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+    plot(prf)
+    auc <- performance(pr, measure = "auc")
+    auc <- auc@y.values[[1]]
+    auc
+}
+
+
+get_AUC(m1, newdata = PIPO.mort.data)
+get_AUC(m2, newdata = PIPO.mort.data)
+get_AUC(m3, newdata = PIPO.mort.data)
 # goal: make plots of the distribution of tree diameters that died with groups of diameter, heights, subplot SDIs, and SI
 # compare these to biomass estimates
 # get a static estimate of SDI, which includes the dead trees:
@@ -160,7 +355,7 @@ dev.off()
 prop.dead <- TREE_remeas %>% group_by(SDIbin, DIAbin, STATUSCD_CHANGE) %>% summarise(n()) %>% 
   ungroup() %>% group_by (SDIbin, DIAbin) %>% spread(`n()`, key = STATUSCD_CHANGE) %>% mutate(prop.dead = `2`/`0`) %>% mutate(prop.dead = ifelse(is.na(prop.dead), 0, prop.dead))
 
-
+saveRDS(TREE_remeas, "outputs/TREE_remeas_FIA_PIPO_plots.rds")
 hist(prop.dead$prop.dead)
 
 
