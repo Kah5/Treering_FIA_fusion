@@ -477,8 +477,8 @@ parse_differences_regional_C(parse1 = "DD.ramp", parse2 = "GD.10")
 
 # total 
 total.p <- ggplot() + 
-  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
-  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
+  geom_line(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full", "no climate change") & year < 2051), aes(x = year, y = mAGB/1000000000, color = `Carbon Pool`))+
+  geom_ribbon(data = low.high.Cpools %>% filter(rcp %in% "rcp26" & parse %in% c("full", "no climate change") & year < 2051), aes(x = year, ymin = ci.low/1000000000, ymax = ci.hi/1000000000, fill = `Carbon Pool`), alpha = 0.9)+
   facet_wrap(~parse)+
   scale_fill_manual(values = c("Live Tree C"= "#018571", "Standing Dead C" = "#a6611a"))+
   ylab("Total Aboveground C (Tg)")+
