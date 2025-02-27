@@ -227,6 +227,23 @@ mort.CC.pct.bar <- ggplot() +
 mort.CC.pct.bar
 ggsave(height = 4, width = 4, units = "in", "outputs/PCT_MORT_DUE_TO_CC_bar.PNG")
 
+
+mort.CC.pct.bar.2050 <- ggplot() + 
+  geom_bar(data = climate.change.dead.tree.effect %>% filter(year %in% "2050"), aes(x=rcp, y = mDEAD, fill = rcp), size = 5, stat = "identity")+
+  geom_errorbar(data = climate.change.dead.tree.effect %>% filter(year %in% "2050"), aes(x=rcp, ymin = low.DEAD, ymax = high.DEAD), size = 0.5, width = 0.1)+
+  ylab("% of mortality attributable to climate change")+xlab("Emissions Pathway")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())#+#ylim(0, 30)
+mort.CC.pct.bar.2050
+ggsave(height = 4, width = 4, units = "in", "outputs/PCT_MORT_DUE_TO_CC_bar_2050.PNG")
+
+mort.CC.pct.bar.ts <- ggplot() + 
+  geom_bar(data = climate.change.dead.tree.effect, aes(x=year, y = mDEAD, fill = rcp), size = 5, stat = "identity")+
+  geom_errorbar(data = climate.change.dead.tree.effect, aes(x=year, ymin = low.DEAD, ymax = high.DEAD), size = 0.5, width = 0.1)+
+  ylab("% of mortality attributable to climate change")+xlab("Emissions Pathway")+theme_bw(base_size = 24)+theme(panel.grid = element_blank())+
+  facet_wrap(~rcp)#+#ylim(0, 30)
+mort.CC.pct.bar.ts
+ggsave(height = 16, width = 16, units = "in", "outputs/PCT_MORT_DUE_TO_CC_bar_timeseries.PNG")
+
+
 mort.CC.pct <- ggplot() + 
   geom_segment(data = climate.change.dead.tree.effect %>% filter(year %in% "2098"), aes(x=rcp, xend = rcp, y = low.DEAD, 
                                                                                          yend = high.DEAD, color = rcp), size = 5)+

@@ -143,7 +143,7 @@ seq.matrix <- data.frame(MAP = seq(from = MAP.quant[1], to = MAP.quant[3], lengt
 # now create a function where we say what values to change and hold constant and it predicts for an average tree/year:
 vary.by <- "TMAX"
 
-calculate_tree_growth<- function(covariates, betas.all){
+calculate_tree_growth<- function(covariates, betas.all = betas.all){
   tree.growth <- #betas.all$alpha #+ beta_YEARid +# sampled from tree level alpha randome effect
   # normal fixed effects
   betas.all$bMAP*covariates$MAP + 
@@ -195,14 +195,14 @@ calculate_tree_growth<- function(covariates, betas.all){
   treegrowth
 }
 
-plot.simple.effect <- function(vary.by, seqs, meds){
+plot.simple.effect <- function(vary.by){
     seqs <- seq.matrix %>% dplyr::select(vary.by)
     meds <- median.matrix %>% dplyr::select(!vary.by)
     covariates.5 <- cbind(seqs, meds)
     
     
     
-    range.preds <- lapply(1:nrow(covariates.5), function(i){calculate_tree_growth(covariates = covariates.5[i,], betas.all = betas.all)})
+    range.preds <- lapply(1:nrow(covariates.5), function(i){calculate_tree_growth(covariates = covariates.5[i,])})
     
     ranges.preds.df <- do.call(rbind, range.preds)
     cov.preds.long <- cbind(covariates.5, ranges.preds.df)
@@ -213,26 +213,32 @@ plot.simple.effect <- function(vary.by, seqs, meds){
                                                                        med = quantile(value, 0.5))
     
     
+    
+    
+    
     effect.plot <- ggplot()+geom_ribbon(data = pred.summary, aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = vary.by))+
       geom_line(data = pred.summary, aes(x = .data[[vary.by]], y = med))+
       scale_fill_manual(values =c("SDI"="#1b9e77","TMAX"= "#d95f02", "PPT"="#7570b3", "DIA" = "darkgrey", "MAP" = "darkblue", "MAT" = "darkred"))+theme(legend.position = "none")
       #+ylim(0,0.25)
     
     effect.plot
+    #pred.summary
+    #object.list <- list()
+    
 }
 
 theme.gg <- theme_bw(base_size = 14) + theme(panel.grid = element_blank(), legend.position = "none")
-tmax.eff <- plot.simple.effect(vary.by = "TMAX") + theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
-SDI.eff <- plot.simple.effect(vary.by = "SDI")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
-DIA.eff <- plot.simple.effect(vary.by = "DIA")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
-ppt.eff <- plot.simple.effect(vary.by = "PPT")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
-MAP.eff <- plot.simple.effect(vary.by = "MAP")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
-MAT.eff <- plot.simple.effect(vary.by = "MAT")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 1.45)
+tmax.eff <- plot.simple.effect(vary.by = "TMAX") + theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
+SDI.eff <- plot.simple.effect(vary.by = "SDI")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
+DIA.eff <- plot.simple.effect(vary.by = "DIA")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
+ppt.eff <- plot.simple.effect(vary.by = "PPT")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
+MAP.eff <- plot.simple.effect(vary.by = "MAP")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
+MAT.eff <- plot.simple.effect(vary.by = "MAT")+ theme.gg + ylab("Tree Growth (mm)")+ylim(0, 2.1)
 
 
 png(height =5, width =6, units = "in", res = 300, "outputs/Main_effects_ssm_full.png")
 cowplot::plot_grid(DIA.eff, MAT.eff, MAP.eff, SDI.eff, tmax.eff, ppt.eff, 
-                   ncol = 3, align = "hv")
+                   ncol = 3, align = "hv", labels = "AUTO")
 dev.off()
 
 # combine with a map of observations and with the violin plots for figure 2:
@@ -268,9 +274,12 @@ ggsave(paste0("outputs/covariate_violin_plots_model_6.png"))
 png(height = 8, width = 8, units = "in", res = 300, "outputs/map_parameter_ests_marginal_climate.png")
 plot_grid(
 plot_grid(US.spp.map, violin.plot.posteriors, align = "h", labels = c("A", "B")),
-plot_grid(SDI.eff+xlab("Relative SDI"), tmax.eff+xlab("Relative max Temp."), ppt.eff + xlab("Relative Precip."), align = "hv", cols = 3, labels =c("C", "D", "E")),
+plot_grid(SDI.eff+xlab("Relative SDI"), tmax.eff+xlab("Maximum \n Temperature Anomaly"), ppt.eff + xlab("Precipitation Anomaly"), align = "hv", cols = 3, labels =c("C", "D", "E")),
 cols = 1, rel_heights = c(1,0.5))
 dev.off()
+
+
+
 
 ############################################################################
 # extra code, not used
@@ -278,78 +287,78 @@ dev.off()
 # 
 # # next steps would be to make these on the units of the variables
 # 
-# interaction.term <- "TMAX"
+interaction.term <- "TMAX"
 # 
 # 
 # 
 # # make some interaction plots:
-# plot.interaction.effect <- function(vary.by, interaction.term , seqs, meds){
-#   seqs <- seq.matrix %>% dplyr::select(vary.by)
-#   interaction.seqs <- seq.matrix %>% dplyr::select(interaction.term)
-#   meds <- median.matrix %>% dplyr::select(!vary.by & !interaction.term)
-#   meds.full<- rbind(meds, meds, meds) # need to make it 300 --100 for each interaction line
-#   covariates.5 <- cbind(seqs, meds)
-#   
-#   interaction.lo.mid.hi <- as.matrix(t(data.frame(low = quantile(interaction.seqs[,1], 0.025), 
-#                                       mid = quantile(interaction.seqs[,1], 0.5), 
-#                                       high = quantile(interaction.seqs[,1], 0.975))))
-#   #covariates.5
-#   biggrid <- expand.grid(seqs[,1], interaction.lo.mid.hi)
-#   colnames(biggrid) <- c(vary.by, interaction.term)
-#   #nrow(biggrid)
-#   covariates.all <- cbind(biggrid, meds)
-#   
-#   range.preds <- lapply(1:nrow(covariates.all), function(i){calculate_tree_growth(covariates = covariates.all[i,], betas.all = betas.all)})
-#   
-#   ranges.preds.df <- do.call(rbind, range.preds)
-#   cov.preds.long <- cbind(covariates.all, ranges.preds.df)
-#   cov.preds.long.m <- reshape2::melt(cov.preds.long, id.vars = colnames(covariates.all))
-#   
-#   pred.summary <- cov.preds.long.m %>% group_by(UQ(sym(vary.by)), UQ(sym(interaction.term))) %>% summarise(ci.lo = quantile(value, 0.025), 
-#                                                                                 ci.hi = quantile(value, 0.975), 
-#                                                                                 med = quantile(value, 0.5))
-#   
-#   
-#   df.labels <- data.frame(TMAX = unique(pred.summary[,interaction.term]), 
-#              quantile = c("low", "medium", "high"))
-#   colnames(df.labels)[1]<- interaction.term
-#   pred.summary.interaction <- left_join(pred.summary, df.labels)
-#   
-#   effect.plot <- ggplot()+geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "low"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "low"), alpha = 0.75)+
-#     geom_line(data = pred.summary.interaction %>% filter(quantile %in% "low"), aes(x = .data[[vary.by]], y = med))+
-#     
-#     geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "medium"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "mid"), alpha = 0.75)+
-#     geom_line(data = pred.summary.interaction %>% filter(quantile %in% "medium"), aes(x = .data[[vary.by]], y = med))+
-#     
-#     
-#     geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "high"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "high"), alpha = 0.75)+
-#     geom_line(data = pred.summary.interaction %>% filter(quantile %in% "high"), aes(x = .data[[vary.by]], y = med))+
-#     
-#     scale_fill_manual(name = interaction.term, values =c("low"="#0571b0","mid"= "#fecc5c", "high"="#ca0020"), 
-#                       breaks = c("low", "mid", "high")) + ylab("Tree Growth (mm)")+theme_bw(base_size = 14)#+theme(legend.position = "none")
-#  
-#   
-#   effect.plot
-# }
-# 
-# # new theme.gg.legend
-# theme.gg.legend <- theme_bw(base_size = 14) + theme( panel.grid = element_blank())
-# 
-# # climate anomolies x SDI interactions
-# l<- plot.interaction.effect(vary.by = "TMAX", interaction.term = "SDI")+ theme.gg.legend +ylim(0, 1.9)
-# m <- plot.interaction.effect(vary.by = "PPT", interaction.term = "SDI")+ theme.gg.legend +ylim(0, 1.9)
-# 
-# # climate normals x SDI interactions
-# # these two are not in the model
-# a <- plot.interaction.effect(vary.by = "SDI", interaction.term = "MAP")+ theme.gg.legend +ylim(0, 1.9)
-# b<- plot.interaction.effect(vary.by = "SDI", interaction.term = "MAT")+ theme.gg.legend +ylim(0, 1.9)
-# 
+plot.interaction.effect <- function(vary.by, interaction.term , seqs, meds){
+  seqs <- seq.matrix %>% dplyr::select(vary.by)
+  interaction.seqs <- seq.matrix %>% dplyr::select(interaction.term)
+  meds <- median.matrix %>% dplyr::select(!vary.by & !interaction.term)
+  meds.full<- rbind(meds, meds, meds) # need to make it 300 --100 for each interaction line
+  covariates.5 <- cbind(seqs, meds)
+
+  interaction.lo.mid.hi <- as.matrix(t(data.frame(low = quantile(interaction.seqs[,1], 0.025),
+                                      mid = quantile(interaction.seqs[,1], 0.5),
+                                      high = quantile(interaction.seqs[,1], 0.975))))
+  #covariates.5
+  biggrid <- expand.grid(seqs[,1], interaction.lo.mid.hi)
+  colnames(biggrid) <- c(vary.by, interaction.term)
+  #nrow(biggrid)
+  covariates.all <- cbind(biggrid, meds)
+
+  range.preds <- lapply(1:nrow(covariates.all), function(i){calculate_tree_growth(covariates = covariates.all[i,], betas.all = betas.all)})
+
+  ranges.preds.df <- do.call(rbind, range.preds)
+  cov.preds.long <- cbind(covariates.all, ranges.preds.df)
+  cov.preds.long.m <- reshape2::melt(cov.preds.long, id.vars = colnames(covariates.all))
+
+  pred.summary <- cov.preds.long.m %>% group_by(UQ(sym(vary.by)), UQ(sym(interaction.term))) %>% summarise(ci.lo = quantile(value, 0.025),
+                                                                                ci.hi = quantile(value, 0.975),
+                                                                                med = quantile(value, 0.5))
+
+
+  df.labels <- data.frame(TMAX = unique(pred.summary[,interaction.term]),
+             quantile = c("low", "medium", "high"))
+  colnames(df.labels)[1]<- interaction.term
+  pred.summary.interaction <- left_join(pred.summary, df.labels)
+
+  effect.plot <- ggplot()+geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "low"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "low"), alpha = 0.75)+
+    geom_line(data = pred.summary.interaction %>% filter(quantile %in% "low"), aes(x = .data[[vary.by]], y = med))+
+
+    geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "medium"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "mid"), alpha = 0.75)+
+    geom_line(data = pred.summary.interaction %>% filter(quantile %in% "medium"), aes(x = .data[[vary.by]], y = med))+
+
+
+    geom_ribbon(data = pred.summary.interaction %>% filter(quantile %in% "high"), aes(x = .data[[vary.by]], ymin = ci.lo, ymax = ci.hi,fill = "high"), alpha = 0.75)+
+    geom_line(data = pred.summary.interaction %>% filter(quantile %in% "high"), aes(x = .data[[vary.by]], y = med))+
+
+    scale_fill_manual(name = interaction.term, values =c("low"="#0571b0","mid"= "#fecc5c", "high"="#ca0020"),
+                      breaks = c("low", "mid", "high")) + ylab("Tree Growth (mm)")+theme_bw(base_size = 14)#+theme(legend.position = "none")
+
+
+  effect.plot
+}
+
+# new theme.gg.legend
+theme.gg.legend <- theme_bw(base_size = 14) + theme( panel.grid = element_blank())
+
+# climate anomolies x SDI interactions
+a <- plot.interaction.effect(vary.by = "TMAX", interaction.term = "SDI")+ theme.gg.legend +ylim(0, 2.1)
+b <- plot.interaction.effect(vary.by = "PPT", interaction.term = "SDI")+ theme.gg.legend +ylim(0, 2.1)
+
+# climate normals x SDI interactions
+# these two are not in the model
+c <- plot.interaction.effect(vary.by = "SDI", interaction.term = "MAP")+ theme.gg.legend +ylim(0, 2.1)
+d <- plot.interaction.effect(vary.by = "SDI", interaction.term = "MAT")+ theme.gg.legend +ylim(0, 2.1)
+
 # 
 # # climate normals x climate anomalies
-# plot.interaction.effect(vary.by = "MAP", interaction.term = "PPT")+ theme.gg.legend +ylim(0, 1.9)
-# plot.interaction.effect(vary.by = "MAT", interaction.term = "PPT")+ theme.gg.legend +ylim(0, 1.9)
-# plot.interaction.effect(vary.by = "MAT", interaction.term = "TMAX")+ theme.gg.legend +ylim(0, 1.9)
-# plot.interaction.effect(vary.by = "MAP", interaction.term = "TMAX")+ theme.gg.legend +ylim(0, 1.9)
+e <- plot.interaction.effect(vary.by = "MAP", interaction.term = "PPT")+ theme.gg.legend +ylim(0, 2.1)
+f <- plot.interaction.effect(vary.by = "MAT", interaction.term = "PPT")+ theme.gg.legend +ylim(0, 2.1)
+g <- plot.interaction.effect(vary.by = "MAT", interaction.term = "TMAX")+ theme.gg.legend +ylim(0, 2.1)
+h <- plot.interaction.effect(vary.by = "MAP", interaction.term = "TMAX")+ theme.gg.legend +ylim(0, 2.1)
 # 
 # # same as the 4 above but changing x axis variable
 # c <- plot.interaction.effect(vary.by = "TMAX", interaction.term = "MAP")+ theme.gg.legend +ylim(0, 1.9)
@@ -358,20 +367,20 @@ dev.off()
 # f <-plot.interaction.effect(vary.by = "PPT", interaction.term = "MAT")+ theme.gg.legend +ylim(0, 1.9)
 # 
 # # climate anomalies x diameter
-# g <- plot.interaction.effect(vary.by = "PPT", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 1.9)
-# h <- plot.interaction.effect(vary.by = "TMAX", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 1.9)
+i <- plot.interaction.effect(vary.by = "PPT", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 2.1)
+j <- plot.interaction.effect(vary.by = "TMAX", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 2.1)
 # 
 # #SDI x diameter
-# i<- plot.interaction.effect(vary.by = "SDI", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 1.9)
+k <- plot.interaction.effect(vary.by = "SDI", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 2.1)
 # 
 # # climate normals x diamter
-# j <- plot.interaction.effect(vary.by = "MAP", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 1.9)
-# k <- plot.interaction.effect(vary.by = "MAT", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 1.9)
+l <- plot.interaction.effect(vary.by = "MAP", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 2.1)
+m <- plot.interaction.effect(vary.by = "MAT", interaction.term = "DIA")+ theme.gg.legend +ylim(0, 2.1)
 # 
 # 
 # # plot up 12 plot interaction giant plot!
 # 
-# png(height =12, width =14, units = "in", res = 300, "outputs/Interaction_effects_ssm_full.png")
-# cowplot::plot_grid(a, b, c, d, e, f, j, h, i, j, k, l, m,
-#                    ncol = 3, align = "hv")
-# dev.off()
+png(height =12.5, width =14, units = "in", res = 300, "outputs/Interaction_effects_ssm_full.png")
+cowplot::plot_grid(a, b, c, d, e, f, g, h, i, j, k, l, m,
+                   ncol = 3, align = "hv", labels = "AUTO")
+dev.off()

@@ -1176,7 +1176,7 @@ AGBI.list <- lapply(X = unique(plots)[1:675],
                          )})
 AGBI.df <- do.call(rbind, AGBI.list)
 AGBI.df$scenario <- "rcp26"
-ggplot(AGBI.df %>% filter(plot %in% unique(plots)[1:600]), aes(x = year, y = mAGB, group = plot))+geom_line()
+ggplot(AGBI.df %>% filter(plot), aes(x = year, y = mAGB, group = plot))+geom_line()
 
 # RCP 4.5
 AGBI.45.list <- lapply(X = unique(plots)[1:675],
